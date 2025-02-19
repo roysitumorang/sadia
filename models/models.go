@@ -1,5 +1,9 @@
 package models
 
+const (
+	CurrentAccount = "current_account"
+)
+
 type (
 	Pagination struct {
 		Links struct {
@@ -9,9 +13,9 @@ type (
 			Next     string `json:"next" example:"http://localhost:19000/v1/cities?limit=1&page=3&search=Tangerang"`
 		} `json:"links"`
 		Info struct {
-			Limit uint64 `json:"limit" example:"1"`
-			Pages uint64 `json:"pages" example:"3"`
-			Total uint64 `json:"total" example:"3"`
+			Limit int64 `json:"limit" example:"1"`
+			Pages int64 `json:"pages" example:"3"`
+			Total int64 `json:"total" example:"3"`
 		} `json:"info"`
 	}
 )

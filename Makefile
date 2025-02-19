@@ -4,6 +4,9 @@ PORT_HTTP=3000
 
 .PHONY: all build-debug
 
+format:
+	@find . -name "*.go" -not -path ".git/*" | xargs gofmt -s -d -w
+
 build-debug:
 	@go mod tidy
 	@CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -race -x -ldflags \

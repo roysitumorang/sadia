@@ -71,9 +71,28 @@ func main() {
 			}
 			var g errgroup.Group
 			g.Go(func() error {
+				return service.HTTPServerMain(ctx)
+			})
+			g.Go(func() error {
 				c := cron.New(cron.WithChain(
 					cron.Recover(cron.DefaultLogger),
 				))
+				// run every minute
+				entryID, err := c.AddFunc("* * * * *", func() {
+					rowsAffected, err := service.JwtUseCase.DeleteExpiredJWTs(ctx)
+					if err != nil {
+						helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteExpiredJWTs")
+						return
+					}
+					if rowsAffected > 0 {
+						helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("%d expired JWTs deleted", rowsAffected), ctxt, "")
+					}
+				})
+				if err != nil {
+					helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrAddFunc")
+					return err
+				}
+				helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("cron: entry added with ID %d", entryID), ctxt, "")
 				c.Start()
 				helper.Log(ctx, zap.InfoLevel, "cron: scheduled tasks running!...", ctxt, "")
 				return nil

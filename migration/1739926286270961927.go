@@ -1,0 +1,225 @@
+package migration
+
+import (
+	"context"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/roysitumorang/sadia/helper"
+	accountModel "github.com/roysitumorang/sadia/modules/account/model"
+	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
+)
+
+func init() {
+	Migrations[1739926286270961927] = func(ctx context.Context, tx pgx.Tx) (err error) {
+		ctxt := "Migration-1739926286270961927"
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE TABLE accounts (
+				id bigint NOT NULL PRIMARY KEY
+				, pid character varying NOT NULL UNIQUE
+				, account_type smallint NOT NULL
+				, status smallint NOT NULL
+				, name character varying NOT NULL
+				, username character varying NOT NULL UNIQUE
+				, email character varying UNIQUE
+				, unconfirmed_email character varying
+				, email_confirmation_token character varying UNIQUE
+				, email_confirmed_at timestamp with time zone
+				, phone character varying NOT NULL UNIQUE
+				, unconfirmed_phone character varying
+				, phone_confirmation_token character varying UNIQUE
+				, phone_confirmed_at timestamp with time zone
+				, encrypted_password character varying
+				, password_reset_token character varying UNIQUE
+				, login_count integer NOT NULL
+				, current_login_at timestamp with time zone
+				, current_login_ip character varying
+				, last_login_at timestamp with time zone
+				, last_login_ip character varying
+				, created_at timestamp with time zone NOT NULL
+				, updated_at timestamp with time zone NOT NULL
+				, deactivated_at timestamp with time zone
+				, deactivation_reason character varying
+			)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON accounts (pid)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON accounts (account_type)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON accounts (status)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON accounts (LOWER(name))",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON accounts (username)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON accounts (email)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON accounts (email_confirmation_token)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON accounts (phone)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON accounts (phone_confirmation_token)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON accounts (password_reset_token)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE TABLE json_web_tokens (
+				id bigint NOT NULL PRIMARY KEY
+				, token character varying NOT NULL UNIQUE
+				, account_id bigint NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, created_at timestamp with time zone NOT NULL
+				, expired_at timestamp with time zone NOT NULL
+			)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON json_web_tokens (token)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON json_web_tokens (account_id)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON json_web_tokens (expired_at)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		accountID, accountPID, _, err := helper.GenerateUniqueID()
+		if err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
+			return
+		}
+		now := time.Now()
+		encryptedPassword, err := bcrypt.GenerateFromPassword(helper.String2ByteSlice("s@dia1d"), bcrypt.DefaultCost)
+		if err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateFromPassword")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`INSERT INTO accounts (
+				id
+				, pid
+				, account_type
+				, status
+				, name
+				, username
+				, email
+				, unconfirmed_email
+				, email_confirmation_token
+				, email_confirmed_at
+				, phone
+				, unconfirmed_phone
+				, phone_confirmation_token
+				, phone_confirmed_at
+				, encrypted_password
+				, password_reset_token
+				, login_count
+				, current_login_at
+				, current_login_ip
+				, last_login_at
+				, last_login_ip
+				, created_at
+				, updated_at
+				, deactivated_at
+				, deactivation_reason
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`,
+			accountID,
+			accountPID,
+			accountModel.AccountTypeAdmin,
+			accountModel.StatusActive,
+			"Roy Situmorang",
+			"roy",
+			"roy.situmorang@gmail.com",
+			nil,
+			nil,
+			now,
+			"+6285233494271",
+			nil,
+			nil,
+			now,
+			encryptedPassword,
+			nil,
+			0,
+			nil,
+			nil,
+			nil,
+			nil,
+			now,
+			now,
+			nil,
+			nil,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		return
+	}
+}

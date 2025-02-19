@@ -2,25 +2,28 @@ package helper
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"errors"
-	"fmt"
 	"maps"
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
 
 	"github.com/goccy/go-json"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/roysitumorang/sadia/models"
 	"github.com/vishal-bihani/go-tsid"
 )
 
 var (
-	timeZone   *time.Location
-	env        string
+	timeZone *time.Location
+	env,
+	jwtIssuer string
 	InitHelper = sync.OnceValue(func() (err error) {
 		location, ok := os.LookupEnv("TIME_ZONE")
 		if !ok || location == "" {
@@ -34,6 +37,9 @@ var (
 		}
 		if env == "" {
 			env = "development"
+		}
+		if jwtIssuer, ok = os.LookupEnv("JWT_ISSUER"); !ok || jwtIssuer == "" {
+			err = errors.New("env JWT_ISSUER is required")
 		}
 		return
 	})
@@ -68,51 +74,73 @@ func GetEnv() string {
 	return env
 }
 
-func SetPagination(total, pages, limit, page uint64, baseURL string, urlValues url.Values) (response models.Pagination, err error) {
+func SetPagination(total, pages, limit, page int64, baseURL string, urlValues url.Values) (*models.Pagination, error) {
+	var response models.Pagination
 	response.Info.Total = total
 	response.Info.Pages = pages
 	response.Info.Limit = limit
 	response.Links.First = baseURL
 	response.Links.Current = baseURL
+	var builder strings.Builder
 	if len(urlValues) > 0 {
 		queryString, err := url.QueryUnescape(urlValues.Encode())
 		if err != nil {
-			return response, err
+			return nil, err
 		}
-		url := fmt.Sprintf("%s?%s", baseURL, queryString)
+		builder.Reset()
+		_, _ = builder.WriteString(baseURL)
+		_, _ = builder.WriteString("?")
+		_, _ = builder.WriteString(queryString)
+		url := builder.String()
 		response.Links.First = url
 		response.Links.Current = url
 	}
 	if page < pages {
 		u := maps.Clone(urlValues)
-		u.Set("page", strconv.FormatUint(page+1, 10))
+		u.Set("page", strconv.FormatInt(page+1, 10))
 		queryString, err := url.QueryUnescape(u.Encode())
 		if err != nil {
-			return response, err
+			return nil, err
 		}
-		response.Links.Next = fmt.Sprintf("%s?%s", baseURL, queryString)
+		builder.Reset()
+		_, _ = builder.WriteString(baseURL)
+		_, _ = builder.WriteString("?")
+		_, _ = builder.WriteString(queryString)
+		response.Links.Next = builder.String()
 	}
 	if page > 1 {
 		u := maps.Clone(urlValues)
 		queryString, err := url.QueryUnescape(u.Encode())
 		if err != nil {
-			return response, err
+			return nil, err
 		}
-		response.Links.Previous = fmt.Sprintf("%s?%s", baseURL, queryString)
-		u.Set("page", strconv.FormatUint(page, 10))
+		builder.Reset()
+		_, _ = builder.WriteString(baseURL)
+		_, _ = builder.WriteString("?")
+		_, _ = builder.WriteString(queryString)
+		response.Links.Previous = builder.String()
+		u.Set("page", strconv.FormatInt(page, 10))
 		if queryString, err = url.QueryUnescape(u.Encode()); err != nil {
-			return response, err
+			return nil, err
 		}
-		response.Links.Current = fmt.Sprintf("%s?%s", baseURL, queryString)
+		builder.Reset()
+		_, _ = builder.WriteString(baseURL)
+		_, _ = builder.WriteString("?")
+		_, _ = builder.WriteString(queryString)
+		response.Links.Current = builder.String()
 		if page > 2 {
-			u.Set("page", strconv.FormatUint(page-1, 10))
+			u.Set("page", strconv.FormatInt(page-1, 10))
 			if queryString, err = url.QueryUnescape(u.Encode()); err != nil {
-				return response, err
+				return nil, err
 			}
-			response.Links.Previous = fmt.Sprintf("%s?%s", baseURL, queryString)
+			builder.Reset()
+			_, _ = builder.WriteString(baseURL)
+			_, _ = builder.WriteString("?")
+			_, _ = builder.WriteString(queryString)
+			response.Links.Previous = builder.String()
 		}
 	}
-	return
+	return &response, nil
 }
 
 func Transcode(input, output interface{}) error {
@@ -121,4 +149,22 @@ func Transcode(input, output interface{}) error {
 		return err
 	}
 	return json.NewDecoder(buffer).Decode(output)
+}
+
+func GetJwtIssuer() string {
+	return jwtIssuer
+}
+
+func GenerateAccessToken(id, subject, audience string, createdAt, expiredAt time.Time, privateKey *rsa.PrivateKey) (string, error) {
+	numericDate := jwt.NewNumericDate(createdAt)
+	var claims jwt.RegisteredClaims
+	claims.ID = id
+	claims.Subject = subject
+	claims.Audience = append(claims.Audience, audience)
+	claims.Issuer = jwtIssuer
+	claims.IssuedAt = numericDate
+	claims.NotBefore = numericDate
+	claims.ExpiresAt = jwt.NewNumericDate(expiredAt)
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	return token.SignedString(privateKey)
 }
