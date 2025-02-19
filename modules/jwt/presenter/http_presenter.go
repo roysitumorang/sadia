@@ -28,7 +28,9 @@ func New(
 }
 
 func (q *jwtHTTPHandler) Mount(r fiber.Router) {
-	r.Get("", middleware.KeyAuth(q.jwtUseCase, q.accountUseCase), q.FindJWTs)
+	r.Use(middleware.KeyAuth(q.jwtUseCase, q.accountUseCase)).
+		Get("", q.FindJWTs).
+		Delete("/:id", q.DeleteJWT)
 }
 
 func (q *jwtHTTPHandler) FindJWTs(c *fiber.Ctx) error {
@@ -41,11 +43,21 @@ func (q *jwtHTTPHandler) FindJWTs(c *fiber.Ctx) error {
 		urlValues,
 	)
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrLogin")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindJWTs")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(map[string]interface{}{
 		"pagination": pagination,
 		"rows":       rows,
 	}).WriteResponse(c)
+}
+
+func (q *jwtHTTPHandler) DeleteJWT(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AuthPresenter-DeleteJWT"
+	if _, err := q.jwtUseCase.DeleteJWT(ctx, c.Params("id")); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWT")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }

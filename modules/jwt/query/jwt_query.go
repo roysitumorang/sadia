@@ -171,3 +171,16 @@ func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jw
 	}
 	return response, total, pages, nil
 }
+
+func (q *jwtQuery) DeleteJWT(ctx context.Context, jwtID string) (int64, error) {
+	ctxt := "JwtQuery-DeleteJWT"
+	result, err := q.dbWrite.Exec(
+		ctx,
+		`DELETE FROM json_web_tokens WHERE id::varchar = $1 OR token = $1`,
+		jwtID,
+	)
+	if err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+	}
+	return result.RowsAffected(), err
+}

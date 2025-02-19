@@ -58,3 +58,12 @@ func (q *jwtUseCase) FindJWTs(ctx context.Context, filter *jwtModel.Filter, urlV
 	}
 	return rows, pagination, nil
 }
+
+func (q *jwtUseCase) DeleteJWT(ctx context.Context, jwtID string) (int64, error) {
+	ctxt := "JwtUseCase-DeleteJWT"
+	rowsAffected, err := q.jwtQuery.DeleteJWT(ctx, jwtID)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWT")
+	}
+	return rowsAffected, err
+}
