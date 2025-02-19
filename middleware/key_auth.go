@@ -21,6 +21,7 @@ import (
 func KeyAuth(
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
+	accountTypes ...uint8,
 ) func(c *fiber.Ctx) error {
 	var builder strings.Builder
 	_, _ = builder.WriteString("header:")
@@ -56,6 +57,17 @@ func KeyAuth(
 				return false, nil
 			}
 			account := accounts[0]
+			if len(accountTypes) > 0 {
+				var matched bool
+				for _, _accountType := range accountTypes {
+					if matched = account.AccountType == _accountType; matched {
+						break
+					}
+				}
+				if !matched {
+					return false, nil
+				}
+			}
 			c.Locals(models.CurrentAccount, &account)
 			return true, nil
 		},
