@@ -23,7 +23,8 @@ import (
 var (
 	timeZone *time.Location
 	env,
-	jwtIssuer string
+	jwtIssuer,
+	nsqAddress string
 	InitHelper = sync.OnceValue(func() (err error) {
 		location, ok := os.LookupEnv("TIME_ZONE")
 		if !ok || location == "" {
@@ -39,7 +40,10 @@ var (
 			env = "development"
 		}
 		if jwtIssuer, ok = os.LookupEnv("JWT_ISSUER"); !ok || jwtIssuer == "" {
-			err = errors.New("env JWT_ISSUER is required")
+			return errors.New("env JWT_ISSUER is required")
+		}
+		if nsqAddress, ok = os.LookupEnv("NSQ_ADDRESS"); !ok || nsqAddress == "" {
+			err = errors.New("env NSQ_ADDRESS is required")
 		}
 		return
 	})
@@ -167,4 +171,8 @@ func GenerateAccessToken(id, subject, audience string, createdAt, expiredAt time
 	claims.ExpiresAt = jwt.NewNumericDate(expiredAt)
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	return token.SignedString(privateKey)
+}
+
+func GetNsqAddress() string {
+	return nsqAddress
 }

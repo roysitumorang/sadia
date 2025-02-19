@@ -75,6 +75,20 @@ func main() {
 				return service.HTTPServerMain(ctx)
 			})
 			g.Go(func() error {
+				err := service.AccountUseCase.ConsumeMessage(ctx)
+				if err != nil {
+					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
+				}
+				return err
+			})
+			g.Go(func() error {
+				err := service.JwtUseCase.ConsumeMessage(ctx)
+				if err != nil {
+					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
+				}
+				return err
+			})
+			g.Go(func() error {
 				c := cron.New(cron.WithChain(
 					cron.Recover(cron.DefaultLogger),
 				))

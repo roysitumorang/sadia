@@ -15,5 +15,6 @@ type (
 		CreateJWT(ctx context.Context, tx pgx.Tx, request jwtModel.JsonWebToken) error
 		DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.Time, accountID int64, jwtIDs ...string) (int64, error)
 		FindJWTs(ctx context.Context, filter *jwtModel.Filter, urlValues url.Values) ([]*jwtModel.JsonWebToken, *models.Pagination, error)
+		ConsumeMessage(ctx context.Context) error
 	}
 )

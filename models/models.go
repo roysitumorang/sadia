@@ -18,6 +18,11 @@ type (
 			Total int64 `json:"total" example:"3"`
 		} `json:"info"`
 	}
+
+	Message struct {
+		Action string `json:"action"`
+		ID     int64  `json:"id"`
+	}
 )
 
 var (
