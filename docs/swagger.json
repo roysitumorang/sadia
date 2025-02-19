@@ -1,0 +1,37 @@
+{
+    "consumes": [
+        "application/json"
+    ],
+    "produces": [
+        "application/json"
+    ],
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "This is documentation of Sadia API.",
+        "title": "Sadia API",
+        "contact": {
+            "name": "Roy Situmorang",
+            "email": "roy.situmorang@gmail.com"
+        },
+        "version": "0.1.0"
+    },
+    "basePath": "/v1",
+    "paths": {},
+    "securityDefinitions": {
+        "apiKey": {
+            "description": "Sadia API call requires X-Api-Key request header",
+            "type": "apiKey",
+            "name": "x-api-key",
+            "in": "header"
+        }
+    },
+    "security": [
+        {
+            "ApiKeyAuth": []
+        }
+    ]
+}
