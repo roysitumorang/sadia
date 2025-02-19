@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"net/url"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
@@ -35,11 +36,11 @@ func (q *jwtUseCase) CreateJWT(ctx context.Context, tx pgx.Tx, request jwtModel.
 	return err
 }
 
-func (q *jwtUseCase) DeleteExpiredJWTs(ctx context.Context) (int64, error) {
-	ctxt := "JwtUseCase-DeleteExpiredJWTs"
-	rowsAffected, err := q.jwtQuery.DeleteExpiredJWTs(ctx)
+func (q *jwtUseCase) DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.Time, accountID int64, jwtIDs ...string) (int64, error) {
+	ctxt := "JwtUseCase-DeleteJWTs"
+	rowsAffected, err := q.jwtQuery.DeleteJWTs(ctx, tx, maxExpiredAt, accountID, jwtIDs...)
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteExpiredJWTs")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 	}
 	return rowsAffected, err
 }
@@ -57,13 +58,4 @@ func (q *jwtUseCase) FindJWTs(ctx context.Context, filter *jwtModel.Filter, urlV
 		return nil, nil, err
 	}
 	return rows, pagination, nil
-}
-
-func (q *jwtUseCase) DeleteJWT(ctx context.Context, jwtID string) (int64, error) {
-	ctxt := "JwtUseCase-DeleteJWT"
-	rowsAffected, err := q.jwtQuery.DeleteJWT(ctx, jwtID)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWT")
-	}
-	return rowsAffected, err
 }

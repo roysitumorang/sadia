@@ -172,14 +172,52 @@ func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jw
 	return response, total, pages, nil
 }
 
-func (q *jwtQuery) DeleteJWT(ctx context.Context, jwtID string) (int64, error) {
-	ctxt := "JwtQuery-DeleteJWT"
-	result, err := q.dbWrite.Exec(
-		ctx,
-		`DELETE FROM json_web_tokens WHERE id::varchar = $1 OR token = $1`,
-		jwtID,
+func (q *jwtQuery) DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.Time, accountID int64, jwtIDs ...string) (int64, error) {
+	ctxt := "JwtQuery-DeleteJWTs"
+	var (
+		params     []interface{}
+		conditions []string
+		builder    strings.Builder
 	)
+	if !maxExpiredAt.IsZero() {
+		params = append(params, maxExpiredAt)
+		builder.Reset()
+		_, _ = builder.WriteString("expired_at <= $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
+	if len(jwtIDs) > 0 {
+		builder.Reset()
+		_, _ = builder.WriteString("id::varchar IN (")
+		for i, jwtID := range jwtIDs {
+			params = append(params, jwtID)
+			if i > 0 {
+				_, _ = builder.WriteString(",")
+			}
+			_, _ = builder.WriteString("$")
+			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		}
+		_, _ = builder.WriteString(")")
+		condition := builder.String()
+		conditions = append(conditions, condition, strings.ReplaceAll(condition, "id::varchar", "token"))
+	}
+	if len(conditions) == 0 {
+		return 0, nil
+	}
+	builder.Reset()
+	_, _ = builder.WriteString("DELETE FROM json_web_tokens WHERE")
+	for i, condition := range conditions {
+		if i > 0 {
+			_, _ = builder.WriteString(" OR")
+		}
+		_, _ = builder.WriteString(" ")
+		_, _ = builder.WriteString(condition)
+	}
+	result, err := tx.Exec(ctx, builder.String(), params...)
 	if err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 	}
 	return result.RowsAffected(), err

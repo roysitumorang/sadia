@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 	"github.com/robfig/cron/v3"
 	"github.com/roysitumorang/sadia/config"
@@ -79,9 +80,27 @@ func main() {
 				))
 				// run every minute
 				entryID, err := c.AddFunc("* * * * *", func() {
-					rowsAffected, err := service.JwtUseCase.DeleteExpiredJWTs(ctx)
+					tx, err := service.AccountUseCase.BeginTx(ctx)
 					if err != nil {
-						helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteExpiredJWTs")
+						helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+						return
+					}
+					defer func() {
+						errRollback := tx.Rollback(ctx)
+						if errors.Is(errRollback, pgx.ErrTxClosed) {
+							errRollback = nil
+						}
+						if errRollback != nil {
+							helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+						}
+					}()
+					rowsAffected, err := service.JwtUseCase.DeleteJWTs(ctx, tx, time.Now(), 0)
+					if err != nil {
+						helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
+						return
+					}
+					if err = tx.Commit(ctx); err != nil {
+						helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 						return
 					}
 					if rowsAffected > 0 {

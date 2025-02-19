@@ -1,7 +1,11 @@
 package presenter
 
 import (
+	"errors"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
@@ -55,8 +59,26 @@ func (q *jwtHTTPHandler) FindJWTs(c *fiber.Ctx) error {
 func (q *jwtHTTPHandler) DeleteJWT(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	ctxt := "AuthPresenter-DeleteJWT"
-	if _, err := q.jwtUseCase.DeleteJWT(ctx, c.Params("id")); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWT")
+	tx, err := q.accountUseCase.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, time.Time{}, 0, c.Params("id")); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)

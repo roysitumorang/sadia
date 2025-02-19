@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"net/url"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/models"
@@ -12,8 +13,7 @@ import (
 type (
 	JwtUseCase interface {
 		CreateJWT(ctx context.Context, tx pgx.Tx, request jwtModel.JsonWebToken) error
-		DeleteExpiredJWTs(ctx context.Context) (int64, error)
+		DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.Time, accountID int64, jwtIDs ...string) (int64, error)
 		FindJWTs(ctx context.Context, filter *jwtModel.Filter, urlValues url.Values) ([]*jwtModel.JsonWebToken, *models.Pagination, error)
-		DeleteJWT(ctx context.Context, jwtID string) (int64, error)
 	}
 )
