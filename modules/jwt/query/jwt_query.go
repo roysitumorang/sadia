@@ -122,26 +122,26 @@ func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jw
 	_, _ = builder.WriteString(query)
 	_, _ = builder.WriteString(" ORDER by -id")
 	pages := int64(1)
-	if filter.PerPage > 0 {
+	if filter.Limit > 0 {
 		totalDecimal, err := decimal.New(total, 0)
 		if err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrNew")
 			return nil, 0, 0, err
 		}
-		perPageDecimal, err := decimal.New(filter.PerPage, 0)
+		limitDecimal, err := decimal.New(filter.Limit, 0)
 		if err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrNew")
 			return nil, 0, 0, err
 		}
-		pagesDecimal, err := totalDecimal.Quo(perPageDecimal)
+		pagesDecimal, err := totalDecimal.Quo(limitDecimal)
 		if err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrQuo")
 			return nil, 0, 0, err
 		}
 		pages, _, _ = pagesDecimal.Ceil(0).Int64(0)
-		offset := (filter.Page - 1) * filter.PerPage
+		offset := (filter.Page - 1) * filter.Limit
 		_, _ = builder.WriteString(" LIMIT ")
-		_, _ = builder.WriteString(strconv.FormatInt(filter.PerPage, 10))
+		_, _ = builder.WriteString(strconv.FormatInt(filter.Limit, 10))
 		_, _ = builder.WriteString(" OFFSET ")
 		_, _ = builder.WriteString(strconv.FormatInt(offset, 10))
 	}

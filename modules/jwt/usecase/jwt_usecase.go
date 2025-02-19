@@ -51,7 +51,7 @@ func (q *jwtUseCase) FindJWTs(ctx context.Context, filter *jwtModel.Filter, urlV
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindJWTs")
 		return nil, nil, err
 	}
-	pagination, err := helper.SetPagination(total, pages, filter.PerPage, filter.Page, filter.PaginationURL, urlValues)
+	pagination, err := helper.SetPagination(total, pages, filter.Limit, filter.Page, filter.PaginationURL, urlValues)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrSetPagination")
 		return nil, nil, err

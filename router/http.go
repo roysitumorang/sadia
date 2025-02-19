@@ -28,6 +28,7 @@ import (
 	"github.com/roysitumorang/sadia/keys"
 	"github.com/roysitumorang/sadia/middleware"
 	authPresenter "github.com/roysitumorang/sadia/modules/auth/presenter"
+	jwtPresenter "github.com/roysitumorang/sadia/modules/jwt/presenter"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 	"go.uber.org/zap"
 )
@@ -121,6 +122,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		})
 	v1 := app.Group("/v1")
 	authPresenter.New(q.JwtUseCase, q.AccountUseCase, privateKey, accessTokenAge).Mount(v1.Group("/auth"))
+	jwtPresenter.New(q.JwtUseCase, q.AccountUseCase).Mount(v1.Group("/jwt"))
 	app.Use(func(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).WriteResponse(c)
 	})

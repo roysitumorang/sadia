@@ -6,17 +6,17 @@ import (
 
 type (
 	JsonWebToken struct {
-		ID        int64     `json:"-"`
-		Token     string    `json:"-"`
-		AccountID int64     `json:"-"`
-		CreatedAt time.Time `json:"-"`
-		ExpiredAt time.Time `json:"-"`
+		ID        int64     `json:"id"`
+		Token     string    `json:"token"`
+		AccountID int64     `json:"account_id"`
+		CreatedAt time.Time `json:"created_at"`
+		ExpiredAt time.Time `json:"expired_at"`
 	}
 
 	Filter struct {
 		Tokens        []string
 		PaginationURL string
-		PerPage,
+		Limit,
 		Page int64
 	}
 
@@ -37,9 +37,15 @@ func WithTokens(tokens ...string) FilterOption {
 	}
 }
 
-func WithPerPage(perPage int64) FilterOption {
+func WithPaginationURL(paginationURL string) FilterOption {
 	return func(q *Filter) {
-		q.PerPage = perPage
+		q.PaginationURL = paginationURL
+	}
+}
+
+func WithLimit(limit int64) FilterOption {
+	return func(q *Filter) {
+		q.Limit = limit
 	}
 }
 
