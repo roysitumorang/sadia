@@ -28,7 +28,6 @@ import (
 	"github.com/roysitumorang/sadia/keys"
 	"github.com/roysitumorang/sadia/middleware"
 	accountPresenter "github.com/roysitumorang/sadia/modules/account/presenter"
-	authPresenter "github.com/roysitumorang/sadia/modules/auth/presenter"
 	jwtPresenter "github.com/roysitumorang/sadia/modules/jwt/presenter"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 	"go.uber.org/zap"
@@ -63,10 +62,10 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		compress.New(),
 		rewrite.New(rewrite.Config{
 			Rules: map[string]string{
-				"/v1/admin/accounts":   "/v1/accounts/admin",
-				"/v1/admin/accounts/*": "/v1/accounts/admin/$1",
-				"/v1/admin/jwt":        "/v1/jwt/admin",
-				"/v1/admin/jwt/*":      "/v1/jwt/admin/$1",
+				"/v1/admin/account":   "/v1/account/admin",
+				"/v1/admin/account/*": "/v1/account/admin/$1",
+				"/v1/admin/jwt":       "/v1/jwt/admin",
+				"/v1/admin/jwt/*":     "/v1/jwt/admin/$1",
 			},
 		}),
 		cors.New(),
@@ -127,9 +126,8 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 			return helper.NewResponse(fiber.StatusOK).SetData(envMap).WriteResponse(c)
 		})
 	v1 := app.Group("/v1")
-	authPresenter.New(q.JwtUseCase, q.AccountUseCase, privateKey, accessTokenAge).Mount(v1.Group("/auth"))
 	jwtPresenter.New(q.JwtUseCase, q.AccountUseCase).Mount(v1.Group("/jwt"))
-	accountPresenter.New(q.JwtUseCase, q.AccountUseCase).Mount(v1.Group("/accounts"))
+	accountPresenter.New(q.JwtUseCase, q.AccountUseCase, privateKey, accessTokenAge).Mount(v1.Group("/account"))
 	app.Use(func(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).WriteResponse(c)
 	})

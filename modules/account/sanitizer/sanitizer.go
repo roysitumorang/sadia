@@ -121,3 +121,15 @@ func ValidateDeactivation(ctx context.Context, c *fiber.Ctx) (*accountModel.Deac
 	}
 	return &response, fiber.StatusOK, nil
 }
+
+func Login(ctx context.Context, c *fiber.Ctx) (*accountModel.LoginRequest, int, error) {
+	ctxt := "AccountSanitizer-Login"
+	var response accountModel.LoginRequest
+	err := c.BodyParser(&response)
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		return nil, fiberErr.Code, err
+	}
+	return &response, fiber.StatusOK, nil
+}

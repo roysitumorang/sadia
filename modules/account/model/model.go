@@ -1,7 +1,11 @@
 package model
 
 import (
+	"encoding/base64"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/roysitumorang/sadia/errors"
 )
 
 const (
@@ -70,7 +74,26 @@ type (
 	Deactivation struct {
 		Reason string `json:"reason"`
 	}
+
+	LoginRequest struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	}
+
+	LoginResponse struct {
+		IDToken   string    `json:"id_token"`
+		ExpiredAt time.Time `json:"expired_at"`
+		Account   *Account  `json:"account"`
+	}
 )
+
+var (
+	ErrLoginFailed = errors.New(fiber.StatusBadRequest, "login failed")
+)
+
+func (q LoginRequest) DecodePassword() ([]byte, error) {
+	return base64.StdEncoding.DecodeString(q.Password)
+}
 
 func NewFilter(options ...FilterOption) *Filter {
 	filter := &Filter{}
