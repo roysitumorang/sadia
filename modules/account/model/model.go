@@ -29,7 +29,7 @@ type (
 		EmailConfirmedAt       *time.Time `json:"-"`
 		Phone                  string     `json:"phone"`
 		UnconfirmedPhone       *string    `json:"-"`
-		PhoneConfirmationToken *string    `json:"-"`
+		PhoneConfirmationToken *int       `json:"-"`
 		PhoneConfirmedAt       *time.Time `json:"-"`
 		EncryptedPassword      *string    `json:"-"`
 		PasswordResetToken     *string    `json:"-"`
@@ -54,6 +54,18 @@ type (
 	}
 
 	FilterOption func(q *Filter)
+
+	NewAccount struct {
+		AccountType uint8   `json:"account_type"`
+		Name        string  `json:"name"`
+		Username    string  `json:"username"`
+		Email       *string `json:"email"`
+		Phone       string  `json:"phone"`
+	}
+
+	Deactivation struct {
+		Reason string `json:"reason"`
+	}
 )
 
 func NewFilter(options ...FilterOption) *Filter {

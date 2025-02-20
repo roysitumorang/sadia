@@ -3,11 +3,15 @@ package query
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/govalues/decimal"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/helper"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
@@ -51,7 +55,9 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		params = append(params, filter.Login)
 		n := strconv.Itoa(len(params))
 		builder.Reset()
-		_, _ = builder.WriteString("(username = $")
+		_, _ = builder.WriteString("(uid = $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(" OR username = $")
 		_, _ = builder.WriteString(n)
 		_, _ = builder.WriteString(" OR email = $")
 		_, _ = builder.WriteString(n)
@@ -221,122 +227,126 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 	return response, total, pages, nil
 
 }
-func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *accountModel.Account) error {
+func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.NewAccount) (*accountModel.Account, error) {
 	ctxt := "AccountQuery-CreateAccount"
-	err := tx.QueryRow(
-		ctx,
-		`INSERT INTO accounts (
-			id
-			, uid
-			, account_type
-			, status
-			, name
-			, username
-			, email
-			, unconfirmed_email
-			, email_confirmation_token
-			, email_confirmed_at
-			, phone
-			, unconfirmed_phone
-			, phone_confirmation_token
-			, phone_confirmed_at
-			, encrypted_password
-			, password_reset_token
-			, login_count
-			, current_login_at
-			, current_login_ip
-			, last_login_at
-			, last_login_ip
-			, created_at
-			, updated_at
-			, deactivated_at
-			, deactivation_reason
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-			, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
-			, $21, $22, $23, 24, $25
-		)
-		RETURNING id
-			, uid
-			, account_type
-			, status
-			, name
-			, username
-			, email
-			, unconfirmed_email
-			, email_confirmation_token
-			, email_confirmed_at
-			, phone
-			, unconfirmed_phone
-			, phone_confirmation_token
-			, phone_confirmed_at
-			, encrypted_password
-			, password_reset_token
-			, login_count
-			, current_login_at
-			, current_login_ip
-			, last_login_at
-			, last_login_ip
-			, created_at
-			, updated_at
-			, deactivated_at
-			, deactivation_reason`,
-		request.ID,
-		request.UID,
-		request.AccountType,
-		request.Status,
-		request.Name,
-		request.Username,
-		request.Email,
-		request.UnconfirmedEmail,
-		request.EmailConfirmationToken,
-		request.EmailConfirmedAt,
-		request.Phone,
-		request.UnconfirmedPhone,
-		request.PhoneConfirmationToken,
-		request.PhoneConfirmedAt,
-		request.EncryptedPassword,
-		request.PasswordResetToken,
-		request.LoginCount,
-		request.CurrentLoginAt,
-		request.CurrentLoginIP,
-		request.LastLoginAt,
-		request.LastLoginIP,
-		request.CreatedAt,
-		request.UpdatedAt,
-		request.DeactivatedAt,
-		request.DeactivationReason,
-	).Scan(
-		&request.ID,
-		&request.UID,
-		&request.AccountType,
-		&request.Status,
-		&request.Name,
-		&request.Username,
-		&request.Email,
-		&request.UnconfirmedEmail,
-		&request.EmailConfirmationToken,
-		&request.EmailConfirmedAt,
-		&request.Phone,
-		&request.UnconfirmedPhone,
-		&request.PhoneConfirmationToken,
-		&request.PhoneConfirmedAt,
-		&request.EncryptedPassword,
-		&request.PasswordResetToken,
-		&request.LoginCount,
-		&request.CurrentLoginAt,
-		&request.CurrentLoginIP,
-		&request.LastLoginAt,
-		&request.LastLoginIP,
-		&request.CreatedAt,
-		&request.UpdatedAt,
-		&request.DeactivatedAt,
-		&request.DeactivationReason,
-	)
-	if err != nil {
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+	var response accountModel.Account
+	for {
+		accountID, accountUID, _, err := helper.GenerateUniqueID()
+		if err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
+			continue
+		}
+		var emailConfirmationToken *string
+		if request.Email != nil {
+			token := helper.RandomString(32)
+			emailConfirmationToken = &token
+		}
+		phoneConfirmationToken := helper.RandomNumber(6)
+		now := time.Now()
+		if err = q.dbWrite.QueryRow(
+			ctx,
+			`INSERT INTO accounts (
+				id
+				, uid
+				, account_type
+				, status
+				, name
+				, username
+				, email
+				, email_confirmation_token
+				, phone
+				, phone_confirmation_token
+				, created_at
+				, updated_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
+			RETURNING id
+				, uid
+				, account_type
+				, status
+				, name
+				, username
+				, email
+				, unconfirmed_email
+				, email_confirmation_token
+				, email_confirmed_at
+				, phone
+				, unconfirmed_phone
+				, phone_confirmation_token
+				, phone_confirmed_at
+				, encrypted_password
+				, password_reset_token
+				, login_count
+				, current_login_at
+				, current_login_ip
+				, last_login_at
+				, last_login_ip
+				, created_at
+				, updated_at
+				, deactivated_at
+				, deactivation_reason`,
+			accountID,
+			accountUID,
+			request.AccountType,
+			accountModel.StatusUnconfirmed,
+			request.Name,
+			request.Username,
+			request.Email,
+			emailConfirmationToken,
+			request.Phone,
+			phoneConfirmationToken,
+			now,
+		).Scan(
+			&response.ID,
+			&response.UID,
+			&response.AccountType,
+			&response.Status,
+			&response.Name,
+			&response.Username,
+			&response.Email,
+			&response.UnconfirmedEmail,
+			&response.EmailConfirmationToken,
+			&response.EmailConfirmedAt,
+			&response.Phone,
+			&response.UnconfirmedPhone,
+			&response.PhoneConfirmationToken,
+			&response.PhoneConfirmedAt,
+			&response.EncryptedPassword,
+			&response.PasswordResetToken,
+			&response.LoginCount,
+			&response.CurrentLoginAt,
+			&response.CurrentLoginIP,
+			&response.LastLoginAt,
+			&response.LastLoginIP,
+			&response.CreatedAt,
+			&response.UpdatedAt,
+			&response.DeactivatedAt,
+			&response.DeactivationReason,
+		); err != nil {
+			var pgxErr *pgconn.PgError
+			if errors.As(err, &pgxErr) &&
+				pgxErr.Code == pgerrcode.UniqueViolation {
+				switch pgxErr.ConstraintName {
+				case "accounts_username_key":
+					err = fmt.Errorf("username: %s already exists", request.Username)
+					break
+				case "accounts_email_key":
+					err = fmt.Errorf("email: %s already exists", *request.Email)
+					break
+				case "accounts_phone_key":
+					err = fmt.Errorf("phone: %s already exists", request.Phone)
+					break
+				case "accounts_email_confirmation_token_key",
+					"accounts_phone_confirmation_token_key":
+					continue
+				}
+			} else {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+			}
+			return nil, err
+		}
+		break
 	}
-	return err
+	return &response, nil
 }
 
 func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *accountModel.Account) error {
@@ -443,6 +453,9 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		&request.DeactivationReason,
 	)
 	if err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 	}
 	return err

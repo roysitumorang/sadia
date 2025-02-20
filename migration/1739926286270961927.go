@@ -29,11 +29,11 @@ func init() {
 				, email_confirmed_at timestamp with time zone
 				, phone character varying NOT NULL UNIQUE
 				, unconfirmed_phone character varying
-				, phone_confirmation_token character varying UNIQUE
+				, phone_confirmation_token integer UNIQUE
 				, phone_confirmed_at timestamp with time zone
 				, encrypted_password character varying
 				, password_reset_token character varying UNIQUE
-				, login_count integer NOT NULL
+				, login_count integer NOT NULL DEFAULT 0
 				, current_login_at timestamp with time zone
 				, current_login_ip character varying
 				, last_login_at timestamp with time zone

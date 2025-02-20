@@ -71,13 +71,13 @@ func (q *accountUseCase) FindAccounts(ctx context.Context, filter *accountModel.
 	return rows, pagination, nil
 }
 
-func (q *accountUseCase) CreateAccount(ctx context.Context, tx pgx.Tx, request *accountModel.Account) error {
+func (q *accountUseCase) CreateAccount(ctx context.Context, request *accountModel.NewAccount) (*accountModel.Account, error) {
 	ctxt := "AccountUseCase-CreateAccount"
-	err := q.accountQuery.CreateAccount(ctx, tx, request)
+	response, err := q.accountQuery.CreateAccount(ctx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateAccount")
 	}
-	return err
+	return response, err
 }
 
 func (q *accountUseCase) UpdateAccount(ctx context.Context, tx pgx.Tx, request *accountModel.Account) error {
