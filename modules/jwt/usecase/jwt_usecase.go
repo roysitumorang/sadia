@@ -2,11 +2,12 @@ package usecase
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
+	"sync/atomic"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/jackc/pgx/v5"
 	"github.com/nsqio/go-nsq"
 	"github.com/roysitumorang/sadia/config"
@@ -83,19 +84,33 @@ func (q *jwtUseCase) FindJWTs(ctx context.Context, filter *jwtModel.Filter, urlV
 
 func (q *jwtUseCase) ConsumeMessage(ctx context.Context) error {
 	ctxt := "JwtUseCase-ConsumeMessage"
+	var counter uint64
 	helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("consume topic %s", config.TopicJwt), ctxt, "")
 	err := q.nsqConsumer.AddHandler(ctx, func(message *nsq.Message) error {
-		helper.Log(ctx, zap.InfoLevel, helper.ByteSlice2String(message.Body), ctxt, "")
-		if json.Valid(message.Body) {
-			var body models.Message
-			err := json.Unmarshal(message.Body, &body)
-			if err != nil {
-				message.Requeue(-1)
-				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrUnmarshal")
-				return err
-			}
+
+		now := time.Now()
+		atomic.AddUint64(&counter, 1)
+		var body models.Message
+		if err := json.Unmarshal(message.Body, &body); err != nil {
+			message.Finish()
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrUnmarshal")
+			return nil
 		}
 		message.Finish()
+		duration := time.Since(now)
+		helper.Log(
+			ctx,
+			zap.InfoLevel,
+			fmt.Sprintf(
+				"message on topic %s@%d: %s, consumed in %s",
+				config.TopicJwt,
+				atomic.LoadUint64(&counter),
+				helper.ByteSlice2String(message.Body),
+				duration.String(),
+			),
+			ctxt,
+			"",
+		)
 		return nil
 	})
 	if err != nil {

@@ -21,7 +21,7 @@ type (
 
 	Message struct {
 		Action string `json:"action"`
-		ID     int64  `json:"id"`
+		ID     string `json:"id"`
 	}
 )
 

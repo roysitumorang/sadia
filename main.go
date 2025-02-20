@@ -32,6 +32,7 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/roysitumorang/sadia/config"
 	"github.com/roysitumorang/sadia/helper"
+	"github.com/roysitumorang/sadia/models"
 	"github.com/roysitumorang/sadia/router"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -75,15 +76,23 @@ func main() {
 				return service.HTTPServerMain(ctx)
 			})
 			g.Go(func() error {
-				err := service.AccountUseCase.ConsumeMessage(ctx)
+				err := service.NsqProducer.Publish(ctx, config.TopicAccount, models.Message{})
 				if err != nil {
+					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrPublish")
+					return err
+				}
+				if err = service.AccountUseCase.ConsumeMessage(ctx); err != nil {
 					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
 				}
 				return err
 			})
 			g.Go(func() error {
-				err := service.JwtUseCase.ConsumeMessage(ctx)
+				err := service.NsqProducer.Publish(ctx, config.TopicJwt, models.Message{})
 				if err != nil {
+					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrPublish")
+					return err
+				}
+				if err = service.JwtUseCase.ConsumeMessage(ctx); err != nil {
 					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
 				}
 				return err

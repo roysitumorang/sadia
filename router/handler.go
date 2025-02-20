@@ -11,13 +11,14 @@ import (
 	jwtQuery "github.com/roysitumorang/sadia/modules/jwt/query"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
 	"github.com/roysitumorang/sadia/services/nsq"
+	serviceNsq "github.com/roysitumorang/sadia/services/nsq"
 	"go.uber.org/zap"
 )
 
 type (
 	Service struct {
 		Migration      *migration.Migration
-		NsqProducer    *nsq.Producer
+		NsqProducer    *serviceNsq.Producer
 		AccountUseCase accountUseCase.AccountUseCase
 		JwtUseCase     jwtUseCase.JwtUseCase
 	}
@@ -38,7 +39,7 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 	migration := migration.New(dbRead, dbWrite)
 	nsqAddress := helper.GetNsqAddress()
 	nsqConfig := nsq.NewConfig()
-	nsqProducer, err := nsq.NewProducer(ctx, nsqAddress, nsqConfig)
+	nsqProducer, err := serviceNsq.NewProducer(ctx, nsqAddress, nsqConfig)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNewProducer")
 		return nil, err
