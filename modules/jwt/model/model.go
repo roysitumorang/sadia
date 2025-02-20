@@ -6,7 +6,7 @@ import (
 
 type (
 	JsonWebToken struct {
-		ID        int64     `json:"id"`
+		ID        int64     `json:"-"`
 		Token     string    `json:"token"`
 		AccountID int64     `json:"account_id"`
 		CreatedAt time.Time `json:"created_at"`
