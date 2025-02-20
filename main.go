@@ -108,7 +108,7 @@ func main() {
 							helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 						}
 					}()
-					rowsAffected, err := service.JwtUseCase.DeleteJWTs(ctx, tx, time.Now(), 0)
+					rowsAffected, err := service.JwtUseCase.DeleteJWTs(ctx, tx, time.Now(), "")
 					if err != nil {
 						helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 						return

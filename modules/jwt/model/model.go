@@ -6,11 +6,12 @@ import (
 
 type (
 	JsonWebToken struct {
-		ID        int64     `json:"-"`
-		Token     string    `json:"token"`
-		AccountID int64     `json:"account_id"`
-		CreatedAt time.Time `json:"created_at"`
-		ExpiredAt time.Time `json:"expired_at"`
+		ID         int64     `json:"-"`
+		UID        string    `json:"id"`
+		Token      string    `json:"token"`
+		AccountUID string    `json:"account_id"`
+		CreatedAt  time.Time `json:"created_at"`
+		ExpiredAt  time.Time `json:"expired_at"`
 	}
 
 	Filter struct {

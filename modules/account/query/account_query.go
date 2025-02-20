@@ -60,10 +60,10 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
 	}
-	if len(filter.AccountIDs) > 0 {
+	if len(filter.AccountUIDs) > 0 {
 		builder.Reset()
-		_, _ = builder.WriteString("id IN (")
-		for i, accountID := range filter.AccountIDs {
+		_, _ = builder.WriteString("uid IN (")
+		for i, accountID := range filter.AccountUIDs {
 			params = append(params, accountID)
 			if i > 0 {
 				_, _ = builder.WriteString(",")
@@ -122,7 +122,7 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		query,
 		"COUNT(1)",
 		`id
-		, pid
+		, uid
 		, account_type
 		, status
 		, name
@@ -188,7 +188,7 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		var account accountModel.Account
 		if err = rows.Scan(
 			&account.ID,
-			&account.PID,
+			&account.UID,
 			&account.AccountType,
 			&account.Status,
 			&account.Name,
@@ -227,7 +227,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		ctx,
 		`INSERT INTO accounts (
 			id
-			, pid
+			, uid
 			, account_type
 			, status
 			, name
@@ -257,7 +257,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *ac
 			, $21, $22, $23, 24, $25
 		)
 		RETURNING id
-			, pid
+			, uid
 			, account_type
 			, status
 			, name
@@ -282,7 +282,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *ac
 			, deactivated_at
 			, deactivation_reason`,
 		request.ID,
-		request.PID,
+		request.UID,
 		request.AccountType,
 		request.Status,
 		request.Name,
@@ -308,7 +308,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		request.DeactivationReason,
 	).Scan(
 		&request.ID,
-		&request.PID,
+		&request.UID,
 		&request.AccountType,
 		&request.Status,
 		&request.Name,
@@ -368,7 +368,7 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 			, deactivation_reason = $22
 		WHERE id = $23
 		RETURNING id
-			, pid
+			, uid
 			, account_type
 			, status
 			, name
@@ -417,7 +417,7 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		request.ID,
 	).Scan(
 		&request.ID,
-		&request.PID,
+		&request.UID,
 		&request.AccountType,
 		&request.Status,
 		&request.Name,

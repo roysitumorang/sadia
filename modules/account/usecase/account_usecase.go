@@ -53,10 +53,15 @@ func (q *accountUseCase) BeginTx(ctx context.Context) (pgx.Tx, error) {
 
 func (q *accountUseCase) FindAccounts(ctx context.Context, filter *accountModel.Filter, urlValues url.Values) ([]*accountModel.Account, *models.Pagination, error) {
 	ctxt := "AccountUseCase-FindAccounts"
-	rows, total, pages, err := q.accountQuery.FindAccounts(ctx, filter)
+	accounts, total, pages, err := q.accountQuery.FindAccounts(ctx, filter)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
 		return nil, nil, err
+	}
+	n := len(accounts)
+	rows := make([]*accountModel.Account, n)
+	if n > 0 {
+		copy(rows, accounts)
 	}
 	pagination, err := helper.SetPagination(total, pages, filter.Limit, filter.Page, filter.PaginationURL, urlValues)
 	if err != nil {

@@ -31,6 +31,9 @@ func KeyAuth(
 			return c.Next()
 		},
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			if err == nil {
+				err = keyauth.ErrMissingOrMalformedAPIKey
+			}
 			return helper.NewResponse(fiber.StatusUnauthorized).SetMessage(err.Error()).WriteResponse(c)
 		},
 		KeyLookup:  builder.String(),
@@ -42,19 +45,13 @@ func KeyAuth(
 			}
 			ctx := c.UserContext()
 			jsonWebTokens, _, err := jwtUseCase.FindJWTs(ctx, jwtModel.NewFilter(jwtModel.WithTokens(claims.Subject)), url.Values{})
-			if err != nil {
+			if err != nil || len(jsonWebTokens) == 0 {
 				return false, err
-			}
-			if len(jsonWebTokens) == 0 {
-				return false, nil
 			}
 			jwt := jsonWebTokens[0]
-			accounts, _, err := accountUseCase.FindAccounts(ctx, accountModel.NewFilter(accountModel.WithAccountIDs(jwt.AccountID)), url.Values{})
-			if err != nil {
+			accounts, _, err := accountUseCase.FindAccounts(ctx, accountModel.NewFilter(accountModel.WithAccountUIDs(jwt.AccountUID)), url.Values{})
+			if err != nil || len(accounts) == 0 {
 				return false, err
-			}
-			if len(accounts) == 0 {
-				return false, nil
 			}
 			account := accounts[0]
 			if len(accountTypes) > 0 {

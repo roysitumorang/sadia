@@ -82,20 +82,21 @@ func (q *authHTTPHandler) Login(c *fiber.Ctx) error {
 	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
 	}
-	jwtID, _, jwtToken, err := helper.GenerateUniqueID()
+	jwtID, jwtUID, jwtToken, err := helper.GenerateUniqueID()
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateUniqueID")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	now := time.Now()
 	jwt := jwtModel.JsonWebToken{
-		ID:        jwtID,
-		Token:     jwtToken,
-		AccountID: account.ID,
-		CreatedAt: now,
-		ExpiredAt: now.Add(q.accessTokenAge),
+		ID:         jwtID,
+		UID:        jwtUID,
+		Token:      jwtToken,
+		AccountUID: account.UID,
+		CreatedAt:  now,
+		ExpiredAt:  now.Add(q.accessTokenAge),
 	}
-	tokenString, err := helper.GenerateAccessToken(account.PID, jwtToken, account.Username, jwt.CreatedAt, jwt.ExpiredAt, q.privateKey)
+	tokenString, err := helper.GenerateAccessToken(account.UID, jwtToken, account.Username, jwt.CreatedAt, jwt.ExpiredAt, q.privateKey)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)

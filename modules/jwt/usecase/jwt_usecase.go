@@ -52,9 +52,9 @@ func (q *jwtUseCase) CreateJWT(ctx context.Context, tx pgx.Tx, request jwtModel.
 	return err
 }
 
-func (q *jwtUseCase) DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.Time, accountID int64, jwtIDs ...string) (int64, error) {
+func (q *jwtUseCase) DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.Time, accountUID string, jwtUIDs ...string) (int64, error) {
 	ctxt := "JwtUseCase-DeleteJWTs"
-	rowsAffected, err := q.jwtQuery.DeleteJWTs(ctx, tx, maxExpiredAt, accountID, jwtIDs...)
+	rowsAffected, err := q.jwtQuery.DeleteJWTs(ctx, tx, maxExpiredAt, accountUID, jwtUIDs...)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 	}
@@ -63,10 +63,15 @@ func (q *jwtUseCase) DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt tim
 
 func (q *jwtUseCase) FindJWTs(ctx context.Context, filter *jwtModel.Filter, urlValues url.Values) ([]*jwtModel.JsonWebToken, *models.Pagination, error) {
 	ctxt := "JwtUseCase-FindJWTs"
-	rows, total, pages, err := q.jwtQuery.FindJWTs(ctx, filter)
+	jsonWebTokens, total, pages, err := q.jwtQuery.FindJWTs(ctx, filter)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindJWTs")
 		return nil, nil, err
+	}
+	n := len(jsonWebTokens)
+	rows := make([]*jwtModel.JsonWebToken, n)
+	if n > 0 {
+		copy(rows, jsonWebTokens)
 	}
 	pagination, err := helper.SetPagination(total, pages, filter.Limit, filter.Page, filter.PaginationURL, urlValues)
 	if err != nil {

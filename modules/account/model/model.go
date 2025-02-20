@@ -18,7 +18,7 @@ const (
 type (
 	Account struct {
 		ID                     int64      `json:"-"`
-		PID                    string     `json:"id"`
+		UID                    string     `json:"id"`
 		AccountType            uint8      `json:"account_type"`
 		Status                 int8       `json:"status"`
 		Name                   string     `json:"name"`
@@ -45,7 +45,7 @@ type (
 	}
 
 	Filter struct {
-		AccountIDs []int64
+		AccountUIDs []string
 		Login,
 		Keyword,
 		PaginationURL string
@@ -70,9 +70,9 @@ func WithLogin(login string) FilterOption {
 	}
 }
 
-func WithAccountIDs(accountIDs ...int64) FilterOption {
+func WithAccountUIDs(accountUIDs ...string) FilterOption {
 	return func(q *Filter) {
-		q.AccountIDs = accountIDs
+		q.AccountUIDs = accountUIDs
 	}
 }
 

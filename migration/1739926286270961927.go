@@ -18,7 +18,7 @@ func init() {
 			ctx,
 			`CREATE TABLE accounts (
 				id bigint NOT NULL PRIMARY KEY
-				, pid character varying NOT NULL UNIQUE
+				, uid character varying NOT NULL UNIQUE
 				, account_type smallint NOT NULL
 				, status smallint NOT NULL
 				, name character varying NOT NULL
@@ -49,7 +49,7 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			"CREATE INDEX ON accounts (pid)",
+			"CREATE INDEX ON accounts (uid)",
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -121,11 +121,19 @@ func init() {
 			ctx,
 			`CREATE TABLE json_web_tokens (
 				id bigint NOT NULL PRIMARY KEY
+				, uid character varying NOT NULL UNIQUE
 				, token character varying NOT NULL UNIQUE
-				, account_id bigint NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, account_uid character varying NOT NULL REFERENCES accounts (uid) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
 				, expired_at timestamp with time zone NOT NULL
 			)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON json_web_tokens (uid)",
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -139,7 +147,7 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			"CREATE INDEX ON json_web_tokens (account_id)",
+			"CREATE INDEX ON json_web_tokens (account_uid)",
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -151,7 +159,7 @@ func init() {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
 		}
-		accountID, accountPID, _, err := helper.GenerateUniqueID()
+		accountID, accountUID, _, err := helper.GenerateUniqueID()
 		if err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
 			return
@@ -166,7 +174,7 @@ func init() {
 			ctx,
 			`INSERT INTO accounts (
 				id
-				, pid
+				, uid
 				, account_type
 				, status
 				, name
@@ -192,7 +200,7 @@ func init() {
 				, deactivation_reason
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`,
 			accountID,
-			accountPID,
+			accountUID,
 			accountModel.AccountTypeAdmin,
 			accountModel.StatusActive,
 			"Roy Situmorang",
