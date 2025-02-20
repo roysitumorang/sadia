@@ -348,13 +348,10 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 				switch pgxErr.ConstraintName {
 				case "accounts_username_key":
 					err = fmt.Errorf("username: %s already exists", request.Username)
-					break
 				case "accounts_email_key":
 					err = fmt.Errorf("email: %s already exists", *request.Email)
-					break
 				case "accounts_phone_key":
 					err = fmt.Errorf("phone: %s already exists", request.Phone)
-					break
 				case "accounts_email_confirmation_token_key",
 					"accounts_phone_confirmation_token_key":
 					continue
