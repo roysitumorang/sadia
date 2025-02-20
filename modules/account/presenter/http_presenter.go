@@ -38,8 +38,8 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 	r.Group("/admin", middleware.KeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.AccountTypeAdmin)).
 		Get("", q.FindAccounts).
 		Post("", q.CreateAccount).
-		Get("/:id", q.FindAccount).
-		Delete("/:id", q.DeactivateAccount)
+		Get("/:uid", q.FindAccount).
+		Delete("/:uid", q.DeactivateAccount)
 }
 
 func (q *accountHTTPHandler) FindAccounts(c *fiber.Ctx) error {
@@ -88,7 +88,7 @@ func (q *accountHTTPHandler) FindAccount(c *fiber.Ctx) error {
 	ctxt := "AccountPresenter-FindAccount"
 	accounts, _, err := q.accountUseCase.FindAccounts(
 		ctx,
-		accountModel.NewFilter(accountModel.WithLogin(c.Params("id"))),
+		accountModel.NewFilter(accountModel.WithLogin(c.Params("uid"))),
 		url.Values{},
 	)
 	if err != nil {
@@ -112,7 +112,7 @@ func (q *accountHTTPHandler) DeactivateAccount(c *fiber.Ctx) error {
 	}
 	accounts, _, err := q.accountUseCase.FindAccounts(
 		ctx,
-		accountModel.NewFilter(accountModel.WithLogin(c.Params("id"))),
+		accountModel.NewFilter(accountModel.WithLogin(c.Params("uid"))),
 		url.Values{},
 	)
 	if err != nil {

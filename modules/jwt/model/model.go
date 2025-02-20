@@ -7,15 +7,16 @@ import (
 type (
 	JsonWebToken struct {
 		ID         int64     `json:"-"`
-		UID        string    `json:"id"`
+		UID        string    `json:"uid"`
 		Token      string    `json:"token"`
-		AccountUID string    `json:"account_id"`
+		AccountUID string    `json:"account_uid"`
 		CreatedAt  time.Time `json:"created_at"`
 		ExpiredAt  time.Time `json:"expired_at"`
 	}
 
 	Filter struct {
-		Tokens        []string
+		AccountUIDs,
+		Tokens []string
 		PaginationURL string
 		Limit,
 		Page int64
@@ -30,6 +31,12 @@ func NewFilter(options ...FilterOption) *Filter {
 		option(filter)
 	}
 	return filter
+}
+
+func WithAccountUIDs(accountUIDs ...string) FilterOption {
+	return func(q *Filter) {
+		q.AccountUIDs = accountUIDs
+	}
 }
 
 func WithTokens(tokens ...string) FilterOption {

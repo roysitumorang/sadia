@@ -99,6 +99,20 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
 	}
+	if len(filter.StatusList) > 0 {
+		builder.Reset()
+		_, _ = builder.WriteString("status IN (")
+		for i, status := range filter.StatusList {
+			params = append(params, status)
+			if i > 0 {
+				_, _ = builder.WriteString(",")
+			}
+			_, _ = builder.WriteString("$")
+			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		}
+		_, _ = builder.WriteString(")")
+		conditions = append(conditions, builder.String())
+	}
 	builder.Reset()
 	_, _ = builder.WriteString(
 		`SELECT COUNT(1)

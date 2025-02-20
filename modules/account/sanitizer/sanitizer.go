@@ -30,12 +30,29 @@ func FindAccounts(ctx context.Context, c *fiber.Ctx) (*accountModel.Filter, url.
 	var builder strings.Builder
 	_, _ = builder.WriteString(c.BaseURL())
 	_, _ = builder.WriteString(originalURL.Path)
-	urlValues := url.Values{}
+	urlValues := originalURL.Query()
 	var options []accountModel.FilterOption
 	options = append(options, accountModel.WithPaginationURL(builder.String()))
 	if keyword := strings.TrimSpace(c.Query("q")); keyword != "" {
 		urlValues.Set("q", keyword)
 		options = append(options, accountModel.WithKeyword(keyword))
+	}
+	if rawStatusList, ok := urlValues["status"]; ok {
+		mapStatus := map[string]int{}
+		var statusList []int
+		for _, rawStatus := range rawStatusList {
+			rawStatus = strings.TrimSpace(rawStatus)
+			if _, ok := mapStatus[rawStatus]; rawStatus == "" || ok {
+				continue
+			}
+			status, err := strconv.Atoi(rawStatus)
+			if err != nil {
+				continue
+			}
+			statusList = append(statusList, status)
+			mapStatus[rawStatus] = 1
+		}
+		options = append(options, accountModel.WithStatusList(statusList...))
 	}
 	if limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64); limit > 0 {
 		urlValues.Set("limit", c.Query("limit"))
