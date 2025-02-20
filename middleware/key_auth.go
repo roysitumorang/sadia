@@ -65,7 +65,7 @@ func KeyAuth(
 					return false, nil
 				}
 			}
-			c.Locals(models.CurrentAccount, &account)
+			c.Locals(models.CurrentAccount, account)
 			return true, nil
 		},
 		ContextKey: "token",

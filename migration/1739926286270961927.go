@@ -38,8 +38,10 @@ func init() {
 				, current_login_ip character varying
 				, last_login_at timestamp with time zone
 				, last_login_ip character varying
+				, created_by character varying REFERENCES accounts (uid) ON UPDATE CASCADE ON DELETE SET NULL
 				, created_at timestamp with time zone NOT NULL
 				, updated_at timestamp with time zone NOT NULL
+				, deactivated_by character varying REFERENCES accounts (uid) ON UPDATE CASCADE ON DELETE SET NULL
 				, deactivated_at timestamp with time zone
 				, deactivation_reason character varying
 			)`,
@@ -113,6 +115,20 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			"CREATE INDEX ON accounts (password_reset_token)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON accounts (created_by)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON accounts (deactivated_by)",
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return

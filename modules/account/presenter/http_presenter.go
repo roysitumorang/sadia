@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
+	"github.com/roysitumorang/sadia/models"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	"github.com/roysitumorang/sadia/modules/account/sanitizer"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
@@ -67,11 +68,13 @@ func (q *accountHTTPHandler) FindAccounts(c *fiber.Ctx) error {
 func (q *accountHTTPHandler) CreateAccount(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	ctxt := "AccountPresenter-CreateAccount"
+	currentAccount, _ := c.Locals(models.CurrentAccount).(*accountModel.Account)
 	request, statusCode, err := sanitizer.ValidateAccount(ctx, c)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateAccount")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
+	request.CreatedBy = &currentAccount.UID
 	response, err := q.accountUseCase.CreateAccount(ctx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateAccount")
@@ -101,6 +104,7 @@ func (q *accountHTTPHandler) FindAccount(c *fiber.Ctx) error {
 func (q *accountHTTPHandler) DeactivateAccount(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	ctxt := "AccountPresenter-DeactivateAccount"
+	currentAccount, _ := c.Locals(models.CurrentAccount).(*accountModel.Account)
 	request, statusCode, err := sanitizer.ValidateDeactivation(ctx, c)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateDeactivation")
@@ -124,6 +128,7 @@ func (q *accountHTTPHandler) DeactivateAccount(c *fiber.Ctx) error {
 	}
 	now := time.Now()
 	account.Status = accountModel.StatusDeactivated
+	account.DeactivatedBy = &currentAccount.UID
 	account.DeactivatedAt = &now
 	account.DeactivationReason = &request.Reason
 	tx, err := q.accountUseCase.BeginTx(ctx)

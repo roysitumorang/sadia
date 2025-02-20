@@ -148,8 +148,10 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		, current_login_ip
 		, last_login_at
 		, last_login_ip
+		, created_by
 		, created_at
 		, updated_at
+		, deactivated_by
 		, deactivated_at
 		, deactivation_reason`,
 	)
@@ -214,8 +216,10 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 			&account.CurrentLoginIP,
 			&account.LastLoginAt,
 			&account.LastLoginIP,
+			&account.CreatedBy,
 			&account.CreatedAt,
 			&account.UpdatedAt,
+			&account.DeactivatedBy,
 			&account.DeactivatedAt,
 			&account.DeactivationReason,
 		); err != nil {
@@ -256,9 +260,10 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 				, email_confirmation_token
 				, phone
 				, phone_confirmation_token
+				, created_by
 				, created_at
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)
 			RETURNING id
 				, uid
 				, account_type
@@ -294,6 +299,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 			emailConfirmationToken,
 			request.Phone,
 			phoneConfirmationToken,
+			request.CreatedBy,
 			now,
 		).Scan(
 			&response.ID,
@@ -374,9 +380,10 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 			, last_login_at = $18
 			, last_login_ip = $19
 			, updated_at = $20
-			, deactivated_at = $21
-			, deactivation_reason = $22
-		WHERE id = $23
+			, deactivated_by = $21
+			, deactivated_at = $22
+			, deactivation_reason = $23
+		WHERE id = $24
 		RETURNING id
 			, uid
 			, account_type
@@ -398,8 +405,10 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 			, current_login_ip
 			, last_login_at
 			, last_login_ip
+			, created_by
 			, created_at
 			, updated_at
+			, deactivated_by
 			, deactivated_at
 			, deactivation_reason`,
 		request.AccountType,
@@ -422,6 +431,7 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		request.LastLoginAt,
 		request.LastLoginIP,
 		request.UpdatedAt,
+		request.DeactivatedBy,
 		request.DeactivatedAt,
 		request.DeactivationReason,
 		request.ID,
@@ -447,8 +457,10 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		&request.CurrentLoginIP,
 		&request.LastLoginAt,
 		&request.LastLoginIP,
+		&request.CreatedBy,
 		&request.CreatedAt,
 		&request.UpdatedAt,
+		&request.DeactivatedBy,
 		&request.DeactivatedAt,
 		&request.DeactivationReason,
 	)

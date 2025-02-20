@@ -38,8 +38,10 @@ type (
 		CurrentLoginIP         *string    `json:"current_login_ip"`
 		LastLoginAt            *time.Time `json:"last_login_at"`
 		LastLoginIP            *string    `json:"last_login_ip"`
+		CreatedBy              *string    `json:"-"`
 		CreatedAt              time.Time  `json:"-"`
 		UpdatedAt              time.Time  `json:"-"`
+		DeactivatedBy          *string    `json:"-"`
 		DeactivatedAt          *time.Time `json:"-"`
 		DeactivationReason     *string    `json:"-"`
 	}
@@ -61,6 +63,7 @@ type (
 		Username    string  `json:"username"`
 		Email       *string `json:"email"`
 		Phone       string  `json:"phone"`
+		CreatedBy   *string `json:"-"`
 	}
 
 	Deactivation struct {
