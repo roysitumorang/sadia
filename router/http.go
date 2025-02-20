@@ -61,7 +61,10 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		requestid.New(),
 		compress.New(),
 		rewrite.New(rewrite.Config{
-			Rules: map[string]string{},
+			Rules: map[string]string{
+				"/v1/admin/jwt":   "/v1/jwt/admin",
+				"/v1/admin/jwt/*": "/v1/jwt/admin/$1",
+			},
 		}),
 		cors.New(),
 	)

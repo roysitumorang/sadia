@@ -10,10 +10,14 @@ import (
 	jwtModel "github.com/roysitumorang/sadia/modules/jwt/model"
 )
 
-func FindJWTS(ctx context.Context, c *fiber.Ctx) (*jwtModel.Filter, url.Values) {
+func FindJWTs(ctx context.Context, c *fiber.Ctx) (*jwtModel.Filter, url.Values, error) {
+	originalURL, err := url.ParseRequestURI(c.OriginalURL())
+	if err != nil {
+		return nil, nil, err
+	}
 	var builder strings.Builder
 	_, _ = builder.WriteString(c.BaseURL())
-	_, _ = builder.WriteString(c.Path())
+	_, _ = builder.WriteString(originalURL.Path)
 	urlValues := url.Values{}
 	var options []jwtModel.FilterOption
 	options = append(options, jwtModel.WithPaginationURL(builder.String()))
@@ -24,5 +28,5 @@ func FindJWTS(ctx context.Context, c *fiber.Ctx) (*jwtModel.Filter, url.Values) 
 	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
 	page = max(page, 1)
 	options = append(options, jwtModel.WithPage(page))
-	return jwtModel.NewFilter(options...), urlValues
+	return jwtModel.NewFilter(options...), urlValues, nil
 }

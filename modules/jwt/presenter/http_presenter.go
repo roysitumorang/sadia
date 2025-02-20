@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
+	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
 	"github.com/roysitumorang/sadia/modules/jwt/sanitizer"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
@@ -32,15 +33,19 @@ func New(
 }
 
 func (q *jwtHTTPHandler) Mount(r fiber.Router) {
-	r.Use(middleware.KeyAuth(q.jwtUseCase, q.accountUseCase)).
+	r.Group("/admin", middleware.KeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.AccountTypeAdmin)).
 		Get("", q.FindJWTs).
 		Delete("/:id", q.DeleteJWT)
 }
 
 func (q *jwtHTTPHandler) FindJWTs(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	ctxt := "AuthPresenter-FindJWTs"
-	filter, urlValues := sanitizer.FindJWTS(ctx, c)
+	ctxt := "JwtPresenter-FindJWTs"
+	filter, urlValues, err := sanitizer.FindJWTs(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindJWTs")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
 	rows, pagination, err := q.jwtUseCase.FindJWTs(
 		ctx,
 		filter,
@@ -58,7 +63,7 @@ func (q *jwtHTTPHandler) FindJWTs(c *fiber.Ctx) error {
 
 func (q *jwtHTTPHandler) DeleteJWT(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	ctxt := "AuthPresenter-DeleteJWT"
+	ctxt := "JwtPresenter-DeleteJWT"
 	tx, err := q.accountUseCase.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
