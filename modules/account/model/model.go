@@ -47,8 +47,9 @@ type (
 	Filter struct {
 		AccountIDs []int64
 		Login,
+		Keyword,
 		PaginationURL string
-		PerPage,
+		Limit,
 		Page int64
 	}
 
@@ -72,5 +73,29 @@ func WithLogin(login string) FilterOption {
 func WithAccountIDs(accountIDs ...int64) FilterOption {
 	return func(q *Filter) {
 		q.AccountIDs = accountIDs
+	}
+}
+
+func WithKeyword(Keyword string) FilterOption {
+	return func(q *Filter) {
+		q.Keyword = Keyword
+	}
+}
+
+func WithPaginationURL(paginationURL string) FilterOption {
+	return func(q *Filter) {
+		q.PaginationURL = paginationURL
+	}
+}
+
+func WithLimit(limit int64) FilterOption {
+	return func(q *Filter) {
+		q.Limit = limit
+	}
+}
+
+func WithPage(page int64) FilterOption {
+	return func(q *Filter) {
+		q.Page = page
 	}
 }

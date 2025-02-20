@@ -74,6 +74,25 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
 	}
+	if filter.Keyword != "" {
+		builder.Reset()
+		_, _ = builder.WriteString("%%")
+		_, _ = builder.WriteString(strings.ToLower(filter.Keyword))
+		_, _ = builder.WriteString("%%")
+		params = append(params, builder.String())
+		n := strconv.Itoa(len(params))
+		builder.Reset()
+		_, _ = builder.WriteString("(LOWER(name) LIKE $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(" OR username LIKE $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(" OR email LIKE $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(" OR phone LIKE $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(")")
+		conditions = append(conditions, builder.String())
+	}
 	builder.Reset()
 	_, _ = builder.WriteString(
 		`SELECT COUNT(1)
@@ -132,13 +151,13 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 	_, _ = builder.WriteString(query)
 	_, _ = builder.WriteString(" ORDER by -id")
 	pages := int64(1)
-	if filter.PerPage > 0 {
+	if filter.Limit > 0 {
 		totalDecimal, err := decimal.New(total, 0)
 		if err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrNew")
 			return nil, 0, 0, err
 		}
-		perPageDecimal, err := decimal.New(filter.PerPage, 0)
+		perPageDecimal, err := decimal.New(filter.Limit, 0)
 		if err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrNew")
 			return nil, 0, 0, err
@@ -149,9 +168,9 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 			return nil, 0, 0, err
 		}
 		pages, _, _ = pagesDecimal.Ceil(0).Int64(0)
-		offset := (filter.Page - 1) * filter.PerPage
+		offset := (filter.Page - 1) * filter.Limit
 		_, _ = builder.WriteString(" LIMIT ")
-		_, _ = builder.WriteString(strconv.FormatInt(filter.PerPage, 10))
+		_, _ = builder.WriteString(strconv.FormatInt(filter.Limit, 10))
 		_, _ = builder.WriteString(" OFFSET ")
 		_, _ = builder.WriteString(strconv.FormatInt(offset, 10))
 	}
@@ -200,6 +219,124 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		response = append(response, &account)
 	}
 	return response, total, pages, nil
+
+}
+func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *accountModel.Account) error {
+	ctxt := "AccountQuery-CreateAccount"
+	err := tx.QueryRow(
+		ctx,
+		`INSERT INTO accounts (
+			id
+			, pid
+			, account_type
+			, status
+			, name
+			, username
+			, email
+			, unconfirmed_email
+			, email_confirmation_token
+			, email_confirmed_at
+			, phone
+			, unconfirmed_phone
+			, phone_confirmation_token
+			, phone_confirmed_at
+			, encrypted_password
+			, password_reset_token
+			, login_count
+			, current_login_at
+			, current_login_ip
+			, last_login_at
+			, last_login_ip
+			, created_at
+			, updated_at
+			, deactivated_at
+			, deactivation_reason
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+			, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+			, $21, $22, $23, 24, $25
+		)
+		RETURNING id
+			, pid
+			, account_type
+			, status
+			, name
+			, username
+			, email
+			, unconfirmed_email
+			, email_confirmation_token
+			, email_confirmed_at
+			, phone
+			, unconfirmed_phone
+			, phone_confirmation_token
+			, phone_confirmed_at
+			, encrypted_password
+			, password_reset_token
+			, login_count
+			, current_login_at
+			, current_login_ip
+			, last_login_at
+			, last_login_ip
+			, created_at
+			, updated_at
+			, deactivated_at
+			, deactivation_reason`,
+		request.ID,
+		request.PID,
+		request.AccountType,
+		request.Status,
+		request.Name,
+		request.Username,
+		request.Email,
+		request.UnconfirmedEmail,
+		request.EmailConfirmationToken,
+		request.EmailConfirmedAt,
+		request.Phone,
+		request.UnconfirmedPhone,
+		request.PhoneConfirmationToken,
+		request.PhoneConfirmedAt,
+		request.EncryptedPassword,
+		request.PasswordResetToken,
+		request.LoginCount,
+		request.CurrentLoginAt,
+		request.CurrentLoginIP,
+		request.LastLoginAt,
+		request.LastLoginIP,
+		request.CreatedAt,
+		request.UpdatedAt,
+		request.DeactivatedAt,
+		request.DeactivationReason,
+	).Scan(
+		&request.ID,
+		&request.PID,
+		&request.AccountType,
+		&request.Status,
+		&request.Name,
+		&request.Username,
+		&request.Email,
+		&request.UnconfirmedEmail,
+		&request.EmailConfirmationToken,
+		&request.EmailConfirmedAt,
+		&request.Phone,
+		&request.UnconfirmedPhone,
+		&request.PhoneConfirmationToken,
+		&request.PhoneConfirmedAt,
+		&request.EncryptedPassword,
+		&request.PasswordResetToken,
+		&request.LoginCount,
+		&request.CurrentLoginAt,
+		&request.CurrentLoginIP,
+		&request.LastLoginAt,
+		&request.LastLoginIP,
+		&request.CreatedAt,
+		&request.UpdatedAt,
+		&request.DeactivatedAt,
+		&request.DeactivationReason,
+	)
+	if err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+	}
+	return err
 }
 
 func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *accountModel.Account) error {

@@ -58,12 +58,21 @@ func (q *accountUseCase) FindAccounts(ctx context.Context, filter *accountModel.
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
 		return nil, nil, err
 	}
-	pagination, err := helper.SetPagination(total, pages, filter.PerPage, filter.Page, filter.PaginationURL, urlValues)
+	pagination, err := helper.SetPagination(total, pages, filter.Limit, filter.Page, filter.PaginationURL, urlValues)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrSetPagination")
 		return nil, nil, err
 	}
 	return rows, pagination, nil
+}
+
+func (q *accountUseCase) CreateAccount(ctx context.Context, tx pgx.Tx, request *accountModel.Account) error {
+	ctxt := "AccountUseCase-CreateAccount"
+	err := q.accountQuery.CreateAccount(ctx, tx, request)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateAccount")
+	}
+	return err
 }
 
 func (q *accountUseCase) UpdateAccount(ctx context.Context, tx pgx.Tx, request *accountModel.Account) error {
