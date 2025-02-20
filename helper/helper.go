@@ -2,6 +2,7 @@ package helper
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/rsa"
 	"errors"
 	"maps"
@@ -18,6 +19,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/roysitumorang/sadia/models"
 	"github.com/vishal-bihani/go-tsid"
+)
+
+const (
+	numbers         = "123456789"
+	base58alphabets = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 )
 
 var (
@@ -175,4 +181,33 @@ func GenerateAccessToken(id, subject, audience string, createdAt, expiredAt time
 
 func GetNsqAddress() string {
 	return nsqAddress
+}
+
+// RandomString generate random string
+func RandomString(length int) string {
+	randomBytes := make([]byte, length)
+	for {
+		if _, err := rand.Read(randomBytes); err == nil {
+			break
+		}
+	}
+	for i := 0; i < length; i++ {
+		randomBytes[i] = base58alphabets[randomBytes[i]%58]
+	}
+	return ByteSlice2String(randomBytes)
+}
+
+// RandomNumber generate random number
+func RandomNumber(length int) int64 {
+	randomBytes := make([]byte, length)
+	for {
+		if _, err := rand.Read(randomBytes); err == nil {
+			break
+		}
+	}
+	for i := 0; i < length; i++ {
+		randomBytes[i] = numbers[randomBytes[i]%9]
+	}
+	randomNumber, _ := strconv.ParseInt(ByteSlice2String(randomBytes), 10, 64)
+	return randomNumber
 }
