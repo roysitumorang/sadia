@@ -223,3 +223,30 @@ func ValidateResetPassword(ctx context.Context, c *fiber.Ctx) (*accountModel.Res
 	}
 	return &response, fiber.StatusOK, nil
 }
+
+func ValidateChangePassword(ctx context.Context, c *fiber.Ctx) (*accountModel.ChangePassword, int, error) {
+	ctxt := "AccountSanitizer-ValidateChangePassword"
+	var response accountModel.ChangePassword
+	err := c.BodyParser(&response)
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		return nil, fiberErr.Code, err
+	}
+	if response.Base64OldPassword = strings.TrimSpace(response.Base64OldPassword); response.Base64OldPassword == "" {
+		return nil, fiber.StatusBadRequest, errors.New("old_password: is required")
+	}
+	if response.OldPassword, err = helper.Base64Decode(response.Base64OldPassword); err != nil {
+		return nil, fiber.StatusBadRequest, fmt.Errorf("old_password: %s", err.Error())
+	}
+	if response.Base64NewPassword = strings.TrimSpace(response.Base64NewPassword); response.Base64NewPassword == "" {
+		return nil, fiber.StatusBadRequest, errors.New("new_password: is required")
+	}
+	if response.NewPassword, err = helper.Base64Decode(response.Base64NewPassword); err != nil {
+		return nil, fiber.StatusBadRequest, fmt.Errorf("new_password: %s", err.Error())
+	}
+	if !helper.ValidPassword(response.NewPassword) {
+		return nil, fiber.StatusBadRequest, errors.New("new_password: min 8 characters & should contain uppercase/lowercase/number/symbol")
+	}
+	return &response, fiber.StatusOK, nil
+}

@@ -118,6 +118,13 @@ type (
 		Base64Password string `json:"password"`
 		Password       string `json:"-"`
 	}
+
+	ChangePassword struct {
+		Base64OldPassword string `json:"old_password"`
+		OldPassword       string `json:"-"`
+		Base64NewPassword string `json:"new_password"`
+		NewPassword       string `json:"-"`
+	}
 )
 
 var (

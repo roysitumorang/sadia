@@ -57,7 +57,9 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Put("/password/forgot", q.ForgotPassword).
 		Get("/password/reset/:token", q.FindAccountByResetPasswordToken).
 		Put("/password/reset/:token", q.ResetPassword)
-	r.Get("/me", middleware.KeyAuth(q.jwtUseCase, q.accountUseCase), q.Me)
+	r.Group("/me", middleware.KeyAuth(q.jwtUseCase, q.accountUseCase)).
+		Get("", q.Me).
+		Put("/password", q.ChangePassword)
 }
 
 func (q *accountHTTPHandler) FindAccounts(c *fiber.Ctx) error {
@@ -679,6 +681,60 @@ func (q *accountHTTPHandler) ResetPassword(c *fiber.Ctx) error {
 	account.ResetPasswordToken = nil
 	account.ResetPasswordSentAt = nil
 	encryptedPassword, err := helper.HashPassword(request.Password)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrHashPassword")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	account.EncryptedPassword = encryptedPassword
+	account.LastPasswordChange = &now
+	tx, err := q.accountUseCase.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) ChangePassword(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-ChangePassword"
+	account, _ := c.Locals(models.CurrentAccount).(*accountModel.Account)
+	request, statusCode, err := sanitizer.ValidateChangePassword(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateChangePassword")
+		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
+	}
+	accounts, _, err := q.accountUseCase.FindAccounts(
+		ctx,
+		accountModel.NewFilter(accountModel.WithResetPasswordToken(c.Params("token"))),
+		url.Values{},
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(accounts) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	now := time.Now()
+	encryptedPassword, err := helper.HashPassword(request.NewPassword)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrHashPassword")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
