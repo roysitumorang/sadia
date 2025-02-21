@@ -68,6 +68,7 @@ type (
 		ConfirmationToken,
 		EmailConfirmationToken,
 		PhoneConfirmationToken,
+		LoginUnlockToken,
 		PaginationURL string
 		Limit,
 		Page int64
@@ -165,6 +166,12 @@ func WithEmailConfirmationToken(emailConfirmationToken string) FilterOption {
 func WithPhoneConfirmationToken(phoneConfirmationToken string) FilterOption {
 	return func(q *Filter) {
 		q.PhoneConfirmationToken = phoneConfirmationToken
+	}
+}
+
+func WithLoginUnlockToken(loginUnlockToken string) FilterOption {
+	return func(q *Filter) {
+		q.LoginUnlockToken = loginUnlockToken
 	}
 }
 

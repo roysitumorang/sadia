@@ -105,6 +105,27 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		_, _ = builder.WriteString(strconv.Itoa(len(params)))
 		conditions = append(conditions, builder.String())
 	}
+	if filter.EmailConfirmationToken != "" {
+		params = append(params, filter.EmailConfirmationToken)
+		builder.Reset()
+		_, _ = builder.WriteString("email_confirmation_token = $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
+	if filter.PhoneConfirmationToken != "" {
+		params = append(params, filter.PhoneConfirmationToken)
+		builder.Reset()
+		_, _ = builder.WriteString("phone_confirmation_token = $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
+	if filter.LoginUnlockToken != "" {
+		params = append(params, filter.LoginUnlockToken)
+		builder.Reset()
+		_, _ = builder.WriteString("login_unlock_token = $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
 	if len(filter.StatusList) > 0 {
 		builder.Reset()
 		_, _ = builder.WriteString("status IN (")

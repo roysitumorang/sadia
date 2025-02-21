@@ -52,7 +52,8 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Get("/confirmation/:token", q.FindAccountByConfirmationToken).
 		Put("/confirmation/:token", q.ConfirmAccount).
 		Get("/email/confirm/:token", q.ConfirmAccountEmail).
-		Get("/phone/confirm/:token", q.ConfirmAccountPhone)
+		Get("/phone/confirm/:token", q.ConfirmAccountPhone).
+		Get("/unlock/:token", q.UnlockAccount)
 	r.Get("/me", middleware.KeyAuth(q.jwtUseCase, q.accountUseCase), q.Me)
 }
 
@@ -225,7 +226,6 @@ func (q *accountHTTPHandler) Login(c *fiber.Ctx) error {
 		}()
 		if account.LoginFailedAttempts >= helper.GetLoginMaxFailedAttempts() {
 			loginLockoutToken := helper.RandomString(32)
-			account.LoginFailedAttempts = 0
 			account.LoginLockedAt = &now
 			account.LoginUnlockToken = &loginLockoutToken
 		}
@@ -508,6 +508,50 @@ func (q *accountHTTPHandler) ConfirmAccountPhone(c *fiber.Ctx) error {
 	account.PhoneConfirmationToken = nil
 	account.PhoneConfirmationSentAt = nil
 	account.PhoneConfirmedAt = &now
+	tx, err := q.accountUseCase.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) UnlockAccount(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-UnlockAccount"
+	accounts, _, err := q.accountUseCase.FindAccounts(
+		ctx,
+		accountModel.NewFilter(accountModel.WithLoginUnlockToken(c.Params("token"))),
+		url.Values{},
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(accounts) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	account := accounts[0]
+	account.LoginFailedAttempts = 0
+	account.LoginLockedAt = nil
+	account.LoginUnlockToken = nil
 	tx, err := q.accountUseCase.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
