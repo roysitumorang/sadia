@@ -86,11 +86,11 @@ func ValidateAccount(ctx context.Context, c *fiber.Ctx) (*accountModel.NewAccoun
 	if response.Name = strings.TrimSpace(response.Name); response.Name == "" {
 		return nil, fiber.StatusBadRequest, errors.New("name: is required")
 	}
-	if response.Username = strings.TrimSpace(response.Username); response.Username == "" {
+	if response.Username = strings.ToLower(strings.TrimSpace(response.Username)); response.Username == "" {
 		return nil, fiber.StatusBadRequest, errors.New("username: is required")
 	}
 	if response.Email != nil {
-		if *response.Email != "" {
+		if *response.Email = strings.ToLower(strings.TrimSpace(*response.Email)); *response.Email != "" {
 			if _, err = mail.ParseAddress(*response.Email); err != nil {
 				return nil, fiber.StatusBadRequest, errors.New("email: invalid address")
 			}
@@ -98,11 +98,14 @@ func ValidateAccount(ctx context.Context, c *fiber.Ctx) (*accountModel.NewAccoun
 			response.Email = nil
 		}
 	}
-	if response.Phone = strings.TrimSpace(response.Phone); response.Phone == "" {
-		return nil, fiber.StatusBadRequest, errors.New("phone: is required")
-	}
-	if phoneNumberRegex.Find(helper.String2ByteSlice(response.Phone)) == nil {
-		return nil, fiber.StatusBadRequest, errors.New("phone: invalid number")
+	if response.Phone != nil {
+		if *response.Phone = strings.TrimSpace(*response.Phone); *response.Phone != "" {
+			if phoneNumberRegex.Find(helper.String2ByteSlice(*response.Phone)) == nil {
+				return nil, fiber.StatusBadRequest, errors.New("phone: invalid number")
+			}
+		} else {
+			response.Phone = nil
+		}
 	}
 	return &response, fiber.StatusOK, nil
 }
@@ -149,8 +152,38 @@ func ValidateConfirmation(ctx context.Context, c *fiber.Ctx) (*accountModel.Conf
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
-	if response.Token = strings.TrimSpace(response.Token); response.Token == "" {
-		return nil, fiber.StatusBadRequest, errors.New("token: is required")
+	if response.Name = strings.TrimSpace(response.Name); response.Name == "" {
+		return nil, fiber.StatusBadRequest, errors.New("name: is required")
+	}
+	if response.Username = strings.ToLower(strings.TrimSpace(response.Username)); response.Username == "" {
+		return nil, fiber.StatusBadRequest, errors.New("username: is required")
+	}
+	if response.Email != nil {
+		if *response.Email = strings.ToLower(strings.TrimSpace(*response.Email)); *response.Email != "" {
+			if _, err = mail.ParseAddress(*response.Email); err != nil {
+				return nil, fiber.StatusBadRequest, errors.New("email: invalid address")
+			}
+		} else {
+			response.Email = nil
+		}
+	}
+	if response.Phone != nil {
+		if *response.Phone = strings.TrimSpace(*response.Phone); *response.Phone != "" {
+			if phoneNumberRegex.Find(helper.String2ByteSlice(*response.Phone)) == nil {
+				return nil, fiber.StatusBadRequest, errors.New("phone: invalid number")
+			}
+		} else {
+			response.Phone = nil
+		}
+	}
+	if response.Base64Password = strings.TrimSpace(response.Base64Password); response.Base64Password == "" {
+		return nil, fiber.StatusBadRequest, errors.New("password: is required")
+	}
+	if response.Password, err = helper.Base64Decode(response.Base64Password); err != nil {
+		return nil, fiber.StatusBadRequest, fmt.Errorf("password: %s", err.Error())
+	}
+	if !helper.ValidPassword(response.Password) {
+		return nil, fiber.StatusBadRequest, errors.New("password: min 8 characters & should contain uppercase/lowercase/number/symbol")
 	}
 	return &response, fiber.StatusOK, nil
 }

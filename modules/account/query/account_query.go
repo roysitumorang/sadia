@@ -3,7 +3,6 @@ package query
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -99,6 +98,13 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
 	}
+	if filter.ConfirmationToken != "" {
+		params = append(params, filter.ConfirmationToken)
+		builder.Reset()
+		_, _ = builder.WriteString("confirmation_token = $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
 	if len(filter.StatusList) > 0 {
 		builder.Reset()
 		_, _ = builder.WriteString("status IN (")
@@ -147,22 +153,30 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		, status
 		, name
 		, username
+		, confirmation_token
+		, confirmed_at
 		, email
 		, unconfirmed_email
 		, email_confirmation_token
+		, email_confirmation_sent_at
 		, email_confirmed_at
 		, phone
 		, unconfirmed_phone
 		, phone_confirmation_token
+		, phone_confirmation_sent_at
 		, phone_confirmed_at
 		, encrypted_password
 		, last_password_change
 		, reset_password_token
+		, reset_password_sent_at
 		, login_count
 		, current_login_at
 		, current_login_ip
 		, last_login_at
 		, last_login_ip
+		, login_failed_attempts
+		, login_unlock_token
+		, login_locked_at
 		, created_by
 		, created_at
 		, updated_at
@@ -216,22 +230,30 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 			&account.Status,
 			&account.Name,
 			&account.Username,
+			&account.ConfirmationToken,
+			&account.ConfirmedAt,
 			&account.Email,
 			&account.UnconfirmedEmail,
 			&account.EmailConfirmationToken,
+			&account.EmailConfirmationSentAt,
 			&account.EmailConfirmedAt,
 			&account.Phone,
 			&account.UnconfirmedPhone,
 			&account.PhoneConfirmationToken,
+			&account.PhoneConfirmationSentAt,
 			&account.PhoneConfirmedAt,
 			&account.EncryptedPassword,
 			&account.LastPasswordChange,
 			&account.ResetPasswordToken,
+			&account.ResetPasswordSentAt,
 			&account.LoginCount,
 			&account.CurrentLoginAt,
 			&account.CurrentLoginIP,
 			&account.LastLoginAt,
 			&account.LastLoginIP,
+			&account.LoginFailedAttempts,
+			&account.LoginUnlockToken,
+			&account.LoginLockedAt,
 			&account.CreatedBy,
 			&account.CreatedAt,
 			&account.UpdatedAt,
@@ -256,12 +278,15 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
 			continue
 		}
-		var emailConfirmationToken *string
+		confirmationToken, emailToken, phoneToken := helper.RandomString(32), helper.RandomString(32), helper.RandomNumber(6)
+		var emailConfirmationToken,
+			phoneConfirmationToken *string
 		if request.Email != nil {
-			token := helper.RandomString(32)
-			emailConfirmationToken = &token
+			emailConfirmationToken = &emailToken
 		}
-		phoneConfirmationToken := helper.RandomNumber(6)
+		if request.Phone != nil {
+			phoneConfirmationToken = &phoneToken
+		}
 		now := time.Now()
 		if err = q.dbWrite.QueryRow(
 			ctx,
@@ -272,6 +297,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 				, status
 				, name
 				, username
+				, confirmation_token
 				, unconfirmed_email
 				, email_confirmation_token
 				, unconfirmed_phone
@@ -279,31 +305,41 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 				, created_by
 				, created_at
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
 			RETURNING id
 				, uid
 				, account_type
 				, status
 				, name
 				, username
+				, confirmation_token
+				, confirmed_at
 				, email
 				, unconfirmed_email
 				, email_confirmation_token
+				, email_confirmation_sent_at
 				, email_confirmed_at
 				, phone
 				, unconfirmed_phone
 				, phone_confirmation_token
+				, phone_confirmation_sent_at
 				, phone_confirmed_at
 				, encrypted_password
 				, last_password_change
 				, reset_password_token
+				, reset_password_sent_at
 				, login_count
 				, current_login_at
 				, current_login_ip
 				, last_login_at
 				, last_login_ip
+				, login_failed_attempts
+				, login_unlock_token
+				, login_locked_at
+				, created_by
 				, created_at
 				, updated_at
+				, deactivated_by
 				, deactivated_at
 				, deactivation_reason`,
 			accountID,
@@ -312,6 +348,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 			accountModel.StatusUnconfirmed,
 			request.Name,
 			request.Username,
+			confirmationToken,
 			request.Email,
 			emailConfirmationToken,
 			request.Phone,
@@ -325,24 +362,34 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 			&response.Status,
 			&response.Name,
 			&response.Username,
+			&response.ConfirmationToken,
+			&response.ConfirmedAt,
 			&response.Email,
 			&response.UnconfirmedEmail,
 			&response.EmailConfirmationToken,
+			&response.EmailConfirmationSentAt,
 			&response.EmailConfirmedAt,
 			&response.Phone,
 			&response.UnconfirmedPhone,
 			&response.PhoneConfirmationToken,
+			&response.PhoneConfirmationSentAt,
 			&response.PhoneConfirmedAt,
 			&response.EncryptedPassword,
 			&response.LastPasswordChange,
 			&response.ResetPasswordToken,
+			&response.ResetPasswordSentAt,
 			&response.LoginCount,
 			&response.CurrentLoginAt,
 			&response.CurrentLoginIP,
 			&response.LastLoginAt,
 			&response.LastLoginIP,
+			&response.LoginFailedAttempts,
+			&response.LoginUnlockToken,
+			&response.LoginLockedAt,
+			&response.CreatedBy,
 			&response.CreatedAt,
 			&response.UpdatedAt,
+			&response.DeactivatedBy,
 			&response.DeactivatedAt,
 			&response.DeactivationReason,
 		); err != nil {
@@ -351,13 +398,19 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 				pgxErr.Code == pgerrcode.UniqueViolation {
 				switch pgxErr.ConstraintName {
 				case "accounts_username_key":
-					err = fmt.Errorf("username: %s already exists", request.Username)
+					err = accountModel.ErrUniqueUsernameViolation
 				case "accounts_email_key":
-					err = fmt.Errorf("email: %s already exists", *request.Email)
+					err = accountModel.ErrUniqueEmailViolation
 				case "accounts_phone_key":
-					err = fmt.Errorf("phone: %s already exists", request.Phone)
-				case "accounts_email_confirmation_token_key",
-					"accounts_phone_confirmation_token_key":
+					err = accountModel.ErrUniquePhoneViolation
+				case "accounts_confirmation_token_key":
+					err = accountModel.ErrUniqueConfirmationTokenViolation
+					continue
+				case "accounts_email_confirmation_token_key":
+					err = accountModel.ErrUniqueEmailConfirmationTokenViolation
+					continue
+				case "accounts_phone_confirmation_token_key":
+					err = accountModel.ErrUniquePhoneConfirmationTokenViolation
 					continue
 				}
 			} else {
@@ -379,49 +432,64 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 			, status = $2
 			, name = $3
 			, username = $4
-			, email = $5
-			, unconfirmed_email = $6
-			, email_confirmation_token = $7
-			, email_confirmed_at = $8
-			, phone = $9
-			, unconfirmed_phone = $10
-			, phone_confirmation_token = $11
-			, phone_confirmed_at = $12
-			, encrypted_password = $13
-			, last_password_change = $14
-			, reset_password_token = $15
-			, login_count = $16
-			, current_login_at = $17
-			, current_login_ip = $18
-			, last_login_at = $19
-			, last_login_ip = $20
-			, updated_at = $21
-			, deactivated_by = $22
-			, deactivated_at = $23
-			, deactivation_reason = $24
-		WHERE id = $25
+			, confirmation_token = $5
+			, email = $6
+			, unconfirmed_email = $7
+			, email_confirmation_token = $8
+			, email_confirmation_sent_at = $9
+			, email_confirmed_at = $10
+			, phone = $11
+			, unconfirmed_phone = $12
+			, phone_confirmation_token = $13
+			, phone_confirmation_sent_at = $14
+			, phone_confirmed_at = $15
+			, encrypted_password = $16
+			, last_password_change = $17
+			, reset_password_token = $18
+			, reset_password_sent_at = $19
+			, login_count = $20
+			, current_login_at = $21
+			, current_login_ip = $22
+			, last_login_at = $23
+			, last_login_ip = $24
+			, login_failed_attempts = $25
+			, login_unlock_token = $26
+			, login_locked_at = $27
+			, updated_at = $28
+			, deactivated_by = $29
+			, deactivated_at = $30
+			, deactivation_reason = $31
+		WHERE id = $32
 		RETURNING id
 			, uid
 			, account_type
 			, status
 			, name
 			, username
+			, confirmation_token
+			, confirmed_at
 			, email
 			, unconfirmed_email
 			, email_confirmation_token
+			, email_confirmation_sent_at
 			, email_confirmed_at
 			, phone
 			, unconfirmed_phone
 			, phone_confirmation_token
+			, phone_confirmation_sent_at
 			, phone_confirmed_at
 			, encrypted_password
 			, last_password_change
 			, reset_password_token
+			, reset_password_sent_at
 			, login_count
 			, current_login_at
 			, current_login_ip
 			, last_login_at
 			, last_login_ip
+			, login_failed_attempts
+			, login_unlock_token
+			, login_locked_at
 			, created_by
 			, created_at
 			, updated_at
@@ -432,22 +500,29 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		request.Status,
 		request.Name,
 		request.Username,
+		request.ConfirmationToken,
 		request.Email,
 		request.UnconfirmedEmail,
 		request.EmailConfirmationToken,
+		request.EmailConfirmationSentAt,
 		request.EmailConfirmedAt,
 		request.Phone,
 		request.UnconfirmedPhone,
 		request.PhoneConfirmationToken,
+		request.PhoneConfirmationSentAt,
 		request.PhoneConfirmedAt,
 		request.EncryptedPassword,
 		request.LastPasswordChange,
 		request.ResetPasswordToken,
+		request.ResetPasswordSentAt,
 		request.LoginCount,
 		request.CurrentLoginAt,
 		request.CurrentLoginIP,
 		request.LastLoginAt,
 		request.LastLoginIP,
+		request.LoginFailedAttempts,
+		request.LoginUnlockToken,
+		request.LoginLockedAt,
 		request.UpdatedAt,
 		request.DeactivatedBy,
 		request.DeactivatedAt,
@@ -460,22 +535,30 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		&request.Status,
 		&request.Name,
 		&request.Username,
+		&request.ConfirmationToken,
+		&request.ConfirmedAt,
 		&request.Email,
 		&request.UnconfirmedEmail,
 		&request.EmailConfirmationToken,
+		&request.EmailConfirmationSentAt,
 		&request.EmailConfirmedAt,
 		&request.Phone,
 		&request.UnconfirmedPhone,
 		&request.PhoneConfirmationToken,
+		&request.PhoneConfirmationSentAt,
 		&request.PhoneConfirmedAt,
 		&request.EncryptedPassword,
 		&request.LastPasswordChange,
 		&request.ResetPasswordToken,
+		&request.ResetPasswordSentAt,
 		&request.LoginCount,
 		&request.CurrentLoginAt,
 		&request.CurrentLoginIP,
 		&request.LastLoginAt,
 		&request.LastLoginIP,
+		&request.LoginFailedAttempts,
+		&request.LoginUnlockToken,
+		&request.LoginLockedAt,
 		&request.CreatedBy,
 		&request.CreatedAt,
 		&request.UpdatedAt,
@@ -487,7 +570,26 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
 		}
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+		var pgxErr *pgconn.PgError
+		if errors.As(err, &pgxErr) &&
+			pgxErr.Code == pgerrcode.UniqueViolation {
+			switch pgxErr.ConstraintName {
+			case "accounts_username_key":
+				err = accountModel.ErrUniqueUsernameViolation
+			case "accounts_email_key":
+				err = accountModel.ErrUniqueEmailViolation
+			case "accounts_phone_key":
+				err = accountModel.ErrUniquePhoneViolation
+			case "accounts_confirmation_token_key":
+				err = accountModel.ErrUniqueConfirmationTokenViolation
+			case "accounts_email_confirmation_token_key":
+				err = accountModel.ErrUniqueEmailConfirmationTokenViolation
+			case "accounts_phone_confirmation_token_key":
+				err = accountModel.ErrUniquePhoneConfirmationTokenViolation
+			}
+		} else {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+		}
 	}
 	return err
 }

@@ -22,22 +22,30 @@ func init() {
 				, status smallint NOT NULL
 				, name character varying NOT NULL
 				, username character varying NOT NULL UNIQUE
+				, confirmation_token character varying UNIQUE
+				, confirmed_at timestamp with time zone
 				, email character varying UNIQUE
 				, unconfirmed_email character varying
 				, email_confirmation_token character varying UNIQUE
+				, email_confirmation_sent_at timestamp with time zone
 				, email_confirmed_at timestamp with time zone
 				, phone character varying UNIQUE
 				, unconfirmed_phone character varying
 				, phone_confirmation_token character varying UNIQUE
+				, phone_confirmation_sent_at timestamp with time zone
 				, phone_confirmed_at timestamp with time zone
 				, encrypted_password character varying
 				, last_password_change timestamp with time zone
 				, reset_password_token character varying UNIQUE
+				, reset_password_sent_at timestamp with time zone
 				, login_count integer NOT NULL DEFAULT 0
 				, current_login_at timestamp with time zone
 				, current_login_ip character varying
 				, last_login_at timestamp with time zone
 				, last_login_ip character varying
+				, login_failed_attempts integer NOT NULL DEFAULT 0
+				, login_unlock_token character varying UNIQUE
+				, login_locked_at timestamp with time zone
 				, created_by character varying REFERENCES accounts (uid) ON UPDATE CASCADE ON DELETE SET NULL
 				, created_at timestamp with time zone NOT NULL
 				, updated_at timestamp with time zone NOT NULL
@@ -86,6 +94,13 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
+			"CREATE INDEX ON accounts (confirmation_token)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
 			"CREATE INDEX ON accounts (email)",
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
@@ -115,6 +130,13 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			"CREATE INDEX ON accounts (reset_password_token)",
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			"CREATE INDEX ON accounts (login_unlock_token)",
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -180,12 +202,8 @@ func init() {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
 			return
 		}
+		confirmationToken, emailConfirmationToken, phoneConfirmationToken := helper.RandomString(32), helper.RandomString(32), helper.RandomNumber(6)
 		now := time.Now()
-		encryptedPassword, err := helper.HashPassword("s@dia1d")
-		if err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrHashPassword")
-			return
-		}
 		if _, err = tx.Exec(
 			ctx,
 			`INSERT INTO accounts (
@@ -195,43 +213,28 @@ func init() {
 				, status
 				, name
 				, username
-				, email
-				, email_confirmed_at
-				, phone
-				, phone_confirmed_at
-				, encrypted_password
-				, last_password_change
+				, confirmation_token
+				, unconfirmed_email
+				, email_confirmation_token
+				, unconfirmed_phone
+				, phone_confirmation_token
 				, created_at
 				, updated_at
-			) VALUES (
-				$1
-				, $2
-				, $3
-				, $4
-				, $5
-				, $6
-				, $7
-				, $10
-				, $8
-				, $10
-				, $9
-				, $10
-				, $10
-				, $10
-			)`,
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)`,
 			accountID,
 			accountUID,
 			accountModel.AccountTypeAdmin,
-			accountModel.StatusActive,
+			accountModel.StatusUnconfirmed,
 			"Roy Situmorang",
 			"roy",
+			confirmationToken,
 			"roy.situmorang@gmail.com",
+			emailConfirmationToken,
 			"+6285233494271",
-			encryptedPassword,
+			phoneConfirmationToken,
 			now,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
 		}
 		return
 	}

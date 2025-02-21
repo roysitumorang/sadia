@@ -1,11 +1,11 @@
 package model
 
 import (
-	"strings"
+	"errors"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/roysitumorang/sadia/errors"
+	customErrors "github.com/roysitumorang/sadia/errors"
 	"github.com/roysitumorang/sadia/helper"
 )
 
@@ -22,34 +22,42 @@ const (
 
 type (
 	Account struct {
-		ID                     int64      `json:"-"`
-		UID                    string     `json:"uid"`
-		AccountType            uint8      `json:"account_type"`
-		Status                 int8       `json:"status"`
-		Name                   string     `json:"name"`
-		Username               string     `json:"username"`
-		Email                  *string    `json:"email"`
-		UnconfirmedEmail       *string    `json:"unconfirmed_email"`
-		EmailConfirmationToken *string    `json:"-"`
-		EmailConfirmedAt       *time.Time `json:"-"`
-		Phone                  *string    `json:"phone"`
-		UnconfirmedPhone       *string    `json:"unconfirmed_phone"`
-		PhoneConfirmationToken *string    `json:"-"`
-		PhoneConfirmedAt       *time.Time `json:"-"`
-		EncryptedPassword      *string    `json:"-"`
-		LastPasswordChange     *time.Time `json:"last_password_change"`
-		ResetPasswordToken     *string    `json:"-"`
-		LoginCount             uint       `json:"login_count"`
-		CurrentLoginAt         *time.Time `json:"current_login_at"`
-		CurrentLoginIP         *string    `json:"current_login_ip"`
-		LastLoginAt            *time.Time `json:"last_login_at"`
-		LastLoginIP            *string    `json:"last_login_ip"`
-		CreatedBy              *string    `json:"-"`
-		CreatedAt              time.Time  `json:"-"`
-		UpdatedAt              time.Time  `json:"-"`
-		DeactivatedBy          *string    `json:"-"`
-		DeactivatedAt          *time.Time `json:"-"`
-		DeactivationReason     *string    `json:"-"`
+		ID                      int64      `json:"-"`
+		UID                     string     `json:"uid"`
+		AccountType             uint8      `json:"account_type"`
+		Status                  int8       `json:"status"`
+		Name                    string     `json:"name"`
+		Username                string     `json:"username"`
+		ConfirmationToken       *string    `json:"-"`
+		ConfirmedAt             *time.Time `json:"confirmed_at"`
+		Email                   *string    `json:"email"`
+		UnconfirmedEmail        *string    `json:"unconfirmed_email"`
+		EmailConfirmationToken  *string    `json:"-"`
+		EmailConfirmationSentAt *time.Time `json:"-"`
+		EmailConfirmedAt        *time.Time `json:"-"`
+		Phone                   *string    `json:"phone"`
+		UnconfirmedPhone        *string    `json:"unconfirmed_phone"`
+		PhoneConfirmationToken  *string    `json:"-"`
+		PhoneConfirmationSentAt *time.Time `json:"-"`
+		PhoneConfirmedAt        *time.Time `json:"-"`
+		EncryptedPassword       *string    `json:"-"`
+		LastPasswordChange      *time.Time `json:"last_password_change"`
+		ResetPasswordToken      *string    `json:"-"`
+		ResetPasswordSentAt     *time.Time `json:"-"`
+		LoginCount              uint       `json:"login_count"`
+		CurrentLoginAt          *time.Time `json:"current_login_at"`
+		CurrentLoginIP          *string    `json:"current_login_ip"`
+		LastLoginAt             *time.Time `json:"last_login_at"`
+		LastLoginIP             *string    `json:"last_login_ip"`
+		LoginFailedAttempts     int        `json:"login_failed_attempts"`
+		LoginUnlockToken        *string    `json:"-"`
+		LoginLockedAt           *time.Time `json:"login_locked_at"`
+		CreatedBy               *string    `json:"-"`
+		CreatedAt               time.Time  `json:"-"`
+		UpdatedAt               time.Time  `json:"-"`
+		DeactivatedBy           *string    `json:"-"`
+		DeactivatedAt           *time.Time `json:"-"`
+		DeactivationReason      *string    `json:"-"`
 	}
 
 	Filter struct {
@@ -70,7 +78,7 @@ type (
 		Name        string  `json:"name"`
 		Username    string  `json:"username"`
 		Email       *string `json:"email"`
-		Phone       string  `json:"phone"`
+		Phone       *string `json:"phone"`
 		CreatedBy   *string `json:"-"`
 	}
 
@@ -90,23 +98,27 @@ type (
 	}
 
 	Confirmation struct {
-		Token    string `json:"token"`
-		Password string `json:"password,omitempty"`
+		Name           string  `json:"name"`
+		Username       string  `json:"username"`
+		Email          *string `json:"email"`
+		Phone          *string `json:"phone"`
+		Base64Password string  `json:"password"`
+		Password       string  `json:"-"`
 	}
 )
 
 var (
-	ErrLoginFailed = errors.New(fiber.StatusBadRequest, "login failed")
+	ErrLoginFailed                           = customErrors.New(fiber.StatusBadRequest, "login failed")
+	ErrUniqueUsernameViolation               = errors.New("username: already exists")
+	ErrUniqueEmailViolation                  = errors.New("email: already exists")
+	ErrUniquePhoneViolation                  = errors.New("phone: already exists")
+	ErrUniqueConfirmationTokenViolation      = errors.New("confirmation_token: already exists")
+	ErrUniqueEmailConfirmationTokenViolation = errors.New("email_confirmation_token: already exists")
+	ErrUniquePhoneConfirmationTokenViolation = errors.New("phone_confirmation_token: already exists")
+	ErrUniqueLoginUnlockTokenViolation       = errors.New("login_unlock_token: already exists")
 )
 
 func (q LoginRequest) DecodePassword() (string, error) {
-	return helper.Base64Decode(q.Password)
-}
-
-func (q *Confirmation) DecodePassword() (string, error) {
-	if q.Password = strings.TrimSpace(q.Password); q.Password == "" {
-		return q.Password, nil
-	}
 	return helper.Base64Decode(q.Password)
 }
 
