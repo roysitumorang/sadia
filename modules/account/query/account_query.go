@@ -609,6 +609,10 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 				err = accountModel.ErrUniqueEmailConfirmationTokenViolation
 			case "accounts_phone_confirmation_token_key":
 				err = accountModel.ErrUniquePhoneConfirmationTokenViolation
+			case "accounts_reset_password_token_key":
+				err = accountModel.ErrUniqueResetPasswordTokenViolation
+			case "accounts_login_unlock_token_key":
+				err = accountModel.ErrUniqueLoginUnlockTokenViolation
 			}
 		} else {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")

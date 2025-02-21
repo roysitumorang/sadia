@@ -153,6 +153,7 @@ var (
 	ErrUniqueConfirmationTokenViolation      = errors.New("confirmation_token: already exists")
 	ErrUniqueEmailConfirmationTokenViolation = errors.New("email_confirmation_token: already exists")
 	ErrUniquePhoneConfirmationTokenViolation = errors.New("phone_confirmation_token: already exists")
+	ErrUniqueResetPasswordTokenViolation     = errors.New("reset_password_token: already exists")
 	ErrUniqueLoginUnlockTokenViolation       = errors.New("login_unlock_token: already exists")
 )
 
