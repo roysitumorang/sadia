@@ -157,7 +157,7 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		, phone_confirmed_at
 		, encrypted_password
 		, last_password_change
-		, password_reset_token
+		, reset_password_token
 		, login_count
 		, current_login_at
 		, current_login_ip
@@ -226,7 +226,7 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 			&account.PhoneConfirmedAt,
 			&account.EncryptedPassword,
 			&account.LastPasswordChange,
-			&account.PasswordResetToken,
+			&account.ResetPasswordToken,
 			&account.LoginCount,
 			&account.CurrentLoginAt,
 			&account.CurrentLoginIP,
@@ -296,7 +296,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 				, phone_confirmed_at
 				, encrypted_password
 				, last_password_change
-				, password_reset_token
+				, reset_password_token
 				, login_count
 				, current_login_at
 				, current_login_ip
@@ -335,7 +335,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 			&response.PhoneConfirmedAt,
 			&response.EncryptedPassword,
 			&response.LastPasswordChange,
-			&response.PasswordResetToken,
+			&response.ResetPasswordToken,
 			&response.LoginCount,
 			&response.CurrentLoginAt,
 			&response.CurrentLoginIP,
@@ -389,7 +389,7 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 			, phone_confirmed_at = $12
 			, encrypted_password = $13
 			, last_password_change = $14
-			, password_reset_token = $15
+			, reset_password_token = $15
 			, login_count = $16
 			, current_login_at = $17
 			, current_login_ip = $18
@@ -416,7 +416,7 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 			, phone_confirmed_at
 			, encrypted_password
 			, last_password_change
-			, password_reset_token
+			, reset_password_token
 			, login_count
 			, current_login_at
 			, current_login_ip
@@ -442,7 +442,7 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		request.PhoneConfirmedAt,
 		request.EncryptedPassword,
 		request.LastPasswordChange,
-		request.PasswordResetToken,
+		request.ResetPasswordToken,
 		request.LoginCount,
 		request.CurrentLoginAt,
 		request.CurrentLoginIP,
@@ -470,7 +470,7 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		&request.PhoneConfirmedAt,
 		&request.EncryptedPassword,
 		&request.LastPasswordChange,
-		&request.PasswordResetToken,
+		&request.ResetPasswordToken,
 		&request.LoginCount,
 		&request.CurrentLoginAt,
 		&request.CurrentLoginIP,

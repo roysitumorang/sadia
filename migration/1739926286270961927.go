@@ -32,7 +32,7 @@ func init() {
 				, phone_confirmed_at timestamp with time zone
 				, encrypted_password character varying
 				, last_password_change timestamp with time zone
-				, password_reset_token character varying UNIQUE
+				, reset_password_token character varying UNIQUE
 				, login_count integer NOT NULL DEFAULT 0
 				, current_login_at timestamp with time zone
 				, current_login_ip character varying
@@ -114,7 +114,7 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			"CREATE INDEX ON accounts (password_reset_token)",
+			"CREATE INDEX ON accounts (reset_password_token)",
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return

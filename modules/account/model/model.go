@@ -38,7 +38,7 @@ type (
 		PhoneConfirmedAt       *time.Time `json:"-"`
 		EncryptedPassword      *string    `json:"-"`
 		LastPasswordChange     *time.Time `json:"last_password_change"`
-		PasswordResetToken     *string    `json:"-"`
+		ResetPasswordToken     *string    `json:"-"`
 		LoginCount             uint       `json:"login_count"`
 		CurrentLoginAt         *time.Time `json:"current_login_at"`
 		CurrentLoginIP         *string    `json:"current_login_ip"`
