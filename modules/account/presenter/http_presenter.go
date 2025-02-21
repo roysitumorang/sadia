@@ -59,7 +59,10 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Put("/password/reset/:token", q.ResetPassword)
 	r.Group("/me", middleware.KeyAuth(q.jwtUseCase, q.accountUseCase)).
 		Get("", q.Me).
-		Put("/password", q.ChangePassword)
+		Put("/password", q.ChangePassword).
+		Put("/username", q.ChangeUsername).
+		Put("/email", q.ChangeEmail).
+		Put("/phone", q.ChangePhone)
 }
 
 func (q *accountHTTPHandler) FindAccounts(c *fiber.Ctx) error {
@@ -721,17 +724,12 @@ func (q *accountHTTPHandler) ChangePassword(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateChangePassword")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
-	accounts, _, err := q.accountUseCase.FindAccounts(
-		ctx,
-		accountModel.NewFilter(accountModel.WithResetPasswordToken(c.Params("token"))),
-		url.Values{},
-	)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	oldEncryptedPassword := helper.String2ByteSlice(*account.EncryptedPassword)
+	if !helper.MatchedHashAndPassword(oldEncryptedPassword, helper.String2ByteSlice(request.OldPassword)) {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("old_password: invalid").WriteResponse(c)
 	}
-	if len(accounts) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	if !helper.MatchedHashAndPassword(oldEncryptedPassword, helper.String2ByteSlice(request.NewPassword)) {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password reuse prohibited").WriteResponse(c)
 	}
 	now := time.Now()
 	encryptedPassword, err := helper.HashPassword(request.NewPassword)
@@ -741,6 +739,142 @@ func (q *accountHTTPHandler) ChangePassword(c *fiber.Ctx) error {
 	}
 	account.EncryptedPassword = encryptedPassword
 	account.LastPasswordChange = &now
+	tx, err := q.accountUseCase.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) ChangeUsername(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-ChangeUsername"
+	account, _ := c.Locals(models.CurrentAccount).(*accountModel.Account)
+	request, statusCode, err := sanitizer.ValidateChangeUsername(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateChangeUsername")
+		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if account.Username == request.Username {
+		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+	}
+	encryptedPassword := helper.String2ByteSlice(*account.EncryptedPassword)
+	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password: invalid").WriteResponse(c)
+	}
+	now := time.Now()
+	account.Username = request.Username
+	account.UpdatedAt = now
+	tx, err := q.accountUseCase.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) ChangeEmail(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-ChangeEmail"
+	account, _ := c.Locals(models.CurrentAccount).(*accountModel.Account)
+	request, statusCode, err := sanitizer.ValidateChangeEmail(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateChangeEmail")
+		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if account.Email != nil && *account.Email == request.Email {
+		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+	}
+	encryptedPassword := helper.String2ByteSlice(*account.EncryptedPassword)
+	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password: invalid").WriteResponse(c)
+	}
+	now := time.Now()
+	emailConfirmationToken := helper.RandomString(32)
+	account.UnconfirmedEmail = &request.Email
+	account.EmailConfirmationToken = &emailConfirmationToken
+	account.EmailConfirmationSentAt = &now
+	tx, err := q.accountUseCase.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) ChangePhone(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-ChangePhone"
+	account, _ := c.Locals(models.CurrentAccount).(*accountModel.Account)
+	request, statusCode, err := sanitizer.ValidateChangePhone(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateChangePhone")
+		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if account.Phone != nil && *account.Phone == request.Phone {
+		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+	}
+	encryptedPassword := helper.String2ByteSlice(*account.EncryptedPassword)
+	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password: invalid").WriteResponse(c)
+	}
+	now := time.Now()
+	phoneConfirmationToken := helper.RandomNumber(6)
+	account.UnconfirmedPhone = &request.Phone
+	account.PhoneConfirmationToken = &phoneConfirmationToken
+	account.PhoneConfirmationSentAt = &now
 	tx, err := q.accountUseCase.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")

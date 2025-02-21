@@ -125,6 +125,24 @@ type (
 		Base64NewPassword string `json:"new_password"`
 		NewPassword       string `json:"-"`
 	}
+
+	ChangeUsername struct {
+		Base64Password string `json:"password"`
+		Password       string `json:"-"`
+		Username       string `json:"username"`
+	}
+
+	ChangeEmail struct {
+		Base64Password string `json:"password"`
+		Password       string `json:"-"`
+		Email          string `json:"email"`
+	}
+
+	ChangePhone struct {
+		Base64Password string `json:"password"`
+		Password       string `json:"-"`
+		Phone          string `json:"phone"`
+	}
 )
 
 var (

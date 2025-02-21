@@ -250,3 +250,72 @@ func ValidateChangePassword(ctx context.Context, c *fiber.Ctx) (*accountModel.Ch
 	}
 	return &response, fiber.StatusOK, nil
 }
+
+func ValidateChangeUsername(ctx context.Context, c *fiber.Ctx) (*accountModel.ChangeUsername, int, error) {
+	ctxt := "AccountSanitizer-ValidateChangeUsername"
+	var response accountModel.ChangeUsername
+	err := c.BodyParser(&response)
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		return nil, fiberErr.Code, err
+	}
+	if response.Base64Password = strings.TrimSpace(response.Base64Password); response.Base64Password == "" {
+		return nil, fiber.StatusBadRequest, errors.New("password: is required")
+	}
+	if response.Password, err = helper.Base64Decode(response.Base64Password); err != nil {
+		return nil, fiber.StatusBadRequest, fmt.Errorf("password: %s", err.Error())
+	}
+	if response.Username = strings.ToLower(strings.TrimSpace(response.Username)); response.Username == "" {
+		return nil, fiber.StatusBadRequest, errors.New("username: is required")
+	}
+	return &response, fiber.StatusOK, nil
+}
+
+func ValidateChangeEmail(ctx context.Context, c *fiber.Ctx) (*accountModel.ChangeEmail, int, error) {
+	ctxt := "AccountSanitizer-ValidateChangeEmail"
+	var response accountModel.ChangeEmail
+	err := c.BodyParser(&response)
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		return nil, fiberErr.Code, err
+	}
+	if response.Base64Password = strings.TrimSpace(response.Base64Password); response.Base64Password == "" {
+		return nil, fiber.StatusBadRequest, errors.New("password: is required")
+	}
+	if response.Password, err = helper.Base64Decode(response.Base64Password); err != nil {
+		return nil, fiber.StatusBadRequest, fmt.Errorf("password: %s", err.Error())
+	}
+	if response.Email = strings.ToLower(strings.TrimSpace(response.Email)); response.Email == "" {
+		return nil, fiber.StatusBadRequest, errors.New("email: is required")
+	}
+	if _, err = mail.ParseAddress(response.Email); err != nil {
+		return nil, fiber.StatusBadRequest, errors.New("email: invalid address")
+	}
+	return &response, fiber.StatusOK, nil
+}
+
+func ValidateChangePhone(ctx context.Context, c *fiber.Ctx) (*accountModel.ChangePhone, int, error) {
+	ctxt := "AccountSanitizer-ValidateChangePhone"
+	var response accountModel.ChangePhone
+	err := c.BodyParser(&response)
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		return nil, fiberErr.Code, err
+	}
+	if response.Base64Password = strings.TrimSpace(response.Base64Password); response.Base64Password == "" {
+		return nil, fiber.StatusBadRequest, errors.New("password: is required")
+	}
+	if response.Password, err = helper.Base64Decode(response.Base64Password); err != nil {
+		return nil, fiber.StatusBadRequest, fmt.Errorf("password: %s", err.Error())
+	}
+	if response.Phone = strings.TrimSpace(response.Phone); response.Phone != "" {
+		return nil, fiber.StatusBadRequest, errors.New("phone: is required")
+	}
+	if phoneNumberRegex.Find(helper.String2ByteSlice(response.Phone)) == nil {
+		return nil, fiber.StatusBadRequest, errors.New("phone: invalid number")
+	}
+	return &response, fiber.StatusOK, nil
+}
