@@ -66,6 +66,8 @@ type (
 		Login,
 		Keyword,
 		ConfirmationToken,
+		EmailConfirmationToken,
+		PhoneConfirmationToken,
 		PaginationURL string
 		Limit,
 		Page int64
@@ -151,6 +153,18 @@ func WithKeyword(keyword string) FilterOption {
 func WithConfirmationToken(confirmationToken string) FilterOption {
 	return func(q *Filter) {
 		q.ConfirmationToken = confirmationToken
+	}
+}
+
+func WithEmailConfirmationToken(emailConfirmationToken string) FilterOption {
+	return func(q *Filter) {
+		q.EmailConfirmationToken = emailConfirmationToken
+	}
+}
+
+func WithPhoneConfirmationToken(phoneConfirmationToken string) FilterOption {
+	return func(q *Filter) {
+		q.PhoneConfirmationToken = phoneConfirmationToken
 	}
 }
 

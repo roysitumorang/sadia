@@ -50,7 +50,9 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Delete("/:uid", q.DeactivateAccount)
 	r.Post("/login", q.Login).
 		Get("/confirmation/:token", q.FindAccountByConfirmationToken).
-		Put("/confirmation/:token", q.ConfirmAccount)
+		Put("/confirmation/:token", q.ConfirmAccount).
+		Get("/email/confirm/:token", q.ConfirmAccountEmail).
+		Get("/phone/confirm/:token", q.ConfirmAccountPhone)
 	r.Get("/me", middleware.KeyAuth(q.jwtUseCase, q.accountUseCase), q.Me)
 }
 
@@ -433,4 +435,100 @@ func (q *accountHTTPHandler) ConfirmAccount(c *fiber.Ctx) error {
 		Account:   account,
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) ConfirmAccountEmail(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-ConfirmAccountEmail"
+	accounts, _, err := q.accountUseCase.FindAccounts(
+		ctx,
+		accountModel.NewFilter(accountModel.WithEmailConfirmationToken(c.Params("token"))),
+		url.Values{},
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(accounts) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	now := time.Now()
+	account := accounts[0]
+	email := *account.UnconfirmedEmail
+	account.Email = &email
+	account.UnconfirmedEmail = nil
+	account.EmailConfirmationToken = nil
+	account.EmailConfirmationSentAt = nil
+	account.EmailConfirmedAt = &now
+	tx, err := q.accountUseCase.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) ConfirmAccountPhone(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-ConfirmAccountPhone"
+	accounts, _, err := q.accountUseCase.FindAccounts(
+		ctx,
+		accountModel.NewFilter(accountModel.WithPhoneConfirmationToken(c.Params("token"))),
+		url.Values{},
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(accounts) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	now := time.Now()
+	account := accounts[0]
+	phone := *account.UnconfirmedPhone
+	account.Phone = &phone
+	account.UnconfirmedPhone = nil
+	account.PhoneConfirmationToken = nil
+	account.PhoneConfirmationSentAt = nil
+	account.PhoneConfirmedAt = &now
+	tx, err := q.accountUseCase.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
