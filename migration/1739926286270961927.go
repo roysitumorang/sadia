@@ -31,6 +31,7 @@ func init() {
 				, phone_confirmation_token character varying UNIQUE
 				, phone_confirmed_at timestamp with time zone
 				, encrypted_password character varying
+				, last_password_change timestamp with time zone
 				, password_reset_token character varying UNIQUE
 				, login_count integer NOT NULL DEFAULT 0
 				, current_login_at timestamp with time zone
@@ -195,25 +196,29 @@ func init() {
 				, name
 				, username
 				, email
-				, unconfirmed_email
-				, email_confirmation_token
 				, email_confirmed_at
 				, phone
-				, unconfirmed_phone
-				, phone_confirmation_token
 				, phone_confirmed_at
 				, encrypted_password
-				, password_reset_token
-				, login_count
-				, current_login_at
-				, current_login_ip
-				, last_login_at
-				, last_login_ip
+				, last_password_change
 				, created_at
 				, updated_at
-				, deactivated_at
-				, deactivation_reason
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`,
+			) VALUES (
+				$1
+				, $2
+				, $3
+				, $4
+				, $5
+				, $6
+				, $7
+				, $10
+				, $8
+				, $10
+				, $9
+				, $10
+				, $10
+				, $10
+			)`,
 			accountID,
 			accountUID,
 			accountModel.AccountTypeAdmin,
@@ -221,24 +226,9 @@ func init() {
 			"Roy Situmorang",
 			"roy",
 			"roy.situmorang@gmail.com",
-			nil,
-			nil,
-			now,
 			"+6285233494271",
-			nil,
-			nil,
-			now,
 			encryptedPassword,
-			nil,
-			0,
-			nil,
-			nil,
-			nil,
-			nil,
 			now,
-			now,
-			nil,
-			nil,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return

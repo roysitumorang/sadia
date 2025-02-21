@@ -215,36 +215,22 @@ func RandomNumber(length int) string {
 }
 
 func ValidPassword(password string) bool {
-	var (
-		containsUppperCase,
-		containsLowerCase,
-		containsNumber,
-		containsSymbol bool
-		total uint8
-	)
+	var hasUpperCase,
+		hasLowerCase,
+		hasNumber,
+		hasSymbol bool
+	length := len(password)
 	for _, char := range password {
-		switch {
-		case unicode.IsUpper(char):
-			containsUppperCase = true
-			total++
-		case unicode.IsLower(char):
-			containsLowerCase = true
-			total++
-		case unicode.IsNumber(char):
-			containsNumber = true
-			total++
-		case unicode.IsPunct(char) || unicode.IsSymbol(char):
-			containsSymbol = true
-			total++
-		default:
-			return false
-		}
+		hasUpperCase = hasUpperCase || unicode.IsUpper(char)
+		hasLowerCase = hasLowerCase || unicode.IsLower(char)
+		hasNumber = hasNumber || unicode.IsNumber(char)
+		hasSymbol = hasSymbol || unicode.IsPunct(char) || unicode.IsSymbol(char)
 	}
-	return containsUppperCase &&
-		containsLowerCase &&
-		containsNumber &&
-		containsSymbol &&
-		total >= 8
+	return hasUpperCase &&
+		hasLowerCase &&
+		hasNumber &&
+		hasSymbol &&
+		length >= 8
 }
 
 func HashPassword(password string) (*string, error) {

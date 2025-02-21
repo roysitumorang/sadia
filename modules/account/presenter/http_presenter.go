@@ -3,6 +3,7 @@ package presenter
 import (
 	"crypto/rsa"
 	"errors"
+	"fmt"
 	"net/url"
 	"time"
 
@@ -333,10 +334,13 @@ func (q *accountHTTPHandler) ConfirmAccount(c *fiber.Ctx) error {
 		password, err := request.DecodePassword()
 		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDecodePassword")
-			return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+			return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(fmt.Sprintf("password: %s", err.Error())).WriteResponse(c)
 		}
 		if len(password) == 0 {
 			return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password: is required").WriteResponse(c)
+		}
+		if !helper.ValidPassword(password) {
+			return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password: min 8 characters & should contain uppercase/lowercase/number/symbol").WriteResponse(c)
 		}
 		encryptedPassword, err := helper.HashPassword(password)
 		if err != nil {
@@ -344,6 +348,7 @@ func (q *accountHTTPHandler) ConfirmAccount(c *fiber.Ctx) error {
 			return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 		}
 		account.EncryptedPassword = encryptedPassword
+		account.LastPasswordChange = &now
 	}
 	tx, err := q.accountUseCase.BeginTx(ctx)
 	if err != nil {

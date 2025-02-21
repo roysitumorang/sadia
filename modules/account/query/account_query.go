@@ -156,6 +156,7 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		, phone_confirmation_token
 		, phone_confirmed_at
 		, encrypted_password
+		, last_password_change
 		, password_reset_token
 		, login_count
 		, current_login_at
@@ -224,6 +225,7 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 			&account.PhoneConfirmationToken,
 			&account.PhoneConfirmedAt,
 			&account.EncryptedPassword,
+			&account.LastPasswordChange,
 			&account.PasswordResetToken,
 			&account.LoginCount,
 			&account.CurrentLoginAt,
@@ -293,6 +295,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 				, phone_confirmation_token
 				, phone_confirmed_at
 				, encrypted_password
+				, last_password_change
 				, password_reset_token
 				, login_count
 				, current_login_at
@@ -331,6 +334,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 			&response.PhoneConfirmationToken,
 			&response.PhoneConfirmedAt,
 			&response.EncryptedPassword,
+			&response.LastPasswordChange,
 			&response.PasswordResetToken,
 			&response.LoginCount,
 			&response.CurrentLoginAt,
@@ -384,17 +388,18 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 			, phone_confirmation_token = $11
 			, phone_confirmed_at = $12
 			, encrypted_password = $13
-			, password_reset_token = $14
-			, login_count = $15
-			, current_login_at = $16
-			, current_login_ip = $17
-			, last_login_at = $18
-			, last_login_ip = $19
-			, updated_at = $20
-			, deactivated_by = $21
-			, deactivated_at = $22
-			, deactivation_reason = $23
-		WHERE id = $24
+			, last_password_change = $14
+			, password_reset_token = $15
+			, login_count = $16
+			, current_login_at = $17
+			, current_login_ip = $18
+			, last_login_at = $19
+			, last_login_ip = $20
+			, updated_at = $21
+			, deactivated_by = $22
+			, deactivated_at = $23
+			, deactivation_reason = $24
+		WHERE id = $25
 		RETURNING id
 			, uid
 			, account_type
@@ -410,6 +415,7 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 			, phone_confirmation_token
 			, phone_confirmed_at
 			, encrypted_password
+			, last_password_change
 			, password_reset_token
 			, login_count
 			, current_login_at
@@ -435,6 +441,7 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		request.PhoneConfirmationToken,
 		request.PhoneConfirmedAt,
 		request.EncryptedPassword,
+		request.LastPasswordChange,
 		request.PasswordResetToken,
 		request.LoginCount,
 		request.CurrentLoginAt,
@@ -462,6 +469,7 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		&request.PhoneConfirmationToken,
 		&request.PhoneConfirmedAt,
 		&request.EncryptedPassword,
+		&request.LastPasswordChange,
 		&request.PasswordResetToken,
 		&request.LoginCount,
 		&request.CurrentLoginAt,
