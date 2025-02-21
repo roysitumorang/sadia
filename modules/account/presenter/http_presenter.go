@@ -690,6 +690,24 @@ func (q *accountHTTPHandler) ResetPassword(c *fiber.Ctx) error {
 	}
 	account.EncryptedPassword = encryptedPassword
 	account.LastPasswordChange = &now
+	jwtID, jwtUID, jwtToken, err := helper.GenerateUniqueID()
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateUniqueID")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	jwt := jwtModel.JsonWebToken{
+		ID:         jwtID,
+		UID:        jwtUID,
+		Token:      jwtToken,
+		AccountUID: account.UID,
+		CreatedAt:  now,
+		ExpiredAt:  now.Add(q.accessTokenAge),
+	}
+	tokenString, err := helper.GenerateAccessToken(account.UID, jwtToken, account.Username, jwt.CreatedAt, jwt.ExpiredAt, q.privateKey)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
 	tx, err := q.accountUseCase.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
@@ -704,6 +722,10 @@ func (q *accountHTTPHandler) ResetPassword(c *fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
+	if err = q.jwtUseCase.CreateJWT(ctx, tx, jwt); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
 	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -712,7 +734,12 @@ func (q *accountHTTPHandler) ResetPassword(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+	response := accountModel.LoginResponse{
+		IDToken:   tokenString,
+		ExpiredAt: jwt.ExpiredAt,
+		Account:   account,
+	}
+	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
 
 func (q *accountHTTPHandler) ChangePassword(c *fiber.Ctx) error {
