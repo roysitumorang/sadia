@@ -36,11 +36,17 @@ func NewResponse(statusCode int) *Response {
 }
 
 func (r *Response) SetMessage(message string) *Response {
+	if r.StatusCode == fiber.StatusNoContent {
+		return r
+	}
 	r.Message = message
 	return r
 }
 
 func (r *Response) SetData(data interface{}) *Response {
+	if r.StatusCode == fiber.StatusNoContent {
+		return r
+	}
 	r.Data = data
 	return r
 }

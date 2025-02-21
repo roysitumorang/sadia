@@ -126,6 +126,13 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		_, _ = builder.WriteString(strconv.Itoa(len(params)))
 		conditions = append(conditions, builder.String())
 	}
+	if filter.ResetPasswordToken != "" {
+		params = append(params, filter.ResetPasswordToken)
+		builder.Reset()
+		_, _ = builder.WriteString("reset_password_token = $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
 	if len(filter.StatusList) > 0 {
 		builder.Reset()
 		_, _ = builder.WriteString("status IN (")

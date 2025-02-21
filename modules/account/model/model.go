@@ -69,6 +69,7 @@ type (
 		EmailConfirmationToken,
 		PhoneConfirmationToken,
 		LoginUnlockToken,
+		ResetPasswordToken,
 		PaginationURL string
 		Limit,
 		Page int64
@@ -107,6 +108,15 @@ type (
 		Phone          *string `json:"phone"`
 		Base64Password string  `json:"password"`
 		Password       string  `json:"-"`
+	}
+
+	ForgotPassword struct {
+		Login string `json:"login"`
+	}
+
+	ResetPassword struct {
+		Base64Password string `json:"password"`
+		Password       string `json:"-"`
 	}
 )
 
@@ -172,6 +182,12 @@ func WithPhoneConfirmationToken(phoneConfirmationToken string) FilterOption {
 func WithLoginUnlockToken(loginUnlockToken string) FilterOption {
 	return func(q *Filter) {
 		q.LoginUnlockToken = loginUnlockToken
+	}
+}
+
+func WithResetPasswordToken(resetPasswordToken string) FilterOption {
+	return func(q *Filter) {
+		q.ResetPasswordToken = resetPasswordToken
 	}
 }
 

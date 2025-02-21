@@ -187,3 +187,39 @@ func ValidateConfirmation(ctx context.Context, c *fiber.Ctx) (*accountModel.Conf
 	}
 	return &response, fiber.StatusOK, nil
 }
+
+func ValidateForgotPassword(ctx context.Context, c *fiber.Ctx) (*accountModel.ForgotPassword, int, error) {
+	ctxt := "AccountSanitizer-ValidateForgotPassword"
+	var response accountModel.ForgotPassword
+	err := c.BodyParser(&response)
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		return nil, fiberErr.Code, err
+	}
+	if response.Login = strings.TrimSpace(response.Login); response.Login == "" {
+		return nil, fiber.StatusBadRequest, errors.New("login: is required")
+	}
+	return &response, fiber.StatusOK, nil
+}
+
+func ValidateResetPassword(ctx context.Context, c *fiber.Ctx) (*accountModel.ResetPassword, int, error) {
+	ctxt := "AccountSanitizer-ValidateResetPassword"
+	var response accountModel.ResetPassword
+	err := c.BodyParser(&response)
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		return nil, fiberErr.Code, err
+	}
+	if response.Base64Password = strings.TrimSpace(response.Base64Password); response.Base64Password == "" {
+		return nil, fiber.StatusBadRequest, errors.New("password: is required")
+	}
+	if response.Password, err = helper.Base64Decode(response.Base64Password); err != nil {
+		return nil, fiber.StatusBadRequest, fmt.Errorf("password: %s", err.Error())
+	}
+	if !helper.ValidPassword(response.Password) {
+		return nil, fiber.StatusBadRequest, errors.New("password: min 8 characters & should contain uppercase/lowercase/number/symbol")
+	}
+	return &response, fiber.StatusOK, nil
+}
