@@ -431,14 +431,9 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 					err = accountModel.ErrUniqueEmailViolation
 				case "accounts_phone_key":
 					err = accountModel.ErrUniquePhoneViolation
-				case "accounts_confirmation_token_key":
-					err = accountModel.ErrUniqueConfirmationTokenViolation
-					continue
-				case "accounts_email_confirmation_token_key":
-					err = accountModel.ErrUniqueEmailConfirmationTokenViolation
-					continue
-				case "accounts_phone_confirmation_token_key":
-					err = accountModel.ErrUniquePhoneConfirmationTokenViolation
+				case "accounts_confirmation_token_key",
+					"accounts_email_confirmation_token_key",
+					"accounts_phone_confirmation_token_key":
 					continue
 				}
 			} else {
