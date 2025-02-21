@@ -122,14 +122,35 @@ func ValidateDeactivation(ctx context.Context, c *fiber.Ctx) (*accountModel.Deac
 	return &response, fiber.StatusOK, nil
 }
 
-func Login(ctx context.Context, c *fiber.Ctx) (*accountModel.LoginRequest, int, error) {
-	ctxt := "AccountSanitizer-Login"
+func ValidateLogin(ctx context.Context, c *fiber.Ctx) (*accountModel.LoginRequest, int, error) {
+	ctxt := "AccountSanitizer-ValidateLogin"
 	var response accountModel.LoginRequest
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
+	}
+	if response.Login = strings.TrimSpace(response.Login); response.Login == "" {
+		return nil, fiber.StatusBadRequest, errors.New("login: is required")
+	}
+	if response.Password = strings.TrimSpace(response.Password); response.Password == "" {
+		return nil, fiber.StatusBadRequest, errors.New("password: is required")
+	}
+	return &response, fiber.StatusOK, nil
+}
+
+func ValidateConfirmation(ctx context.Context, c *fiber.Ctx) (*accountModel.Confirmation, int, error) {
+	ctxt := "AccountSanitizer-ValidateConfirmation"
+	var response accountModel.Confirmation
+	err := c.BodyParser(&response)
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		return nil, fiberErr.Code, err
+	}
+	if response.Token = strings.TrimSpace(response.Token); response.Token == "" {
+		return nil, fiber.StatusBadRequest, errors.New("token: is required")
 	}
 	return &response, fiber.StatusOK, nil
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/roysitumorang/sadia/helper"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func init() {
@@ -27,9 +26,9 @@ func init() {
 				, unconfirmed_email character varying
 				, email_confirmation_token character varying UNIQUE
 				, email_confirmed_at timestamp with time zone
-				, phone character varying NOT NULL UNIQUE
+				, phone character varying UNIQUE
 				, unconfirmed_phone character varying
-				, phone_confirmation_token integer UNIQUE
+				, phone_confirmation_token character varying UNIQUE
 				, phone_confirmed_at timestamp with time zone
 				, encrypted_password character varying
 				, password_reset_token character varying UNIQUE
@@ -181,9 +180,9 @@ func init() {
 			return
 		}
 		now := time.Now()
-		encryptedPassword, err := bcrypt.GenerateFromPassword(helper.String2ByteSlice("s@dia1d"), bcrypt.DefaultCost)
+		encryptedPassword, err := helper.HashPassword("s@dia1d")
 		if err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateFromPassword")
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrHashPassword")
 			return
 		}
 		if _, err = tx.Exec(

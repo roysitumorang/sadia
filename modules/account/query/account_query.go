@@ -270,9 +270,9 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 				, status
 				, name
 				, username
-				, email
+				, unconfirmed_email
 				, email_confirmation_token
-				, phone
+				, unconfirmed_phone
 				, phone_confirmation_token
 				, created_by
 				, created_at

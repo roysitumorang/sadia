@@ -1,11 +1,12 @@
 package model
 
 import (
-	"encoding/base64"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/roysitumorang/sadia/errors"
+	"github.com/roysitumorang/sadia/helper"
 )
 
 const (
@@ -28,12 +29,12 @@ type (
 		Name                   string     `json:"name"`
 		Username               string     `json:"username"`
 		Email                  *string    `json:"email"`
-		UnconfirmedEmail       *string    `json:"-"`
+		UnconfirmedEmail       *string    `json:"unconfirmed_email"`
 		EmailConfirmationToken *string    `json:"-"`
 		EmailConfirmedAt       *time.Time `json:"-"`
-		Phone                  string     `json:"phone"`
-		UnconfirmedPhone       *string    `json:"-"`
-		PhoneConfirmationToken *int       `json:"-"`
+		Phone                  *string    `json:"phone"`
+		UnconfirmedPhone       *string    `json:"unconfirmed_phone"`
+		PhoneConfirmationToken *string    `json:"-"`
 		PhoneConfirmedAt       *time.Time `json:"-"`
 		EncryptedPassword      *string    `json:"-"`
 		PasswordResetToken     *string    `json:"-"`
@@ -55,6 +56,7 @@ type (
 		StatusList  []int
 		Login,
 		Keyword,
+		ConfirmationToken,
 		PaginationURL string
 		Limit,
 		Page int64
@@ -85,14 +87,26 @@ type (
 		ExpiredAt time.Time `json:"expired_at"`
 		Account   *Account  `json:"account"`
 	}
+
+	Confirmation struct {
+		Token    string `json:"token"`
+		Password string `json:"password,omitempty"`
+	}
 )
 
 var (
 	ErrLoginFailed = errors.New(fiber.StatusBadRequest, "login failed")
 )
 
-func (q LoginRequest) DecodePassword() ([]byte, error) {
-	return base64.StdEncoding.DecodeString(q.Password)
+func (q LoginRequest) DecodePassword() (string, error) {
+	return helper.Base64Decode(q.Password)
+}
+
+func (q *Confirmation) DecodePassword() (string, error) {
+	if q.Password = strings.TrimSpace(q.Password); q.Password == "" {
+		return q.Password, nil
+	}
+	return helper.Base64Decode(q.Password)
 }
 
 func NewFilter(options ...FilterOption) *Filter {
@@ -118,6 +132,12 @@ func WithAccountUIDs(accountUIDs ...string) FilterOption {
 func WithKeyword(keyword string) FilterOption {
 	return func(q *Filter) {
 		q.Keyword = keyword
+	}
+}
+
+func WithConfirmationToken(confirmationToken string) FilterOption {
+	return func(q *Filter) {
+		q.ConfirmationToken = confirmationToken
 	}
 }
 

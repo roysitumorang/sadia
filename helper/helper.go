@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/base64"
 	"errors"
 	"maps"
 	"net/url"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 	"unsafe"
 
 	"github.com/goccy/go-json"
@@ -19,10 +21,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/roysitumorang/sadia/models"
 	"github.com/vishal-bihani/go-tsid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
-	numbers         = "123456789"
+	numbers         = "0123456789"
 	base58alphabets = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 )
 
@@ -198,7 +201,7 @@ func RandomString(length int) string {
 }
 
 // RandomNumber generate random number
-func RandomNumber(length int) int64 {
+func RandomNumber(length int) string {
 	randomBytes := make([]byte, length)
 	for {
 		if _, err := rand.Read(randomBytes); err == nil {
@@ -206,8 +209,65 @@ func RandomNumber(length int) int64 {
 		}
 	}
 	for i := 0; i < length; i++ {
-		randomBytes[i] = numbers[randomBytes[i]%9]
+		randomBytes[i] = numbers[randomBytes[i]%10]
 	}
-	randomNumber, _ := strconv.ParseInt(ByteSlice2String(randomBytes), 10, 64)
-	return randomNumber
+	return ByteSlice2String(randomBytes)
+}
+
+func ValidPassword(password string) bool {
+	var (
+		containsUppperCase,
+		containsLowerCase,
+		containsNumber,
+		containsSymbol bool
+		total uint8
+	)
+	for _, char := range password {
+		switch {
+		case unicode.IsUpper(char):
+			containsUppperCase = true
+			total++
+		case unicode.IsLower(char):
+			containsLowerCase = true
+			total++
+		case unicode.IsNumber(char):
+			containsNumber = true
+			total++
+		case unicode.IsPunct(char) || unicode.IsSymbol(char):
+			containsSymbol = true
+			total++
+		default:
+			return false
+		}
+	}
+	return containsUppperCase &&
+		containsLowerCase &&
+		containsNumber &&
+		containsSymbol &&
+		total >= 8
+}
+
+func HashPassword(password string) (*string, error) {
+	hashByte, err := bcrypt.GenerateFromPassword(String2ByteSlice(password), bcrypt.MinCost)
+	if err != nil {
+		return nil, err
+	}
+	hashString := ByteSlice2String(hashByte)
+	return &hashString, nil
+}
+
+func MatchedHashAndPassword(encryptedPassword, password []byte) bool {
+	err := bcrypt.CompareHashAndPassword(encryptedPassword, password)
+	return !errors.Is(err, bcrypt.ErrMismatchedHashAndPassword)
+}
+
+func Base64Decode(input string) (string, error) {
+	output, err := base64.StdEncoding.DecodeString(input)
+	if err != nil {
+		if _, ok := err.(base64.CorruptInputError); ok {
+			err = errors.New("malformed input")
+		}
+		return "", err
+	}
+	return ByteSlice2String(output), nil
 }
