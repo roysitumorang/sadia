@@ -34,7 +34,9 @@ var (
 	env,
 	jwtIssuer,
 	nsqAddress string
-	InitHelper = sync.OnceValue(func() (err error) {
+	loginMaxFailedAttempts int
+	loginLockoutDuration   time.Duration
+	InitHelper             = sync.OnceValue(func() (err error) {
 		location, ok := os.LookupEnv("TIME_ZONE")
 		if !ok || location == "" {
 			return errors.New("env TIME_ZONE is required")
@@ -52,8 +54,20 @@ var (
 			return errors.New("env JWT_ISSUER is required")
 		}
 		if nsqAddress, ok = os.LookupEnv("NSQ_ADDRESS"); !ok || nsqAddress == "" {
-			err = errors.New("env NSQ_ADDRESS is required")
+			return errors.New("env NSQ_ADDRESS is required")
 		}
+		envLoginMaxFailedAttempts, ok := os.LookupEnv("LOGIN_MAX_FAILED_ATTEMPTS")
+		if !ok || envLoginMaxFailedAttempts == "" {
+			return errors.New("env LOGIN_MAX_FAILED_ATTEMPTS is required")
+		}
+		if loginMaxFailedAttempts, err = strconv.Atoi(envLoginMaxFailedAttempts); err != nil || loginMaxFailedAttempts < 1 {
+			return errors.New("env LOGIN_MAX_FAILED_ATTEMPS requires a positive integer")
+		}
+		envLoginLockoutDuration, ok := os.LookupEnv("LOGIN_LOCKOUT_DURATION")
+		if !ok || envLoginLockoutDuration == "" {
+			return errors.New("env LOGIN_LOCKOUT_DURATION is required")
+		}
+		loginLockoutDuration, err = time.ParseDuration(envLoginLockoutDuration)
 		return
 	})
 )
@@ -256,4 +270,11 @@ func Base64Decode(input string) (string, error) {
 		return "", err
 	}
 	return ByteSlice2String(output), nil
+}
+
+func GetLoginMaxFailedAttempts() int {
+	return loginMaxFailedAttempts
+}
+func GetLoginLockoutDuration() time.Duration {
+	return loginLockoutDuration
 }
