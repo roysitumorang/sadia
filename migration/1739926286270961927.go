@@ -392,6 +392,120 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
+			`CREATE TABLE stores (
+				_id bigint NOT NULL UNIQUE
+				, id character varying NOT NULL PRIMARY KEY
+				, company_id character varying NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
+                , name character varying NOT NULL
+				, created_by character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, created_at timestamp with time zone NOT NULL
+            );`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON stores (_id)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON stores (company_id)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON stores (LOWER(name))`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON stores (created_by)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE TABLE sessions (
+				_id bigint NOT NULL UNIQUE
+				, id character varying NOT NULL PRIMARY KEY
+				, store_id character varying NOT NULL REFERENCES stores (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, account_id character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, date date NOT NULL
+				, status smallint NOT NULL
+				, cashbox_value integer NOT NULL
+				, cashbox_note character varying NOT NULL
+				, take_money_value integer NOT NULL
+				, take_money_note character varying NOT NULL
+				, start_at timestamp with time zone
+				, stop_at timestamp with time zone
+				, created_at timestamp with time zone NOT NULL
+				, updated_at timestamp with time zone NOT NULL
+            )`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON sessions (_id)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON sessions (store_id)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON sessions (account_id)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON sessions (date)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON sessions (status)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`ALTER TABLE stores
+				ADD COLUMN current_session_id  character varying NOT NULL REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON stores (current_session_id)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
 			`CREATE TABLE product_categories (
 				_id bigint NOT NULL UNIQUE
 				, id character varying NOT NULL PRIMARY KEY
@@ -538,7 +652,7 @@ func init() {
 			`CREATE TABLE orders (
 				_id bigint NOT NULL UNIQUE
 				, id character varying NOT NULL PRIMARY KEY
-				, company_id character varying NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, store_id character varying NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, reference_no character varying NOT NULL UNIQUE
 				, subtotal integer NOT NULL
 				, discount integer NOT NULL
@@ -561,7 +675,7 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE INDEX ON orders (company_id)`,
+			`CREATE INDEX ON orders (store_id)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
