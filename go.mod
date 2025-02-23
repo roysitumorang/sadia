@@ -21,7 +21,7 @@ require (
 	github.com/swaggo/swag v1.16.4
 	github.com/vishal-bihani/go-tsid v1.0.5
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.34.0
 	golang.org/x/sync v0.11.0
 )
 
