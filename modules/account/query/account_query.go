@@ -293,8 +293,8 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		response = append(response, &account)
 	}
 	return response, total, pages, nil
-
 }
+
 func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.NewAccount) (*accountModel.Account, error) {
 	ctxt := "AccountQuery-CreateAccount"
 	var response accountModel.Account

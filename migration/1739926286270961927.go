@@ -16,7 +16,7 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE accounts (
-				_id bigserial NOT NULL UNIQUE
+				_id bigint NOT NULL UNIQUE
 				, id character varying NOT NULL PRIMARY KEY
 				, account_type smallint NOT NULL
 				, status smallint NOT NULL
@@ -158,7 +158,7 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE json_web_tokens (
-				_id bigserial NOT NULL UNIQUE
+				_id bigint NOT NULL UNIQUE
 				, id character varying NOT NULL PRIMARY KEY
 				, token character varying NOT NULL UNIQUE
 				, account_id character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
@@ -171,7 +171,7 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			"CREATE INDEX ON json_web_tokens (id)",
+			"CREATE INDEX ON json_web_tokens (_id)",
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -197,7 +197,7 @@ func init() {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
 		}
-		_, accountID, _, err := helper.GenerateUniqueID()
+		accountID, accountSqID, _, err := helper.GenerateUniqueID()
 		if err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
 			return
@@ -207,7 +207,8 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`INSERT INTO accounts (
-				id
+				_id
+				, id
 				, account_type
 				, status
 				, name
@@ -219,8 +220,9 @@ func init() {
 				, phone_confirmation_token
 				, created_at
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)`,
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)`,
 			accountID,
+			accountSqID,
 			accountModel.AccountTypeAdmin,
 			accountModel.StatusUnconfirmed,
 			"Roy Situmorang",

@@ -6,7 +6,9 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"maps"
+	"math"
 	"net/url"
 	"os"
 	"strconv"
@@ -20,6 +22,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/roysitumorang/sadia/models"
+	"github.com/sqids/sqids-go"
 	"github.com/vishal-bihani/go-tsid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -36,6 +39,7 @@ var (
 	nsqAddress string
 	loginMaxFailedAttempts int
 	loginLockoutDuration   time.Duration
+	sqIDs                  *sqids.Sqids
 	InitHelper             = sync.OnceValue(func() (err error) {
 		location, ok := os.LookupEnv("TIME_ZONE")
 		if !ok || location == "" {
@@ -67,7 +71,21 @@ var (
 		if !ok || envLoginLockoutDuration == "" {
 			return errors.New("env LOGIN_LOCKOUT_DURATION is required")
 		}
-		loginLockoutDuration, err = time.ParseDuration(envLoginLockoutDuration)
+		if loginLockoutDuration, err = time.ParseDuration(envLoginLockoutDuration); err != nil {
+			return
+		}
+		envSqidsMinLength, ok := os.LookupEnv("SQIDS_MIN_LENGTH")
+		if !ok || envSqidsMinLength == "" {
+			return errors.New("env SQIDS_MIN_LENGTH is required")
+		}
+		sqidsMinLength, err := strconv.Atoi(envSqidsMinLength)
+		if err != nil || sqidsMinLength < 1 || sqidsMinLength > math.MaxUint8 {
+			return fmt.Errorf("env SQIDS_MIN_LENGTH requires a positive integer, min. 1, max %d", math.MaxUint8)
+		}
+		sqIDs, err = sqids.New(sqids.Options{
+			Alphabet:  base58alphabets,
+			MinLength: uint8(sqidsMinLength),
+		})
 		return
 	})
 )
@@ -84,13 +102,40 @@ func GenerateSnowflakeID() int64 {
 	return tsid.Fast().ToNumber()
 }
 
+func EncodeSqids(numbers ...int64) (string, error) {
+	n := len(numbers)
+	if n == 0 {
+		return "", nil
+	}
+	unsignedNumbers := make([]uint64, len(numbers))
+	for i, number := range numbers {
+		unsignedNumbers[i] = uint64(number)
+	}
+	return sqIDs.Encode(unsignedNumbers)
+}
+
+func DecodeSqids(id string) int64 {
+	if id == "" {
+		return 0
+	}
+	unsignedNumbers := sqIDs.Decode(id)
+	if len(unsignedNumbers) == 0 {
+		return 0
+	}
+	return int64(unsignedNumbers[0])
+}
+
 func GenerateUniqueID() (uniqueID int64, sqID string, uuID string, err error) {
-	uuidV7, err := uuid.NewV7()
+	uuidV4, err := uuid.NewRandom()
 	if err != nil {
 		return
 	}
-	tsid := tsid.Fast()
-	return tsid.ToNumber(), tsid.ToLowerCase(), uuidV7.String(), nil
+	uniqueID = GenerateSnowflakeID()
+	if sqID, err = EncodeSqids(uniqueID); err != nil {
+		return
+	}
+	uuID = uuidV4.String()
+	return
 }
 
 func LoadTimeZone() *time.Location {
