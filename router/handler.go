@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/config"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/migration"
@@ -16,6 +17,7 @@ import (
 
 type (
 	Service struct {
+		DbWrite        *pgxpool.Pool
 		Migration      *migration.Migration
 		NsqProducer    *serviceNsq.Producer
 		AccountUseCase accountUseCase.AccountUseCase
@@ -60,6 +62,7 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		return nil, err
 	}
 	return &Service{
+		DbWrite:        dbWrite,
 		Migration:      migration,
 		NsqProducer:    nsqProducer,
 		AccountUseCase: accountUseCase,

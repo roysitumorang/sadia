@@ -67,6 +67,7 @@ func main() {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrMakeHandler")
 				return
 			}
+			helper.InitDbWrite(service.DbWrite)
 			if err := service.Migration.Migrate(ctx); err != nil {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrMigrate")
 				return
@@ -103,7 +104,7 @@ func main() {
 				))
 				// run every minute
 				entryID, err := c.AddFunc("* * * * *", func() {
-					tx, err := service.AccountUseCase.BeginTx(ctx)
+					tx, err := helper.BeginTx(ctx)
 					if err != nil {
 						helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 						return
@@ -172,6 +173,7 @@ func main() {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrMakeHandler")
 				return
 			}
+			helper.InitDbWrite(service.DbWrite)
 			var activity string
 			switch args[0] {
 			case "new":

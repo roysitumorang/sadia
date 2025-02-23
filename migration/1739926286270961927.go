@@ -157,6 +157,16 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
+			`CREATE TABLE admins (
+				account_id character varying NOT NULL PRIMARY KEY REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, admin_level smallint NOT NULL
+			)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
 			`CREATE TABLE json_web_tokens (
 				_id bigint NOT NULL UNIQUE
 				, id character varying NOT NULL PRIMARY KEY
@@ -233,6 +243,18 @@ func init() {
 			"+6285233494271",
 			phoneConfirmationToken,
 			now,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`INSERT INTO admins (
+				account_id
+				, admin_level
+			) VALUES ($1, $2)`,
+			accountSqID,
+			accountModel.AdminLevelSuperAdmin,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 		}

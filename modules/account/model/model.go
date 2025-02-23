@@ -10,14 +10,19 @@ import (
 )
 
 const (
-	AccountTypeAdmin = iota
+	AccountTypeAdmin uint8 = iota
 	AccountTypeUser
 )
 
 const (
-	StatusUnconfirmed = iota
+	StatusUnconfirmed int8 = iota
 	StatusActive
-	StatusDeactivated = -1
+	StatusDeactivated int8 = -1
+)
+
+const (
+	AdminLevelSuperAdmin int8 = iota
+	AdminLevelAdmin
 )
 
 type (

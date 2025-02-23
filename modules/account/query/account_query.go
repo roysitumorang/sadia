@@ -34,15 +34,6 @@ func New(
 	}
 }
 
-func (q *accountQuery) BeginTx(ctx context.Context) (pgx.Tx, error) {
-	ctxt := "AccountQuery-BeginTx"
-	tx, err := q.dbWrite.Begin(ctx)
-	if err != nil {
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrBegin")
-	}
-	return tx, err
-}
-
 func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Filter) ([]*accountModel.Account, int64, int64, error) {
 	ctxt := "AccountQuery-FindAccounts"
 	var (

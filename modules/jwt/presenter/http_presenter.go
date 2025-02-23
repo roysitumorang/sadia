@@ -64,7 +64,7 @@ func (q *jwtHTTPHandler) FindJWTs(c *fiber.Ctx) error {
 func (q *jwtHTTPHandler) DeleteJWT(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	ctxt := "JwtPresenter-DeleteJWT"
-	tx, err := q.accountUseCase.BeginTx(ctx)
+	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)

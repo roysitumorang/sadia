@@ -44,15 +44,6 @@ func New(
 	}, nil
 }
 
-func (q *accountUseCase) BeginTx(ctx context.Context) (pgx.Tx, error) {
-	ctxt := "AccountUseCase-BeginTx"
-	tx, err := q.accountQuery.BeginTx(ctx)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
-	}
-	return tx, err
-}
-
 func (q *accountUseCase) FindAccounts(ctx context.Context, filter *accountModel.Filter, urlValues url.Values) ([]*accountModel.Account, *models.Pagination, error) {
 	ctxt := "AccountUseCase-FindAccounts"
 	accounts, total, pages, err := q.accountQuery.FindAccounts(ctx, filter)

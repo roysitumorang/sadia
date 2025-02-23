@@ -2,6 +2,7 @@ package helper
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
@@ -21,6 +22,8 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/models"
 	"github.com/sqids/sqids-go"
 	"github.com/vishal-bihani/go-tsid"
@@ -40,6 +43,7 @@ var (
 	loginMaxFailedAttempts int
 	loginLockoutDuration   time.Duration
 	sqIDs                  *sqids.Sqids
+	dbWrite                *pgxpool.Pool
 	InitHelper             = sync.OnceValue(func() (err error) {
 		location, ok := os.LookupEnv("TIME_ZONE")
 		if !ok || location == "" {
@@ -82,13 +86,23 @@ var (
 		if err != nil || sqidsMinLength < 1 || sqidsMinLength > math.MaxUint8 {
 			return fmt.Errorf("env SQIDS_MIN_LENGTH requires a positive integer, min. 1, max %d", math.MaxUint8)
 		}
-		sqIDs, err = sqids.New(sqids.Options{
+		if sqIDs, err = sqids.New(sqids.Options{
 			Alphabet:  base58alphabets,
 			MinLength: uint8(sqidsMinLength),
-		})
+		}); err != nil {
+			return
+		}
 		return
 	})
 )
+
+func InitDbWrite(dbWriteOnly *pgxpool.Pool) {
+	dbWrite = dbWriteOnly
+}
+
+func BeginTx(ctx context.Context) (pgx.Tx, error) {
+	return dbWrite.Begin(ctx)
+}
 
 func String2ByteSlice(str string) []byte {
 	return unsafe.Slice(unsafe.StringData(str), len(str))

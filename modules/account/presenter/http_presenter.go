@@ -154,7 +154,7 @@ func (q *accountHTTPHandler) DeactivateAccount(c *fiber.Ctx) error {
 	account.DeactivatedBy = &currentAccount.ID
 	account.DeactivatedAt = &now
 	account.DeactivationReason = &request.Reason
-	tx, err := q.accountUseCase.BeginTx(ctx)
+	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -218,7 +218,7 @@ func (q *accountHTTPHandler) Login(c *fiber.Ctx) error {
 	now := time.Now()
 	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(password)) {
 		account.LoginFailedAttempts++
-		tx, err := q.accountUseCase.BeginTx(ctx)
+		tx, err := helper.BeginTx(ctx)
 		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 			return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -280,7 +280,7 @@ func (q *accountHTTPHandler) Login(c *fiber.Ctx) error {
 	account.CurrentLoginAt = &now
 	account.CurrentLoginIP = &ipAddress
 	account.LoginFailedAttempts = 0
-	tx, err := q.accountUseCase.BeginTx(ctx)
+	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -409,7 +409,7 @@ func (q *accountHTTPHandler) ConfirmAccount(c *fiber.Ctx) error {
 	account.LastLoginIP = account.CurrentLoginIP
 	account.CurrentLoginAt = &now
 	account.CurrentLoginIP = &ipAddress
-	tx, err := q.accountUseCase.BeginTx(ctx)
+	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -466,7 +466,7 @@ func (q *accountHTTPHandler) ConfirmAccountEmail(c *fiber.Ctx) error {
 	account.EmailConfirmationToken = nil
 	account.EmailConfirmationSentAt = nil
 	account.EmailConfirmedAt = &now
-	tx, err := q.accountUseCase.BeginTx(ctx)
+	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -514,7 +514,7 @@ func (q *accountHTTPHandler) ConfirmAccountPhone(c *fiber.Ctx) error {
 	account.PhoneConfirmationToken = nil
 	account.PhoneConfirmationSentAt = nil
 	account.PhoneConfirmedAt = &now
-	tx, err := q.accountUseCase.BeginTx(ctx)
+	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -558,7 +558,7 @@ func (q *accountHTTPHandler) UnlockAccount(c *fiber.Ctx) error {
 	account.LoginFailedAttempts = 0
 	account.LoginLockedAt = nil
 	account.LoginUnlockToken = nil
-	tx, err := q.accountUseCase.BeginTx(ctx)
+	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -614,7 +614,7 @@ func (q *accountHTTPHandler) ForgotPassword(c *fiber.Ctx) error {
 	resetPasswordToken := helper.RandomString(32)
 	account.ResetPasswordToken = &resetPasswordToken
 	account.ResetPasswordSentAt = &now
-	tx, err := q.accountUseCase.BeginTx(ctx)
+	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -705,7 +705,7 @@ func (q *accountHTTPHandler) ResetPassword(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	tx, err := q.accountUseCase.BeginTx(ctx)
+	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -763,7 +763,7 @@ func (q *accountHTTPHandler) ChangePassword(c *fiber.Ctx) error {
 	}
 	account.EncryptedPassword = encryptedPassword
 	account.LastPasswordChange = &now
-	tx, err := q.accountUseCase.BeginTx(ctx)
+	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -807,7 +807,7 @@ func (q *accountHTTPHandler) ChangeUsername(c *fiber.Ctx) error {
 	now := time.Now()
 	account.Username = request.Username
 	account.UpdatedAt = now
-	tx, err := q.accountUseCase.BeginTx(ctx)
+	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -853,7 +853,7 @@ func (q *accountHTTPHandler) ChangeEmail(c *fiber.Ctx) error {
 	account.UnconfirmedEmail = &request.Email
 	account.EmailConfirmationToken = &emailConfirmationToken
 	account.EmailConfirmationSentAt = &now
-	tx, err := q.accountUseCase.BeginTx(ctx)
+	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -899,7 +899,7 @@ func (q *accountHTTPHandler) ChangePhone(c *fiber.Ctx) error {
 	account.UnconfirmedPhone = &request.Phone
 	account.PhoneConfirmationToken = &phoneConfirmationToken
 	account.PhoneConfirmationSentAt = &now
-	tx, err := q.accountUseCase.BeginTx(ctx)
+	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
