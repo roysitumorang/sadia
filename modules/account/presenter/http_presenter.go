@@ -46,8 +46,8 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 	r.Group("/admin", middleware.KeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.AccountTypeAdmin)).
 		Get("", q.FindAccounts).
 		Post("", q.CreateAccount).
-		Get("/:uid", q.FindAccountByUID).
-		Delete("/:uid", q.DeactivateAccount)
+		Get("/:id", q.FindAccountByID).
+		Delete("/:id", q.DeactivateAccount)
 	r.Post("/login", q.Login).
 		Get("/confirmation/:token", q.FindAccountByConfirmationToken).
 		Put("/confirmation/:token", q.ConfirmAccount).
@@ -97,7 +97,7 @@ func (q *accountHTTPHandler) CreateAccount(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateAccount")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
-	request.CreatedBy = &currentAccount.UID
+	request.CreatedBy = &currentAccount.ID
 	response, err := q.accountUseCase.CreateAccount(ctx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateAccount")
@@ -106,12 +106,12 @@ func (q *accountHTTPHandler) CreateAccount(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) FindAccountByUID(c *fiber.Ctx) error {
+func (q *accountHTTPHandler) FindAccountByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	ctxt := "AccountPresenter-FindAccountByUID"
+	ctxt := "AccountPresenter-FindAccountByID"
 	accounts, _, err := q.accountUseCase.FindAccounts(
 		ctx,
-		accountModel.NewFilter(accountModel.WithLogin(c.Params("uid"))),
+		accountModel.NewFilter(accountModel.WithLogin(c.Params("id"))),
 		url.Values{},
 	)
 	if err != nil {
@@ -135,7 +135,7 @@ func (q *accountHTTPHandler) DeactivateAccount(c *fiber.Ctx) error {
 	}
 	accounts, _, err := q.accountUseCase.FindAccounts(
 		ctx,
-		accountModel.NewFilter(accountModel.WithLogin(c.Params("uid"))),
+		accountModel.NewFilter(accountModel.WithLogin(c.Params("id"))),
 		url.Values{},
 	)
 	if err != nil {
@@ -151,7 +151,7 @@ func (q *accountHTTPHandler) DeactivateAccount(c *fiber.Ctx) error {
 	}
 	now := time.Now()
 	account.Status = accountModel.StatusDeactivated
-	account.DeactivatedBy = &currentAccount.UID
+	account.DeactivatedBy = &currentAccount.ID
 	account.DeactivatedAt = &now
 	account.DeactivationReason = &request.Reason
 	tx, err := q.accountUseCase.BeginTx(ctx)
@@ -172,7 +172,7 @@ func (q *accountHTTPHandler) DeactivateAccount(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, time.Time{}, account.UID); err != nil {
+	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, time.Time{}, account.ID); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -242,7 +242,7 @@ func (q *accountHTTPHandler) Login(c *fiber.Ctx) error {
 			return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 		}
 		if account.LoginLockedAt != nil {
-			if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, time.Time{}, account.UID); err != nil {
+			if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, time.Time{}, account.ID); err != nil {
 				helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 				return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 			}
@@ -256,20 +256,19 @@ func (q *accountHTTPHandler) Login(c *fiber.Ctx) error {
 		}
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
 	}
-	jwtID, jwtUID, jwtToken, err := helper.GenerateUniqueID()
+	_, jwtID, jwtToken, err := helper.GenerateUniqueID()
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateUniqueID")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	jwt := jwtModel.JsonWebToken{
-		ID:         jwtID,
-		UID:        jwtUID,
-		Token:      jwtToken,
-		AccountUID: account.UID,
-		CreatedAt:  now,
-		ExpiredAt:  now.Add(q.accessTokenAge),
+		ID:        jwtID,
+		Token:     jwtToken,
+		AccountID: account.ID,
+		CreatedAt: now,
+		ExpiredAt: now.Add(q.accessTokenAge),
 	}
-	tokenString, err := helper.GenerateAccessToken(account.UID, jwtToken, account.Username, jwt.CreatedAt, jwt.ExpiredAt, q.privateKey)
+	tokenString, err := helper.GenerateAccessToken(account.ID, jwtToken, account.Username, jwt.CreatedAt, jwt.ExpiredAt, q.privateKey)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
@@ -387,20 +386,19 @@ func (q *accountHTTPHandler) ConfirmAccount(c *fiber.Ctx) error {
 	}
 	account.EncryptedPassword = encryptedPassword
 	account.LastPasswordChange = &now
-	jwtID, jwtUID, jwtToken, err := helper.GenerateUniqueID()
+	_, jwtID, jwtToken, err := helper.GenerateUniqueID()
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateUniqueID")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	jwt := jwtModel.JsonWebToken{
-		ID:         jwtID,
-		UID:        jwtUID,
-		Token:      jwtToken,
-		AccountUID: account.UID,
-		CreatedAt:  now,
-		ExpiredAt:  now.Add(q.accessTokenAge),
+		ID:        jwtID,
+		Token:     jwtToken,
+		AccountID: account.ID,
+		CreatedAt: now,
+		ExpiredAt: now.Add(q.accessTokenAge),
 	}
-	tokenString, err := helper.GenerateAccessToken(account.UID, jwtToken, account.Username, jwt.CreatedAt, jwt.ExpiredAt, q.privateKey)
+	tokenString, err := helper.GenerateAccessToken(account.ID, jwtToken, account.Username, jwt.CreatedAt, jwt.ExpiredAt, q.privateKey)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
@@ -690,20 +688,19 @@ func (q *accountHTTPHandler) ResetPassword(c *fiber.Ctx) error {
 	}
 	account.EncryptedPassword = encryptedPassword
 	account.LastPasswordChange = &now
-	jwtID, jwtUID, jwtToken, err := helper.GenerateUniqueID()
+	_, jwtID, jwtToken, err := helper.GenerateUniqueID()
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateUniqueID")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	jwt := jwtModel.JsonWebToken{
-		ID:         jwtID,
-		UID:        jwtUID,
-		Token:      jwtToken,
-		AccountUID: account.UID,
-		CreatedAt:  now,
-		ExpiredAt:  now.Add(q.accessTokenAge),
+		ID:        jwtID,
+		Token:     jwtToken,
+		AccountID: account.ID,
+		CreatedAt: now,
+		ExpiredAt: now.Add(q.accessTokenAge),
 	}
-	tokenString, err := helper.GenerateAccessToken(account.UID, jwtToken, account.Username, jwt.CreatedAt, jwt.ExpiredAt, q.privateKey)
+	tokenString, err := helper.GenerateAccessToken(account.ID, jwtToken, account.Username, jwt.CreatedAt, jwt.ExpiredAt, q.privateKey)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)

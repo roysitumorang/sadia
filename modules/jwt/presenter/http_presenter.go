@@ -35,7 +35,7 @@ func New(
 func (q *jwtHTTPHandler) Mount(r fiber.Router) {
 	r.Group("/admin", middleware.KeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.AccountTypeAdmin)).
 		Get("", q.FindJWTs).
-		Delete("/:uid", q.DeleteJWT)
+		Delete("/:id", q.DeleteJWT)
 }
 
 func (q *jwtHTTPHandler) FindJWTs(c *fiber.Ctx) error {
@@ -78,7 +78,7 @@ func (q *jwtHTTPHandler) DeleteJWT(c *fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, time.Time{}, "", c.Params("uid")); err != nil {
+	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, time.Time{}, "", c.Params("id")); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}

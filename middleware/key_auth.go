@@ -49,7 +49,7 @@ func KeyAuth(
 				return false, err
 			}
 			jwt := jsonWebTokens[0]
-			accounts, _, err := accountUseCase.FindAccounts(ctx, accountModel.NewFilter(accountModel.WithAccountUIDs(jwt.AccountUID)), url.Values{})
+			accounts, _, err := accountUseCase.FindAccounts(ctx, accountModel.NewFilter(accountModel.WithAccountIDs(jwt.AccountID)), url.Values{})
 			if err != nil || len(accounts) == 0 {
 				return false, err
 			}

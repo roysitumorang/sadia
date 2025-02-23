@@ -38,16 +38,14 @@ func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, request jwtModel.Js
 		ctx,
 		`INSERT INTO json_web_tokens (
 			id
-			, uid
 			, token
-			, account_uid
+			, account_id
 			, created_at
 			, expired_at
-		) VALUES ($1, $2, $3, $4, $5, $6)`,
+		) VALUES ($1, $2, $3, $4, $5)`,
 		request.ID,
-		request.UID,
 		request.Token,
-		request.AccountUID,
+		request.AccountID,
 		request.CreatedAt,
 		request.ExpiredAt,
 	)
@@ -67,11 +65,11 @@ func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jw
 		conditions []string
 		builder    strings.Builder
 	)
-	if len(filter.AccountUIDs) > 0 {
+	if len(filter.AccountIDs) > 0 {
 		builder.Reset()
-		_, _ = builder.WriteString("account_uid IN (")
-		for i, accountUID := range filter.AccountUIDs {
-			params = append(params, accountUID)
+		_, _ = builder.WriteString("account_id IN (")
+		for i, accountID := range filter.AccountIDs {
+			params = append(params, accountID)
 			if i > 0 {
 				_, _ = builder.WriteString(",")
 			}
@@ -120,10 +118,10 @@ func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jw
 	if total == 0 {
 		return nil, 0, 0, nil
 	}
-	query = strings.ReplaceAll(query, "COUNT(1)", "id, uid, token, account_uid, created_at, expired_at")
+	query = strings.ReplaceAll(query, "COUNT(1)", "id, token, account_id, created_at, expired_at")
 	builder.Reset()
 	_, _ = builder.WriteString(query)
-	_, _ = builder.WriteString(" ORDER by -id")
+	_, _ = builder.WriteString(" ORDER by -_id")
 	pages := int64(1)
 	if filter.Limit > 0 {
 		totalDecimal, err := decimal.New(total, 0)
@@ -162,9 +160,8 @@ func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jw
 		var jwt jwtModel.JsonWebToken
 		if err = rows.Scan(
 			&jwt.ID,
-			&jwt.UID,
 			&jwt.Token,
-			&jwt.AccountUID,
+			&jwt.AccountID,
 			&jwt.CreatedAt,
 			&jwt.ExpiredAt,
 		); err != nil {
@@ -176,7 +173,7 @@ func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jw
 	return response, total, pages, nil
 }
 
-func (q *jwtQuery) DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.Time, accountUID string, jwtUIDs ...string) (int64, error) {
+func (q *jwtQuery) DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.Time, accountID string, jwtIDs ...string) (int64, error) {
 	ctxt := "JwtQuery-DeleteJWTs"
 	var (
 		params     []interface{}
@@ -190,10 +187,10 @@ func (q *jwtQuery) DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.
 		_, _ = builder.WriteString(strconv.Itoa(len(params)))
 		conditions = append(conditions, builder.String())
 	}
-	if len(jwtUIDs) > 0 {
+	if len(jwtIDs) > 0 {
 		builder.Reset()
-		_, _ = builder.WriteString("uid IN (")
-		for i, jwtID := range jwtUIDs {
+		_, _ = builder.WriteString("id IN (")
+		for i, jwtID := range jwtIDs {
 			params = append(params, jwtID)
 			if i > 0 {
 				_, _ = builder.WriteString(",")
@@ -203,7 +200,7 @@ func (q *jwtQuery) DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.
 		}
 		_, _ = builder.WriteString(")")
 		condition := builder.String()
-		conditions = append(conditions, condition, strings.ReplaceAll(condition, "uid", "token"))
+		conditions = append(conditions, condition, strings.ReplaceAll(condition, "id", "token"))
 	}
 	if len(conditions) == 0 {
 		return 0, nil

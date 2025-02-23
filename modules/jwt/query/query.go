@@ -11,7 +11,7 @@ import (
 type (
 	JwtQuery interface {
 		CreateJWT(ctx context.Context, tx pgx.Tx, request jwtModel.JsonWebToken) error
-		DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.Time, accountUID string, jwtUIDs ...string) (int64, error)
+		DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.Time, accountID string, jwtIDs ...string) (int64, error)
 		FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jwtModel.JsonWebToken, int64, int64, error)
 	}
 )

@@ -54,7 +54,7 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		params = append(params, filter.Login)
 		n := strconv.Itoa(len(params))
 		builder.Reset()
-		_, _ = builder.WriteString("(uid = $")
+		_, _ = builder.WriteString("(id = $")
 		_, _ = builder.WriteString(n)
 		_, _ = builder.WriteString(" OR username = $")
 		_, _ = builder.WriteString(n)
@@ -65,10 +65,10 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
 	}
-	if len(filter.AccountUIDs) > 0 {
+	if len(filter.AccountIDs) > 0 {
 		builder.Reset()
-		_, _ = builder.WriteString("uid IN (")
-		for i, accountID := range filter.AccountUIDs {
+		_, _ = builder.WriteString("id IN (")
+		for i, accountID := range filter.AccountIDs {
 			params = append(params, accountID)
 			if i > 0 {
 				_, _ = builder.WriteString(",")
@@ -176,7 +176,6 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		query,
 		"COUNT(1)",
 		`id
-		, uid
 		, account_type
 		, status
 		, name
@@ -214,7 +213,7 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 	)
 	builder.Reset()
 	_, _ = builder.WriteString(query)
-	_, _ = builder.WriteString(" ORDER by -id")
+	_, _ = builder.WriteString(" ORDER by -_id")
 	pages := int64(1)
 	if filter.Limit > 0 {
 		totalDecimal, err := decimal.New(total, 0)
@@ -253,7 +252,6 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		var account accountModel.Account
 		if err = rows.Scan(
 			&account.ID,
-			&account.UID,
 			&account.AccountType,
 			&account.Status,
 			&account.Name,
@@ -301,7 +299,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 	ctxt := "AccountQuery-CreateAccount"
 	var response accountModel.Account
 	for {
-		accountID, accountUID, _, err := helper.GenerateUniqueID()
+		_, accountID, _, err := helper.GenerateUniqueID()
 		if err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
 			continue
@@ -320,7 +318,6 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 			ctx,
 			`INSERT INTO accounts (
 				id
-				, uid
 				, account_type
 				, status
 				, name
@@ -333,9 +330,8 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 				, created_by
 				, created_at
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)
 			RETURNING id
-				, uid
 				, account_type
 				, status
 				, name
@@ -371,7 +367,6 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 				, deactivated_at
 				, deactivation_reason`,
 			accountID,
-			accountUID,
 			request.AccountType,
 			accountModel.StatusUnconfirmed,
 			request.Name,
@@ -385,7 +380,6 @@ func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.
 			now,
 		).Scan(
 			&response.ID,
-			&response.UID,
 			&response.AccountType,
 			&response.Status,
 			&response.Name,
@@ -484,7 +478,6 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 			, deactivation_reason = $31
 		WHERE id = $32
 		RETURNING id
-			, uid
 			, account_type
 			, status
 			, name
@@ -553,7 +546,6 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		request.ID,
 	).Scan(
 		&request.ID,
-		&request.UID,
 		&request.AccountType,
 		&request.Status,
 		&request.Name,

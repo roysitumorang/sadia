@@ -16,8 +16,8 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE accounts (
-				id bigint NOT NULL PRIMARY KEY
-				, uid character varying NOT NULL UNIQUE
+				_id bigserial NOT NULL UNIQUE
+				, id character varying NOT NULL PRIMARY KEY
 				, account_type smallint NOT NULL
 				, status smallint NOT NULL
 				, name character varying NOT NULL
@@ -46,10 +46,10 @@ func init() {
 				, login_failed_attempts integer NOT NULL DEFAULT 0
 				, login_unlock_token character varying UNIQUE
 				, login_locked_at timestamp with time zone
-				, created_by character varying REFERENCES accounts (uid) ON UPDATE CASCADE ON DELETE SET NULL
+				, created_by character varying REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, created_at timestamp with time zone NOT NULL
 				, updated_at timestamp with time zone NOT NULL
-				, deactivated_by character varying REFERENCES accounts (uid) ON UPDATE CASCADE ON DELETE SET NULL
+				, deactivated_by character varying REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, deactivated_at timestamp with time zone
 				, deactivation_reason character varying
 			)`,
@@ -59,7 +59,7 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			"CREATE INDEX ON accounts (uid)",
+			"CREATE INDEX ON accounts (_id)",
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -158,10 +158,10 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE json_web_tokens (
-				id bigint NOT NULL PRIMARY KEY
-				, uid character varying NOT NULL UNIQUE
+				_id bigserial NOT NULL UNIQUE
+				, id character varying NOT NULL PRIMARY KEY
 				, token character varying NOT NULL UNIQUE
-				, account_uid character varying NOT NULL REFERENCES accounts (uid) ON UPDATE CASCADE ON DELETE CASCADE
+				, account_id character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
 				, expired_at timestamp with time zone NOT NULL
 			)`,
@@ -171,7 +171,7 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			"CREATE INDEX ON json_web_tokens (uid)",
+			"CREATE INDEX ON json_web_tokens (id)",
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -185,7 +185,7 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			"CREATE INDEX ON json_web_tokens (account_uid)",
+			"CREATE INDEX ON json_web_tokens (account_id)",
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -197,7 +197,7 @@ func init() {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
 		}
-		accountID, accountUID, _, err := helper.GenerateUniqueID()
+		_, accountID, _, err := helper.GenerateUniqueID()
 		if err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
 			return
@@ -208,7 +208,6 @@ func init() {
 			ctx,
 			`INSERT INTO accounts (
 				id
-				, uid
 				, account_type
 				, status
 				, name
@@ -220,9 +219,8 @@ func init() {
 				, phone_confirmation_token
 				, created_at
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)`,
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)`,
 			accountID,
-			accountUID,
 			accountModel.AccountTypeAdmin,
 			accountModel.StatusUnconfirmed,
 			"Roy Situmorang",
