@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -25,8 +26,13 @@ const (
 )
 
 const (
-	AdminLevelSuperAdmin int8 = iota
+	AdminLevelSuperAdmin uint8 = iota
 	AdminLevelAdmin
+)
+
+const (
+	UserLevelOwner uint8 = iota
+	UserLevelStaff
 )
 
 type (
@@ -68,9 +74,24 @@ type (
 		DeactivationReason      *string    `json:"-"`
 	}
 
+	Admin struct {
+		*Account
+		AdminLevel uint8 `json:"admin_level"`
+	}
+
+	User struct {
+		*Account
+		CompanyID string `json:"company_id"`
+		UserLevel uint8  `json:"user_level"`
+	}
+
 	Filter struct {
-		AccountIDs []string
+		AccountIDs,
+		CompanyIDs []string
 		StatusList []int
+		AccountTypes,
+		AdminLevels,
+		UserLevels []uint8
 		Login,
 		Keyword,
 		ConfirmationToken,
@@ -81,6 +102,7 @@ type (
 		PaginationURL string
 		Limit,
 		Page int64
+		UrlValues url.Values
 	}
 
 	FilterOption func(q *Filter)
@@ -92,6 +114,17 @@ type (
 		Email       *string `json:"email"`
 		Phone       *string `json:"phone"`
 		CreatedBy   *string `json:"-"`
+	}
+
+	NewAdmin struct {
+		*NewAccount
+		AdminLevel uint8 `json:"admin_level"`
+	}
+
+	NewUser struct {
+		*NewAccount
+		CompanyID string `json:"company_id"`
+		UserLevel uint8  `json:"user_level"`
 	}
 
 	Deactivation struct {
@@ -108,6 +141,16 @@ type (
 		IDToken   string    `json:"id_token"`
 		ExpiredAt time.Time `json:"expired_at"`
 		Account   *Account  `json:"account"`
+	}
+
+	AdminLoginResponse struct {
+		LoginResponse
+		Account *Admin `json:"account"`
+	}
+
+	UserLoginResponse struct {
+		LoginResponse
+		Account *User `json:"account"`
 	}
 
 	Confirmation struct {
@@ -181,9 +224,33 @@ func WithAccountIDs(accountIDs ...string) FilterOption {
 	}
 }
 
+func WithCompanyIDs(companyIDs ...string) FilterOption {
+	return func(q *Filter) {
+		q.CompanyIDs = companyIDs
+	}
+}
+
 func WithStatusList(statusList ...int) FilterOption {
 	return func(q *Filter) {
 		q.StatusList = statusList
+	}
+}
+
+func WithAccountTypes(accountTypes ...uint8) FilterOption {
+	return func(q *Filter) {
+		q.AccountTypes = accountTypes
+	}
+}
+
+func WithAdminLevels(adminLevels ...uint8) FilterOption {
+	return func(q *Filter) {
+		q.AdminLevels = adminLevels
+	}
+}
+
+func WithUserLevels(userLevels ...uint8) FilterOption {
+	return func(q *Filter) {
+		q.UserLevels = userLevels
 	}
 }
 
@@ -247,6 +314,12 @@ func WithPage(page int64) FilterOption {
 	}
 }
 
+func WithUrlValues(urlValues url.Values) FilterOption {
+	return func(q *Filter) {
+		q.UrlValues = urlValues
+	}
+}
+
 func (q *NewAccount) Validate() error {
 	if q.AccountType != AccountTypeAdmin &&
 		q.AccountType != AccountTypeUser {
@@ -279,6 +352,19 @@ func (q *NewAccount) Validate() error {
 		} else {
 			q.Phone = nil
 		}
+	}
+	return nil
+}
+
+func (q *NewUser) Validate() error {
+	if err := q.NewAccount.Validate(); err != nil {
+		return err
+	}
+	if q.CompanyID = strings.TrimSpace(q.CompanyID); q.CompanyID == "" {
+		return errors.New("company_id: is required")
+	}
+	if q.UserLevel != UserLevelOwner && q.UserLevel != UserLevelStaff {
+		return fmt.Errorf("user_level: should be either %d (owner) / %d staff", UserLevelOwner, UserLevelStaff)
 	}
 	return nil
 }

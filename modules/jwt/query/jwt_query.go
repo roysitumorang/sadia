@@ -61,7 +61,7 @@ func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, request jwtModel.Js
 func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jwtModel.JsonWebToken, int64, int64, error) {
 	ctxt := "JwtQuery-FindJWTs"
 	var (
-		params     []interface{}
+		params     []any
 		conditions []string
 		builder    strings.Builder
 	)
@@ -176,7 +176,7 @@ func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jw
 func (q *jwtQuery) DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.Time, accountID string, jwtIDs ...string) (int64, error) {
 	ctxt := "JwtQuery-DeleteJWTs"
 	var (
-		params     []interface{}
+		params     []any
 		conditions []string
 		builder    strings.Builder
 	)

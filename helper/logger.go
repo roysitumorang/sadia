@@ -37,7 +37,7 @@ var (
 			ErrorOutputPaths: []string{
 				"stderr",
 			},
-			InitialFields: map[string]interface{}{},
+			InitialFields: map[string]any{},
 		}.Build())
 	})
 )

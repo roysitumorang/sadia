@@ -105,7 +105,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	}
 	app.Get("/ping", func(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusOK).
-			SetData(map[string]interface{}{
+			SetData(map[string]any{
 				"version": config.Version,
 				"commit":  config.Commit,
 				"build":   config.Build,

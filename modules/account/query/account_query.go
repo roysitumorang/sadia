@@ -37,28 +37,13 @@ func New(
 func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Filter) ([]*accountModel.Account, int64, int64, error) {
 	ctxt := "AccountQuery-FindAccounts"
 	var (
-		params     []interface{}
+		params     []any
 		conditions []string
 		builder    strings.Builder
 	)
-	if filter.Login != "" {
-		params = append(params, filter.Login)
-		n := strconv.Itoa(len(params))
-		builder.Reset()
-		_, _ = builder.WriteString("(id = $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(" OR username = $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(" OR email = $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(" OR phone = $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(")")
-		conditions = append(conditions, builder.String())
-	}
 	if len(filter.AccountIDs) > 0 {
 		builder.Reset()
-		_, _ = builder.WriteString("id IN (")
+		_, _ = builder.WriteString("a.id IN (")
 		for i, accountID := range filter.AccountIDs {
 			params = append(params, accountID)
 			if i > 0 {
@@ -70,63 +55,29 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
 	}
-	if filter.Keyword != "" {
+	if len(filter.CompanyIDs) > 0 {
 		builder.Reset()
-		_, _ = builder.WriteString("%%")
-		_, _ = builder.WriteString(strings.ToLower(filter.Keyword))
-		_, _ = builder.WriteString("%%")
-		params = append(params, builder.String())
-		n := strconv.Itoa(len(params))
-		builder.Reset()
-		_, _ = builder.WriteString("(LOWER(name) LIKE $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(" OR username LIKE $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(" OR email LIKE $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(" OR phone LIKE $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(")")
-		conditions = append(conditions, builder.String())
-	}
-	if filter.ConfirmationToken != "" {
-		params = append(params, filter.ConfirmationToken)
-		builder.Reset()
-		_, _ = builder.WriteString("confirmation_token = $")
-		_, _ = builder.WriteString(strconv.Itoa(len(params)))
-		conditions = append(conditions, builder.String())
-	}
-	if filter.EmailConfirmationToken != "" {
-		params = append(params, filter.EmailConfirmationToken)
-		builder.Reset()
-		_, _ = builder.WriteString("email_confirmation_token = $")
-		_, _ = builder.WriteString(strconv.Itoa(len(params)))
-		conditions = append(conditions, builder.String())
-	}
-	if filter.PhoneConfirmationToken != "" {
-		params = append(params, filter.PhoneConfirmationToken)
-		builder.Reset()
-		_, _ = builder.WriteString("phone_confirmation_token = $")
-		_, _ = builder.WriteString(strconv.Itoa(len(params)))
-		conditions = append(conditions, builder.String())
-	}
-	if filter.LoginUnlockToken != "" {
-		params = append(params, filter.LoginUnlockToken)
-		builder.Reset()
-		_, _ = builder.WriteString("login_unlock_token = $")
-		_, _ = builder.WriteString(strconv.Itoa(len(params)))
-		conditions = append(conditions, builder.String())
-	}
-	if filter.ResetPasswordToken != "" {
-		params = append(params, filter.ResetPasswordToken)
-		builder.Reset()
-		_, _ = builder.WriteString("reset_password_token = $")
-		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		_, _ = builder.WriteString(
+			`EXISTS(
+				SELECT 1
+				FROM users u
+				WHERE u.account_id = a.id
+					AND u.company_id IN (`,
+		)
+		for i, companyID := range filter.CompanyIDs {
+			params = append(params, companyID)
+			if i > 0 {
+				_, _ = builder.WriteString(",")
+			}
+			_, _ = builder.WriteString("$")
+			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		}
+		_, _ = builder.WriteString("))")
 		conditions = append(conditions, builder.String())
 	}
 	if len(filter.StatusList) > 0 {
 		builder.Reset()
-		_, _ = builder.WriteString("status IN (")
+		_, _ = builder.WriteString("a.status IN (")
 		for i, status := range filter.StatusList {
 			params = append(params, status)
 			if i > 0 {
@@ -138,10 +89,133 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
 	}
+	if len(filter.AccountTypes) > 0 {
+		builder.Reset()
+		_, _ = builder.WriteString("a.account_type IN (")
+		for i, accountType := range filter.AccountTypes {
+			params = append(params, accountType)
+			if i > 0 {
+				_, _ = builder.WriteString(",")
+			}
+			_, _ = builder.WriteString("$")
+			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		}
+		_, _ = builder.WriteString(")")
+		conditions = append(conditions, builder.String())
+	}
+	if len(filter.AdminLevels) > 0 {
+		builder.Reset()
+		_, _ = builder.WriteString(
+			`EXISTS(
+				SELECT 1
+				FROM admins ad
+				WHERE ad.account_id = a.id
+					AND ad.admin_level IN (`,
+		)
+		for i, adminLevel := range filter.AdminLevels {
+			params = append(params, adminLevel)
+			if i > 0 {
+				_, _ = builder.WriteString(",")
+			}
+			_, _ = builder.WriteString("$")
+			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		}
+		_, _ = builder.WriteString("))")
+		conditions = append(conditions, builder.String())
+	}
+	if len(filter.UserLevels) > 0 {
+		builder.Reset()
+		_, _ = builder.WriteString(
+			`EXISTS(
+				SELECT 1
+				FROM users u
+				WHERE u.account_id = a.id
+					AND u.user_level IN (`,
+		)
+		for i, userLevel := range filter.UserLevels {
+			params = append(params, userLevel)
+			if i > 0 {
+				_, _ = builder.WriteString(",")
+			}
+			_, _ = builder.WriteString("$")
+			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		}
+		_, _ = builder.WriteString("))")
+		conditions = append(conditions, builder.String())
+	}
+	if filter.Login != "" {
+		params = append(params, filter.Login)
+		n := strconv.Itoa(len(params))
+		builder.Reset()
+		_, _ = builder.WriteString("(a.id = $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(" OR a.username = $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(" OR a.email = $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(" OR a.phone = $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(")")
+		conditions = append(conditions, builder.String())
+	}
+	if filter.Keyword != "" {
+		builder.Reset()
+		_, _ = builder.WriteString("%%")
+		_, _ = builder.WriteString(strings.ToLower(filter.Keyword))
+		_, _ = builder.WriteString("%%")
+		params = append(params, builder.String())
+		n := strconv.Itoa(len(params))
+		builder.Reset()
+		_, _ = builder.WriteString("(LOWER(a.name) LIKE $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(" OR a.username LIKE $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(" OR a.email LIKE $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(" OR a.phone LIKE $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(")")
+		conditions = append(conditions, builder.String())
+	}
+	if filter.ConfirmationToken != "" {
+		params = append(params, filter.ConfirmationToken)
+		builder.Reset()
+		_, _ = builder.WriteString("a.confirmation_token = $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
+	if filter.EmailConfirmationToken != "" {
+		params = append(params, filter.EmailConfirmationToken)
+		builder.Reset()
+		_, _ = builder.WriteString("a.email_confirmation_token = $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
+	if filter.PhoneConfirmationToken != "" {
+		params = append(params, filter.PhoneConfirmationToken)
+		builder.Reset()
+		_, _ = builder.WriteString("a.phone_confirmation_token = $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
+	if filter.LoginUnlockToken != "" {
+		params = append(params, filter.LoginUnlockToken)
+		builder.Reset()
+		_, _ = builder.WriteString("a.login_unlock_token = $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
+	if filter.ResetPasswordToken != "" {
+		params = append(params, filter.ResetPasswordToken)
+		builder.Reset()
+		_, _ = builder.WriteString("a.reset_password_token = $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
 	builder.Reset()
 	_, _ = builder.WriteString(
 		`SELECT COUNT(1)
-		FROM accounts`,
+		FROM accounts a`,
 	)
 	if len(conditions) > 0 {
 		_, _ = builder.WriteString(" WHERE")
@@ -166,45 +240,45 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 	query = strings.ReplaceAll(
 		query,
 		"COUNT(1)",
-		`id
-		, account_type
-		, status
-		, name
-		, username
-		, confirmation_token
-		, confirmed_at
-		, email
-		, unconfirmed_email
-		, email_confirmation_token
-		, email_confirmation_sent_at
-		, email_confirmed_at
-		, phone
-		, unconfirmed_phone
-		, phone_confirmation_token
-		, phone_confirmation_sent_at
-		, phone_confirmed_at
-		, encrypted_password
-		, last_password_change
-		, reset_password_token
-		, reset_password_sent_at
-		, login_count
-		, current_login_at
-		, current_login_ip
-		, last_login_at
-		, last_login_ip
-		, login_failed_attempts
-		, login_unlock_token
-		, login_locked_at
-		, created_by
-		, created_at
-		, updated_at
-		, deactivated_by
-		, deactivated_at
-		, deactivation_reason`,
+		`a.id
+		, a.account_type
+		, a.status
+		, a.name
+		, a.username
+		, a.confirmation_token
+		, a.confirmed_at
+		, a.email
+		, a.unconfirmed_email
+		, a.email_confirmation_token
+		, a.email_confirmation_sent_at
+		, a.email_confirmed_at
+		, a.phone
+		, a.unconfirmed_phone
+		, a.phone_confirmation_token
+		, a.phone_confirmation_sent_at
+		, a.phone_confirmed_at
+		, a.encrypted_password
+		, a.last_password_change
+		, a.reset_password_token
+		, a.reset_password_sent_at
+		, a.login_count
+		, a.current_login_at
+		, a.current_login_ip
+		, a.last_login_at
+		, a.last_login_ip
+		, a.login_failed_attempts
+		, a.login_unlock_token
+		, a.login_locked_at
+		, a.created_by
+		, a.created_at
+		, a.updated_at
+		, a.deactivated_by
+		, a.deactivated_at
+		, a.deactivation_reason`,
 	)
 	builder.Reset()
 	_, _ = builder.WriteString(query)
-	_, _ = builder.WriteString(" ORDER by -_id")
+	_, _ = builder.WriteString(" ORDER by -a._id")
 	pages := int64(1)
 	if filter.Limit > 0 {
 		totalDecimal, err := decimal.New(total, 0)
@@ -286,147 +360,154 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 	return response, total, pages, nil
 }
 
-func (q *accountQuery) CreateAccount(ctx context.Context, request *accountModel.NewAccount) (*accountModel.Account, error) {
+func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *accountModel.NewAccount) (*accountModel.Account, error) {
 	ctxt := "AccountQuery-CreateAccount"
+	accountID, accountSqID, _, err := helper.GenerateUniqueID()
+	if err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
+		return nil, err
+	}
+	confirmationToken, emailToken, phoneToken := helper.RandomString(32), helper.RandomString(32), helper.RandomNumber(6)
+	var emailConfirmationToken,
+		phoneConfirmationToken *string
+	if request.Email != nil {
+		emailConfirmationToken = &emailToken
+	}
+	if request.Phone != nil {
+		phoneConfirmationToken = &phoneToken
+	}
+	now := time.Now()
 	var response accountModel.Account
-	for {
-		_, accountID, _, err := helper.GenerateUniqueID()
-		if err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
-			continue
+	if err = tx.QueryRow(
+		ctx,
+		`INSERT INTO accounts (
+			_id
+			, id
+			, account_type
+			, status
+			, name
+			, username
+			, confirmation_token
+			, unconfirmed_email
+			, email_confirmation_token
+			, unconfirmed_phone
+			, phone_confirmation_token
+			, created_by
+			, created_at
+			, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
+		RETURNING id
+			, account_type
+			, status
+			, name
+			, username
+			, confirmation_token
+			, confirmed_at
+			, email
+			, unconfirmed_email
+			, email_confirmation_token
+			, email_confirmation_sent_at
+			, email_confirmed_at
+			, phone
+			, unconfirmed_phone
+			, phone_confirmation_token
+			, phone_confirmation_sent_at
+			, phone_confirmed_at
+			, encrypted_password
+			, last_password_change
+			, reset_password_token
+			, reset_password_sent_at
+			, login_count
+			, current_login_at
+			, current_login_ip
+			, last_login_at
+			, last_login_ip
+			, login_failed_attempts
+			, login_unlock_token
+			, login_locked_at
+			, created_by
+			, created_at
+			, updated_at
+			, deactivated_by
+			, deactivated_at
+			, deactivation_reason`,
+		accountID,
+		accountSqID,
+		request.AccountType,
+		accountModel.StatusUnconfirmed,
+		request.Name,
+		request.Username,
+		confirmationToken,
+		request.Email,
+		emailConfirmationToken,
+		request.Phone,
+		phoneConfirmationToken,
+		request.CreatedBy,
+		now,
+	).Scan(
+		&response.ID,
+		&response.AccountType,
+		&response.Status,
+		&response.Name,
+		&response.Username,
+		&response.ConfirmationToken,
+		&response.ConfirmedAt,
+		&response.Email,
+		&response.UnconfirmedEmail,
+		&response.EmailConfirmationToken,
+		&response.EmailConfirmationSentAt,
+		&response.EmailConfirmedAt,
+		&response.Phone,
+		&response.UnconfirmedPhone,
+		&response.PhoneConfirmationToken,
+		&response.PhoneConfirmationSentAt,
+		&response.PhoneConfirmedAt,
+		&response.EncryptedPassword,
+		&response.LastPasswordChange,
+		&response.ResetPasswordToken,
+		&response.ResetPasswordSentAt,
+		&response.LoginCount,
+		&response.CurrentLoginAt,
+		&response.CurrentLoginIP,
+		&response.LastLoginAt,
+		&response.LastLoginIP,
+		&response.LoginFailedAttempts,
+		&response.LoginUnlockToken,
+		&response.LoginLockedAt,
+		&response.CreatedBy,
+		&response.CreatedAt,
+		&response.UpdatedAt,
+		&response.DeactivatedBy,
+		&response.DeactivatedAt,
+		&response.DeactivationReason,
+	); err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
 		}
-		confirmationToken, emailToken, phoneToken := helper.RandomString(32), helper.RandomString(32), helper.RandomNumber(6)
-		var emailConfirmationToken,
-			phoneConfirmationToken *string
-		if request.Email != nil {
-			emailConfirmationToken = &emailToken
-		}
-		if request.Phone != nil {
-			phoneConfirmationToken = &phoneToken
-		}
-		now := time.Now()
-		if err = q.dbWrite.QueryRow(
-			ctx,
-			`INSERT INTO accounts (
-				id
-				, account_type
-				, status
-				, name
-				, username
-				, confirmation_token
-				, unconfirmed_email
-				, email_confirmation_token
-				, unconfirmed_phone
-				, phone_confirmation_token
-				, created_by
-				, created_at
-				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)
-			RETURNING id
-				, account_type
-				, status
-				, name
-				, username
-				, confirmation_token
-				, confirmed_at
-				, email
-				, unconfirmed_email
-				, email_confirmation_token
-				, email_confirmation_sent_at
-				, email_confirmed_at
-				, phone
-				, unconfirmed_phone
-				, phone_confirmation_token
-				, phone_confirmation_sent_at
-				, phone_confirmed_at
-				, encrypted_password
-				, last_password_change
-				, reset_password_token
-				, reset_password_sent_at
-				, login_count
-				, current_login_at
-				, current_login_ip
-				, last_login_at
-				, last_login_ip
-				, login_failed_attempts
-				, login_unlock_token
-				, login_locked_at
-				, created_by
-				, created_at
-				, updated_at
-				, deactivated_by
-				, deactivated_at
-				, deactivation_reason`,
-			accountID,
-			request.AccountType,
-			accountModel.StatusUnconfirmed,
-			request.Name,
-			request.Username,
-			confirmationToken,
-			request.Email,
-			emailConfirmationToken,
-			request.Phone,
-			phoneConfirmationToken,
-			request.CreatedBy,
-			now,
-		).Scan(
-			&response.ID,
-			&response.AccountType,
-			&response.Status,
-			&response.Name,
-			&response.Username,
-			&response.ConfirmationToken,
-			&response.ConfirmedAt,
-			&response.Email,
-			&response.UnconfirmedEmail,
-			&response.EmailConfirmationToken,
-			&response.EmailConfirmationSentAt,
-			&response.EmailConfirmedAt,
-			&response.Phone,
-			&response.UnconfirmedPhone,
-			&response.PhoneConfirmationToken,
-			&response.PhoneConfirmationSentAt,
-			&response.PhoneConfirmedAt,
-			&response.EncryptedPassword,
-			&response.LastPasswordChange,
-			&response.ResetPasswordToken,
-			&response.ResetPasswordSentAt,
-			&response.LoginCount,
-			&response.CurrentLoginAt,
-			&response.CurrentLoginIP,
-			&response.LastLoginAt,
-			&response.LastLoginIP,
-			&response.LoginFailedAttempts,
-			&response.LoginUnlockToken,
-			&response.LoginLockedAt,
-			&response.CreatedBy,
-			&response.CreatedAt,
-			&response.UpdatedAt,
-			&response.DeactivatedBy,
-			&response.DeactivatedAt,
-			&response.DeactivationReason,
-		); err != nil {
-			var pgxErr *pgconn.PgError
-			if errors.As(err, &pgxErr) &&
-				pgxErr.Code == pgerrcode.UniqueViolation {
-				switch pgxErr.ConstraintName {
-				case "accounts_username_key":
-					err = accountModel.ErrUniqueUsernameViolation
-				case "accounts_email_key":
-					err = accountModel.ErrUniqueEmailViolation
-				case "accounts_phone_key":
-					err = accountModel.ErrUniquePhoneViolation
-				case "accounts_confirmation_token_key",
-					"accounts_email_confirmation_token_key",
-					"accounts_phone_confirmation_token_key":
-					continue
-				}
-			} else {
-				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+		var pgxErr *pgconn.PgError
+		if errors.As(err, &pgxErr) &&
+			pgxErr.Code == pgerrcode.UniqueViolation {
+			switch pgxErr.ConstraintName {
+			case "accounts_username_key":
+				err = accountModel.ErrUniqueUsernameViolation
+			case "accounts_email_key":
+				err = accountModel.ErrUniqueEmailViolation
+			case "accounts_phone_key":
+				err = accountModel.ErrUniquePhoneViolation
+			case "accounts_confirmation_token_key":
+				err = accountModel.ErrUniqueConfirmationTokenViolation
+			case "accounts_email_confirmation_token_key":
+				err = accountModel.ErrUniqueEmailConfirmationTokenViolation
+			case "accounts_phone_confirmation_token_key":
+				err = accountModel.ErrUniquePhoneConfirmationTokenViolation
 			}
-			return nil, err
+		} else {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		}
-		break
+		return nil, err
 	}
 	return &response, nil
 }
@@ -600,6 +681,237 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		} else {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		}
+	}
+	return err
+}
+
+func (q *accountQuery) FindAdmins(ctx context.Context, filter *accountModel.Filter) ([]*accountModel.Admin, int64, int64, error) {
+	ctxt := "AccountQuery-FindAdmins"
+	accounts, total, pages, err := q.FindAccounts(ctx, filter)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	n := len(accounts)
+	response := make([]*accountModel.Admin, n)
+	if n == 0 {
+		return response, total, pages, nil
+	}
+	var builder strings.Builder
+	_, _ = builder.WriteString(
+		`SELECT
+			account_id
+			, admin_level
+		FROM admins
+		WHERE account_id IN (`,
+	)
+	params := make([]any, n)
+	mapAdminOffsets := map[string]int{}
+	for i, account := range accounts {
+		response[i].Account = account
+		params[i] = account.ID
+		if i > 0 {
+			_, _ = builder.WriteString(",")
+		}
+		_, _ = builder.WriteString("$")
+		_, _ = builder.WriteString(strconv.Itoa(i + 1))
+		mapAdminOffsets[account.ID] = i
+	}
+	_, _ = builder.WriteString(")")
+	rows, err := q.dbRead.Query(ctx, builder.String(), params...)
+	if errors.Is(err, pgx.ErrNoRows) {
+		err = nil
+	}
+	if err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrQuery")
+		return nil, 0, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var (
+			accountID  string
+			adminLevel uint8
+		)
+		if err = rows.Scan(&accountID, &adminLevel); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+			return nil, 0, 0, err
+		}
+		if offset, ok := mapAdminOffsets[accountID]; ok {
+			response[offset].AdminLevel = adminLevel
+		}
+	}
+	return response, total, pages, nil
+}
+
+func (q *accountQuery) CreateAdmin(ctx context.Context, tx pgx.Tx, request *accountModel.NewAdmin) (*accountModel.Admin, error) {
+	ctxt := "AccountQuery-CreateAdmin"
+	account, err := q.CreateAccount(ctx, tx, request.NewAccount)
+	if err != nil {
+		return nil, err
+	}
+	response := accountModel.Admin{
+		Account: account,
+	}
+	if err = tx.QueryRow(
+		ctx,
+		`INSERT INTO admins (
+			account_id
+			, admin_level
+		) VALUES ($1, $2)
+		RETURNING admin_level`,
+		account.ID,
+		request.AdminLevel,
+	).Scan(&response.AdminLevel); err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+		return nil, err
+	}
+	return &response, nil
+}
+
+func (q *accountQuery) UpdateAdmin(ctx context.Context, tx pgx.Tx, request *accountModel.Admin) error {
+	ctxt := "AccountQuery-UpdateAdmin"
+	err := q.UpdateAccount(ctx, tx, request.Account)
+	if err != nil {
+		return err
+	}
+	if err = tx.QueryRow(
+		ctx,
+		`UPDATE admins SET
+			admin_level = $1
+		WHERE account_id = $2
+		RETURNING admin_level`,
+		request.AdminLevel,
+		request.ID,
+	).Scan(&request.AdminLevel); err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+	}
+	return err
+}
+
+func (q *accountQuery) FindUsers(ctx context.Context, filter *accountModel.Filter) ([]*accountModel.User, int64, int64, error) {
+	ctxt := "AccountQuery-FindUsers"
+	accounts, total, pages, err := q.FindAccounts(ctx, filter)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	n := len(accounts)
+	response := make([]*accountModel.User, n)
+	if n == 0 {
+		return response, total, pages, nil
+	}
+	var builder strings.Builder
+	_, _ = builder.WriteString(
+		`SELECT
+			account_id
+			, company_id
+			, user_level
+		FROM users
+		WHERE account_id IN (`,
+	)
+	params := make([]any, n)
+	mapUserOffsets := map[string]int{}
+	for i, account := range accounts {
+		response[i].Account = account
+		params[i] = account.ID
+		if i > 0 {
+			_, _ = builder.WriteString(",")
+		}
+		_, _ = builder.WriteString("$")
+		_, _ = builder.WriteString(strconv.Itoa(i + 1))
+		mapUserOffsets[account.ID] = i
+	}
+	_, _ = builder.WriteString(")")
+	rows, err := q.dbRead.Query(ctx, builder.String(), params...)
+	if errors.Is(err, pgx.ErrNoRows) {
+		err = nil
+	}
+	if err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrQuery")
+		return nil, 0, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var (
+			accountID,
+			companyID string
+			userLevel uint8
+		)
+		if err = rows.Scan(&accountID, &companyID, &userLevel); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+			return nil, 0, 0, err
+		}
+		if offset, ok := mapUserOffsets[accountID]; ok {
+			user := response[offset]
+			user.CompanyID = companyID
+			user.UserLevel = userLevel
+			response[offset] = user
+		}
+	}
+	return response, total, pages, nil
+}
+
+func (q *accountQuery) CreateUser(ctx context.Context, tx pgx.Tx, request *accountModel.NewUser) (*accountModel.User, error) {
+	ctxt := "AccountQuery-CreateUser"
+	account, err := q.CreateAccount(ctx, tx, request.NewAccount)
+	if err != nil {
+		return nil, err
+	}
+	response := accountModel.User{
+		Account: account,
+	}
+	if err = tx.QueryRow(
+		ctx,
+		`INSERT INTO users (
+			account_id
+			, company_id
+			, user_level
+		) VALUES ($1, $2, $3)
+		RETURNING company_id
+			, user_level`,
+		account.ID,
+		request.CompanyID,
+		request.UserLevel,
+	).Scan(
+		&response.CompanyID,
+		&response.UserLevel,
+	); err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+		return nil, err
+	}
+	return &response, nil
+}
+
+func (q *accountQuery) UpdateUser(ctx context.Context, tx pgx.Tx, request *accountModel.User) error {
+	ctxt := "AccountQuery-UpdateUser"
+	err := q.UpdateAccount(ctx, tx, request.Account)
+	if err != nil {
+		return err
+	}
+	if err = tx.QueryRow(
+		ctx,
+		`UPDATE users SET
+			user_level = $1
+		WHERE account_id = $2
+		RETURNING company_id
+			, user_level`,
+		request.UserLevel,
+		request.ID,
+	).Scan(
+		&request.CompanyID,
+		&request.UserLevel,
+	); err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 	}
 	return err
 }

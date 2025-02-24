@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"sync/atomic"
 	"time"
 
@@ -62,7 +61,7 @@ func (q *jwtUseCase) DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt tim
 	return rowsAffected, err
 }
 
-func (q *jwtUseCase) FindJWTs(ctx context.Context, filter *jwtModel.Filter, urlValues url.Values) ([]*jwtModel.JsonWebToken, *models.Pagination, error) {
+func (q *jwtUseCase) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jwtModel.JsonWebToken, *models.Pagination, error) {
 	ctxt := "JwtUseCase-FindJWTs"
 	jsonWebTokens, total, pages, err := q.jwtQuery.FindJWTs(ctx, filter)
 	if err != nil {
@@ -74,7 +73,7 @@ func (q *jwtUseCase) FindJWTs(ctx context.Context, filter *jwtModel.Filter, urlV
 	if n > 0 {
 		copy(rows, jsonWebTokens)
 	}
-	pagination, err := helper.SetPagination(total, pages, filter.Limit, filter.Page, filter.PaginationURL, urlValues)
+	pagination, err := helper.SetPagination(total, pages, filter.Limit, filter.Page, filter.PaginationURL, filter.UrlValues)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrSetPagination")
 		return nil, nil, err

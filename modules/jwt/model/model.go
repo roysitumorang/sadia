@@ -1,6 +1,7 @@
 package model
 
 import (
+	"net/url"
 	"time"
 )
 
@@ -19,6 +20,7 @@ type (
 		PaginationURL string
 		Limit,
 		Page int64
+		UrlValues url.Values
 	}
 
 	FilterOption func(q *Filter)
@@ -59,5 +61,11 @@ func WithLimit(limit int64) FilterOption {
 func WithPage(page int64) FilterOption {
 	return func(q *Filter) {
 		q.Page = page
+	}
+}
+
+func WithUrlValues(urlValues url.Values) FilterOption {
+	return func(q *Filter) {
+		q.UrlValues = urlValues
 	}
 }

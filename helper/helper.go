@@ -229,7 +229,7 @@ func SetPagination(total, pages, limit, page int64, baseURL string, urlValues ur
 	return &response, nil
 }
 
-func Transcode(input, output interface{}) error {
+func Transcode(input, output any) error {
 	buffer := new(bytes.Buffer)
 	if err := json.NewEncoder(buffer).Encode(input); err != nil {
 		return err

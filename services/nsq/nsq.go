@@ -43,7 +43,7 @@ func (q *Producer) Ping(ctx context.Context) error {
 	return err
 }
 
-func (q *Producer) Publish(ctx context.Context, topic string, messages ...interface{}) error {
+func (q *Producer) Publish(ctx context.Context, topic string, messages ...any) error {
 	ctxt := "ServiceNSQ-Publish"
 	n := len(messages)
 	if n == 0 {

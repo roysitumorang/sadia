@@ -18,10 +18,10 @@ import (
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
 )
 
-func KeyAuth(
+func AdminKeyAuth(
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
-	accountTypes ...uint8,
+	adminLevels ...uint8,
 ) func(c *fiber.Ctx) error {
 	var builder strings.Builder
 	_, _ = builder.WriteString("header:")
@@ -44,28 +44,62 @@ func KeyAuth(
 				return false, err
 			}
 			ctx := c.UserContext()
-			jsonWebTokens, _, err := jwtUseCase.FindJWTs(ctx, jwtModel.NewFilter(jwtModel.WithTokens(claims.Subject)), url.Values{})
+			urlValues := url.Values{}
+			jsonWebTokens, _, err := jwtUseCase.FindJWTs(ctx, jwtModel.NewFilter(jwtModel.WithTokens(claims.Subject), jwtModel.WithUrlValues(urlValues)))
 			if err != nil || len(jsonWebTokens) == 0 {
 				return false, err
 			}
 			jwt := jsonWebTokens[0]
-			accounts, _, err := accountUseCase.FindAccounts(ctx, accountModel.NewFilter(accountModel.WithAccountIDs(jwt.AccountID)), url.Values{})
-			if err != nil || len(accounts) == 0 {
+			admins, _, err := accountUseCase.FindAdmins(ctx, accountModel.NewFilter(accountModel.WithAccountIDs(jwt.AccountID), accountModel.WithAdminLevels(adminLevels...), accountModel.WithUrlValues(urlValues)))
+			if err != nil || len(admins) == 0 {
 				return false, err
 			}
-			account := accounts[0]
-			if len(accountTypes) > 0 {
-				var matched bool
-				for _, _accountType := range accountTypes {
-					if matched = account.AccountType == _accountType; matched {
-						break
-					}
-				}
-				if !matched {
-					return false, nil
-				}
+			admin := admins[0]
+			c.Locals(models.CurrentAdmin, admin)
+			return true, nil
+		},
+		ContextKey: "token",
+	})
+}
+
+func UserKeyAuth(
+	jwtUseCase jwtUseCase.JwtUseCase,
+	accountUseCase accountUseCase.AccountUseCase,
+	userLevels ...uint8,
+) func(c *fiber.Ctx) error {
+	var builder strings.Builder
+	_, _ = builder.WriteString("header:")
+	_, _ = builder.WriteString(fiber.HeaderAuthorization)
+	return keyauth.New(keyauth.Config{
+		SuccessHandler: func(c *fiber.Ctx) error {
+			return c.Next()
+		},
+		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			if err == nil {
+				err = keyauth.ErrMissingOrMalformedAPIKey
 			}
-			c.Locals(models.CurrentAccount, account)
+			return helper.NewResponse(fiber.StatusUnauthorized).SetMessage(err.Error()).WriteResponse(c)
+		},
+		KeyLookup:  builder.String(),
+		AuthScheme: "Bearer",
+		Validator: func(c *fiber.Ctx, token string) (bool, error) {
+			claims, err := bearerVerify(token)
+			if err != nil {
+				return false, err
+			}
+			ctx := c.UserContext()
+			urlValues := url.Values{}
+			jsonWebTokens, _, err := jwtUseCase.FindJWTs(ctx, jwtModel.NewFilter(jwtModel.WithTokens(claims.Subject), jwtModel.WithUrlValues(urlValues)))
+			if err != nil || len(jsonWebTokens) == 0 {
+				return false, err
+			}
+			jwt := jsonWebTokens[0]
+			users, _, err := accountUseCase.FindAdmins(ctx, accountModel.NewFilter(accountModel.WithAccountIDs(jwt.AccountID), accountModel.WithUserLevels(userLevels...), accountModel.WithUrlValues(urlValues)))
+			if err != nil || len(users) == 0 {
+				return false, err
+			}
+			user := users[0]
+			c.Locals(models.CurrentUser, user)
 			return true, nil
 		},
 		ContextKey: "token",
@@ -77,7 +111,7 @@ func bearerVerify(tokenString string) (*jwt.RegisteredClaims, error) {
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		&claimsStruct,
-		func(_ *jwt.Token) (interface{}, error) {
+		func(_ *jwt.Token) (any, error) {
 			return keys.InitPublicKey()
 		},
 	)

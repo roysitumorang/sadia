@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"sync/atomic"
 	"time"
 
@@ -44,7 +43,7 @@ func New(
 	}, nil
 }
 
-func (q *accountUseCase) FindAccounts(ctx context.Context, filter *accountModel.Filter, urlValues url.Values) ([]*accountModel.Account, *models.Pagination, error) {
+func (q *accountUseCase) FindAccounts(ctx context.Context, filter *accountModel.Filter) ([]*accountModel.Account, *models.Pagination, error) {
 	ctxt := "AccountUseCase-FindAccounts"
 	accounts, total, pages, err := q.accountQuery.FindAccounts(ctx, filter)
 	if err != nil {
@@ -56,7 +55,7 @@ func (q *accountUseCase) FindAccounts(ctx context.Context, filter *accountModel.
 	if n > 0 {
 		copy(rows, accounts)
 	}
-	pagination, err := helper.SetPagination(total, pages, filter.Limit, filter.Page, filter.PaginationURL, urlValues)
+	pagination, err := helper.SetPagination(total, pages, filter.Limit, filter.Page, filter.PaginationURL, filter.UrlValues)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrSetPagination")
 		return nil, nil, err
@@ -64,9 +63,9 @@ func (q *accountUseCase) FindAccounts(ctx context.Context, filter *accountModel.
 	return rows, pagination, nil
 }
 
-func (q *accountUseCase) CreateAccount(ctx context.Context, request *accountModel.NewAccount) (*accountModel.Account, error) {
+func (q *accountUseCase) CreateAccount(ctx context.Context, tx pgx.Tx, request *accountModel.NewAccount) (*accountModel.Account, error) {
 	ctxt := "AccountUseCase-CreateAccount"
-	response, err := q.accountQuery.CreateAccount(ctx, request)
+	response, err := q.accountQuery.CreateAccount(ctx, tx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateAccount")
 	}
@@ -78,6 +77,86 @@ func (q *accountUseCase) UpdateAccount(ctx context.Context, tx pgx.Tx, request *
 	err := q.accountQuery.UpdateAccount(ctx, tx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
+	}
+	return err
+}
+
+func (q *accountUseCase) FindAdmins(ctx context.Context, filter *accountModel.Filter) ([]*accountModel.Admin, *models.Pagination, error) {
+	ctxt := "AccountUseCase-FindAdmins"
+	filter.AccountTypes = []uint8{accountModel.AccountTypeAdmin}
+	admins, total, pages, err := q.accountQuery.FindAdmins(ctx, filter)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		return nil, nil, err
+	}
+	n := len(admins)
+	rows := make([]*accountModel.Admin, n)
+	if n > 0 {
+		copy(rows, admins)
+	}
+	pagination, err := helper.SetPagination(total, pages, filter.Limit, filter.Page, filter.PaginationURL, filter.UrlValues)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrSetPagination")
+		return nil, nil, err
+	}
+	return rows, pagination, nil
+}
+
+func (q *accountUseCase) CreateAdmin(ctx context.Context, tx pgx.Tx, request *accountModel.NewAdmin) (*accountModel.Admin, error) {
+	ctxt := "AccountUseCase-CreateAdmin"
+	request.AccountType = accountModel.AccountTypeAdmin
+	response, err := q.accountQuery.CreateAdmin(ctx, tx, request)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateAdmin")
+	}
+	return response, err
+}
+
+func (q *accountUseCase) UpdateAdmin(ctx context.Context, tx pgx.Tx, request *accountModel.Admin) error {
+	ctxt := "AccountUseCase-UpdateAdmin"
+	err := q.accountQuery.UpdateAdmin(ctx, tx, request)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
+	}
+	return err
+}
+
+func (q *accountUseCase) FindUsers(ctx context.Context, filter *accountModel.Filter) ([]*accountModel.User, *models.Pagination, error) {
+	ctxt := "AccountUseCase-FindUsers"
+	filter.AccountTypes = []uint8{accountModel.AccountTypeUser}
+	users, total, pages, err := q.accountQuery.FindUsers(ctx, filter)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+		return nil, nil, err
+	}
+	n := len(users)
+	rows := make([]*accountModel.User, n)
+	if n > 0 {
+		copy(rows, users)
+	}
+	pagination, err := helper.SetPagination(total, pages, filter.Limit, filter.Page, filter.PaginationURL, filter.UrlValues)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrSetPagination")
+		return nil, nil, err
+	}
+	return rows, pagination, nil
+}
+
+func (q *accountUseCase) CreateUser(ctx context.Context, tx pgx.Tx, request *accountModel.NewUser) (*accountModel.User, error) {
+	ctxt := "AccountUseCase-CreateUser"
+	request.AccountType = accountModel.AccountTypeUser
+	response, err := q.accountQuery.CreateUser(ctx, tx, request)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateUser")
+	}
+	return response, err
+}
+
+func (q *accountUseCase) UpdateUser(ctx context.Context, tx pgx.Tx, request *accountModel.User) error {
+	ctxt := "AccountUseCase-UpdateUser"
+	err := q.accountQuery.UpdateUser(ctx, tx, request)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 	}
 	return err
 }

@@ -18,12 +18,12 @@ var (
 	phoneNumberRegex = regexp.MustCompile(`^\+[1-9]\d{1,14}$`)
 )
 
-func FindAccounts(ctx context.Context, c *fiber.Ctx) (*accountModel.Filter, url.Values, error) {
+func FindAccounts(ctx context.Context, c *fiber.Ctx) (*accountModel.Filter, error) {
 	ctxt := "AccountSanitizer-FindAccounts"
 	originalURL, err := url.ParseRequestURI(c.OriginalURL())
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseRequestURI")
-		return nil, nil, err
+		return nil, err
 	}
 	var builder strings.Builder
 	_, _ = builder.WriteString(c.BaseURL())
@@ -58,13 +58,29 @@ func FindAccounts(ctx context.Context, c *fiber.Ctx) (*accountModel.Filter, url.
 	}
 	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
 	page = max(page, 1)
-	options = append(options, accountModel.WithPage(page))
-	return accountModel.NewFilter(options...), urlValues, nil
+	options = append(options, accountModel.WithPage(page), accountModel.WithUrlValues(urlValues))
+	return accountModel.NewFilter(options...), nil
 }
 
 func ValidateAccount(ctx context.Context, c *fiber.Ctx) (*accountModel.NewAccount, int, error) {
 	ctxt := "AccountSanitizer-ValidateAccount"
 	var response accountModel.NewAccount
+	err := c.BodyParser(&response)
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		return nil, fiberErr.Code, err
+	}
+	if err = (&response).Validate(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
+		return nil, fiber.StatusBadRequest, err
+	}
+	return &response, fiber.StatusOK, nil
+}
+
+func ValidateUser(ctx context.Context, c *fiber.Ctx) (*accountModel.NewUser, int, error) {
+	ctxt := "AccountSanitizer-ValidateUser"
+	var response accountModel.NewUser
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {

@@ -1,7 +1,8 @@
 package models
 
 const (
-	CurrentAccount = "current_account"
+	CurrentAdmin = "current_admin"
+	CurrentUser  = "current_user"
 )
 
 type (

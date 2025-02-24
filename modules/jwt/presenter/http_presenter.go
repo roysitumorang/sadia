@@ -8,7 +8,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
-	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
 	"github.com/roysitumorang/sadia/modules/jwt/sanitizer"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
@@ -33,37 +32,33 @@ func New(
 }
 
 func (q *jwtHTTPHandler) Mount(r fiber.Router) {
-	r.Group("/admin", middleware.KeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.AccountTypeAdmin)).
-		Get("", q.FindJWTs).
-		Delete("/:id", q.DeleteJWT)
+	r.Group("/admin", middleware.AdminKeyAuth(q.jwtUseCase, q.accountUseCase)).
+		Get("", q.AdminFindJWTs).
+		Delete("/:id", q.AdminDeleteJWT)
 }
 
-func (q *jwtHTTPHandler) FindJWTs(c *fiber.Ctx) error {
+func (q *jwtHTTPHandler) AdminFindJWTs(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	ctxt := "JwtPresenter-FindJWTs"
-	filter, urlValues, err := sanitizer.FindJWTs(ctx, c)
+	ctxt := "JwtPresenter-AdminFindJWTs"
+	filter, err := sanitizer.FindJWTs(ctx, c)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindJWTs")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	rows, pagination, err := q.jwtUseCase.FindJWTs(
-		ctx,
-		filter,
-		urlValues,
-	)
+	rows, pagination, err := q.jwtUseCase.FindJWTs(ctx, filter)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindJWTs")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	return helper.NewResponse(fiber.StatusOK).SetData(map[string]interface{}{
+	return helper.NewResponse(fiber.StatusOK).SetData(map[string]any{
 		"pagination": pagination,
 		"rows":       rows,
 	}).WriteResponse(c)
 }
 
-func (q *jwtHTTPHandler) DeleteJWT(c *fiber.Ctx) error {
+func (q *jwtHTTPHandler) AdminDeleteJWT(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	ctxt := "JwtPresenter-DeleteJWT"
+	ctxt := "JwtPresenter-AdminDeleteJWT"
 	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
