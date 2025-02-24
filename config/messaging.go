@@ -7,4 +7,5 @@ const (
 	TopicJwt             = "jwt"
 	TopicCompany         = "company"
 	TopicProductCategory = "product_category"
+	TopicProduct         = "product"
 )

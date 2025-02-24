@@ -39,15 +39,15 @@ func New(
 func (q *productCategoryHTTPHandler) Mount(r fiber.Router) {
 	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase)
 	ownerKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.UserLevelOwner)
-	r.Get("", userKeyAuth, q.UserFindCategories).
+	r.Get("", userKeyAuth, q.UserFindProductCategories).
 		Post("", ownerKeyAuth, q.UserCreateProductCategory).
 		Get("/:id", userKeyAuth, q.UserFindProductCategoryByID).
 		Put("/:id", ownerKeyAuth, q.UserUpdateProductCategory)
 }
 
-func (q *productCategoryHTTPHandler) UserFindCategories(c *fiber.Ctx) error {
+func (q *productCategoryHTTPHandler) UserFindProductCategories(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	ctxt := "ProductCategoryPresenter-UserFindCategories"
+	ctxt := "ProductCategoryPresenter-UserFindProductCategories"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	filter, err := sanitizer.FindProductCategories(ctx, c)
 	if err != nil {

@@ -122,6 +122,17 @@ func main() {
 				return err
 			})
 			g.Go(func() error {
+				err := service.NsqProducer.Publish(ctx, config.TopicProduct, models.Message{})
+				if err != nil {
+					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrPublish")
+					return err
+				}
+				if err = service.ProductUseCase.ConsumeMessage(ctx); err != nil {
+					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
+				}
+				return err
+			})
+			g.Go(func() error {
 				c := cron.New(cron.WithChain(
 					cron.Recover(cron.DefaultLogger),
 				))

@@ -572,7 +572,7 @@ func init() {
 				, company_id character varying NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, category_id character varying REFERENCES product_categories (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, name character varying NOT NULL
-				, slug character varying NOT NULL UNIQUE
+				, slug character varying NOT NULL
 				, uom character varying NOT NULL
 				, stock smallint NOT NULL
 				, price integer NOT NULL
@@ -608,14 +608,14 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE INDEX ON products (LOWER(name))`,
+			`CREATE UNIQUE INDEX ON products (LOWER(name), company_id)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE INDEX ON products (slug)`,
+			`CREATE UNIQUE INDEX ON products (slug, company_id)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return

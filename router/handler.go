@@ -13,6 +13,8 @@ import (
 	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
 	jwtQuery "github.com/roysitumorang/sadia/modules/jwt/query"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
+	productQuery "github.com/roysitumorang/sadia/modules/product/query"
+	productUseCase "github.com/roysitumorang/sadia/modules/product/usecase"
 	productCategoryQuery "github.com/roysitumorang/sadia/modules/product_category/query"
 	productCategoryUseCase "github.com/roysitumorang/sadia/modules/product_category/usecase"
 	serviceNsq "github.com/roysitumorang/sadia/services/nsq"
@@ -28,6 +30,7 @@ type (
 		JwtUseCase             jwtUseCase.JwtUseCase
 		CompanyUseCase         companyUseCase.CompanyUseCase
 		ProductCategoryUseCase productCategoryUseCase.ProductCategoryUseCase
+		ProductUseCase         productUseCase.ProductUseCase
 	}
 )
 
@@ -59,6 +62,7 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 	jwtQuery := jwtQuery.New(dbRead, dbWrite)
 	companyQuery := companyQuery.New(dbRead, dbWrite)
 	productCategoryQuery := productCategoryQuery.New(dbRead, dbWrite)
+	productQuery := productQuery.New(dbRead, dbWrite)
 	accountUseCase, err := accountUseCase.New(ctx, accountQuery, nsqAddress, nsqConfig)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
@@ -79,6 +83,11 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
 		return nil, err
 	}
+	productUseCase, err := productUseCase.New(ctx, productQuery, nsqAddress, nsqConfig)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
+		return nil, err
+	}
 	return &Service{
 		DbWrite:                dbWrite,
 		Migration:              migration,
@@ -87,5 +96,6 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		JwtUseCase:             jwtUseCase,
 		CompanyUseCase:         companyUseCase,
 		ProductCategoryUseCase: productCategoryUseCase,
+		ProductUseCase:         productUseCase,
 	}, nil
 }
