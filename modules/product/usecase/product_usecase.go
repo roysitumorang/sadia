@@ -30,8 +30,8 @@ func New(
 	nsqAddress string,
 	nsqConfig *nsq.Config,
 ) (ProductUseCase, error) {
-	ctxt := "ProductCategoryUseCase-New"
-	nsqConsumer, err := serviceNsq.NewConsumer(ctx, nsqAddress, config.TopicProductCategory, config.NsqChannel, nsqConfig)
+	ctxt := "ProductUseCase-New"
+	nsqConsumer, err := serviceNsq.NewConsumer(ctx, nsqAddress, config.TopicProduct, config.NsqChannel, nsqConfig)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNewConsumer")
 		return nil, err

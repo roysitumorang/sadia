@@ -32,6 +32,7 @@ import (
 	jwtPresenter "github.com/roysitumorang/sadia/modules/jwt/presenter"
 	productPresenter "github.com/roysitumorang/sadia/modules/product/presenter"
 	productCategoryPresenter "github.com/roysitumorang/sadia/modules/product_category/presenter"
+	storePresenter "github.com/roysitumorang/sadia/modules/store/presenter"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 	"go.uber.org/zap"
 )
@@ -75,6 +76,8 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 				"/v1/admin/product_category/*": "/v1/jwt/product_category/$1",
 				"/v1/admin/product":            "/v1/jwt/product",
 				"/v1/admin/product/*":          "/v1/jwt/product/$1",
+				"/v1/admin/store":              "/v1/jwt/store",
+				"/v1/admin/store/*":            "/v1/jwt/store/$1",
 			},
 		}),
 		cors.New(),
@@ -140,6 +143,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	companyPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase).Mount(v1.Group("/company"))
 	productCategoryPresenter.New(q.JwtUseCase, q.AccountUseCase, q.ProductCategoryUseCase).Mount(v1.Group("/product_category"))
 	productPresenter.New(q.JwtUseCase, q.AccountUseCase, q.ProductCategoryUseCase, q.ProductUseCase).Mount(v1.Group("/product"))
+	storePresenter.New(q.JwtUseCase, q.AccountUseCase, q.StoreUseCase).Mount(v1.Group("/store"))
 	app.Use(func(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).WriteResponse(c)
 	})

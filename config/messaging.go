@@ -8,4 +8,5 @@ const (
 	TopicCompany         = "company"
 	TopicProductCategory = "product_category"
 	TopicProduct         = "product"
+	TopicStore           = "store"
 )
