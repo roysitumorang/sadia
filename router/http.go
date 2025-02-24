@@ -28,6 +28,7 @@ import (
 	"github.com/roysitumorang/sadia/keys"
 	"github.com/roysitumorang/sadia/middleware"
 	accountPresenter "github.com/roysitumorang/sadia/modules/account/presenter"
+	companyPresenter "github.com/roysitumorang/sadia/modules/company/presenter"
 	jwtPresenter "github.com/roysitumorang/sadia/modules/jwt/presenter"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 	"go.uber.org/zap"
@@ -66,6 +67,8 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 				"/v1/admin/account/*": "/v1/account/admin/$1",
 				"/v1/admin/jwt":       "/v1/jwt/admin",
 				"/v1/admin/jwt/*":     "/v1/jwt/admin/$1",
+				"/v1/admin/company":   "/v1/jwt/company",
+				"/v1/admin/company/*": "/v1/jwt/company/$1",
 			},
 		}),
 		cors.New(),
@@ -128,6 +131,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	v1 := app.Group("/v1")
 	jwtPresenter.New(q.JwtUseCase, q.AccountUseCase).Mount(v1.Group("/jwt"))
 	accountPresenter.New(q.JwtUseCase, q.AccountUseCase, privateKey, accessTokenAge).Mount(v1.Group("/account"))
+	companyPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, privateKey, accessTokenAge).Mount(v1.Group("/company"))
 	app.Use(func(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).WriteResponse(c)
 	})

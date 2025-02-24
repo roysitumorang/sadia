@@ -2,13 +2,13 @@ package presenter
 
 import (
 	"errors"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
+	jwtModel "github.com/roysitumorang/sadia/modules/jwt/model"
 	"github.com/roysitumorang/sadia/modules/jwt/sanitizer"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
 	"go.uber.org/zap"
@@ -73,7 +73,7 @@ func (q *jwtHTTPHandler) AdminDeleteJWT(c *fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, time.Time{}, "", c.Params("id")); err != nil {
+	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithJwtIDs(c.Params("id")))); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}

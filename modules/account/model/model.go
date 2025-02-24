@@ -5,24 +5,13 @@ import (
 	"fmt"
 	"net/mail"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	customErrors "github.com/roysitumorang/sadia/errors"
 	"github.com/roysitumorang/sadia/helper"
-)
-
-const (
-	AccountTypeAdmin uint8 = iota
-	AccountTypeUser
-)
-
-const (
-	StatusUnconfirmed int8 = iota
-	StatusActive
-	StatusDeactivated int8 = -1
+	"github.com/roysitumorang/sadia/models"
 )
 
 const (
@@ -107,22 +96,13 @@ type (
 
 	FilterOption func(q *Filter)
 
-	NewAccount struct {
-		AccountType uint8   `json:"account_type"`
-		Name        string  `json:"name"`
-		Username    string  `json:"username"`
-		Email       *string `json:"email"`
-		Phone       *string `json:"phone"`
-		CreatedBy   *string `json:"-"`
-	}
-
 	NewAdmin struct {
-		*NewAccount
+		*models.NewAccount
 		AdminLevel uint8 `json:"admin_level"`
 	}
 
 	NewUser struct {
-		*NewAccount
+		*models.NewAccount
 		CompanyID string `json:"company_id"`
 		UserLevel uint8  `json:"user_level"`
 	}
@@ -198,7 +178,6 @@ type (
 )
 
 var (
-	phoneNumberRegex                         = regexp.MustCompile(`^\+[1-9]\d{1,14}$`)
 	ErrLoginFailed                           = customErrors.New(fiber.StatusBadRequest, "login failed")
 	ErrUniqueUsernameViolation               = errors.New("username: already exists")
 	ErrUniqueEmailViolation                  = errors.New("email: already exists")
@@ -320,42 +299,6 @@ func WithUrlValues(urlValues url.Values) FilterOption {
 	}
 }
 
-func (q *NewAccount) Validate() error {
-	if q.AccountType != AccountTypeAdmin &&
-		q.AccountType != AccountTypeUser {
-		return fmt.Errorf(
-			"account_type: should be either %d or %d",
-			AccountTypeAdmin,
-			AccountTypeUser,
-		)
-	}
-	if q.Name = strings.TrimSpace(q.Name); q.Name == "" {
-		return errors.New("name: is required")
-	}
-	if q.Username = strings.ToLower(strings.TrimSpace(q.Username)); q.Username == "" {
-		return errors.New("username: is required")
-	}
-	if q.Email != nil {
-		if *q.Email = strings.ToLower(strings.TrimSpace(*q.Email)); *q.Email != "" {
-			if _, err := mail.ParseAddress(*q.Email); err != nil {
-				return errors.New("email: invalid address")
-			}
-		} else {
-			q.Email = nil
-		}
-	}
-	if q.Phone != nil {
-		if *q.Phone = strings.TrimSpace(*q.Phone); *q.Phone != "" {
-			if phoneNumberRegex.Find(helper.String2ByteSlice(*q.Phone)) == nil {
-				return errors.New("phone: invalid number")
-			}
-		} else {
-			q.Phone = nil
-		}
-	}
-	return nil
-}
-
 func (q *NewUser) Validate() error {
 	if err := q.NewAccount.Validate(); err != nil {
 		return err
@@ -409,7 +352,7 @@ func (q *Confirmation) Validate() error {
 	}
 	if q.Phone != nil {
 		if *q.Phone = strings.TrimSpace(*q.Phone); *q.Phone != "" {
-			if phoneNumberRegex.Find(helper.String2ByteSlice(*q.Phone)) == nil {
+			if models.PhoneNumberRegex.Find(helper.String2ByteSlice(*q.Phone)) == nil {
 				return errors.New("phone: invalid number")
 			}
 		} else {
@@ -520,7 +463,7 @@ func (q *ChangePhone) Validate() error {
 	if q.Phone = strings.TrimSpace(q.Phone); q.Phone != "" {
 		return errors.New("phone: is required")
 	}
-	if phoneNumberRegex.Find(helper.String2ByteSlice(q.Phone)) == nil {
+	if models.PhoneNumberRegex.Find(helper.String2ByteSlice(q.Phone)) == nil {
 		return errors.New("phone: invalid number")
 	}
 	return nil

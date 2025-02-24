@@ -4,18 +4,14 @@ import (
 	"context"
 	"errors"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/roysitumorang/sadia/helper"
+	"github.com/roysitumorang/sadia/models"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	"go.uber.org/zap"
-)
-
-var (
-	phoneNumberRegex = regexp.MustCompile(`^\+[1-9]\d{1,14}$`)
 )
 
 func FindAccounts(ctx context.Context, c *fiber.Ctx) (*accountModel.Filter, error) {
@@ -62,9 +58,9 @@ func FindAccounts(ctx context.Context, c *fiber.Ctx) (*accountModel.Filter, erro
 	return accountModel.NewFilter(options...), nil
 }
 
-func ValidateAccount(ctx context.Context, c *fiber.Ctx) (*accountModel.NewAccount, int, error) {
+func ValidateAccount(ctx context.Context, c *fiber.Ctx) (*models.NewAccount, int, error) {
 	ctxt := "AccountSanitizer-ValidateAccount"
-	var response accountModel.NewAccount
+	var response models.NewAccount
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {

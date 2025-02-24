@@ -5,4 +5,5 @@ const (
 
 	TopicAccount = "account"
 	TopicJwt     = "jwt"
+	TopicCompany = "company"
 )

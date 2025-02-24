@@ -24,6 +24,15 @@ type (
 	}
 
 	FilterOption func(q *Filter)
+
+	DeleteFilter struct {
+		MaxExpiredAt time.Time
+		AccountID,
+		CompanyID string
+		JwtIDs []string
+	}
+
+	DeleteFilterOption func(q *DeleteFilter)
 )
 
 func NewFilter(options ...FilterOption) *Filter {
@@ -67,5 +76,37 @@ func WithPage(page int64) FilterOption {
 func WithUrlValues(urlValues url.Values) FilterOption {
 	return func(q *Filter) {
 		q.UrlValues = urlValues
+	}
+}
+
+func NewDeleteFilter(options ...DeleteFilterOption) *DeleteFilter {
+	filter := &DeleteFilter{}
+	for _, option := range options {
+		option(filter)
+	}
+	return filter
+}
+
+func WithMaxExpiredAt(maxExpiredAt time.Time) DeleteFilterOption {
+	return func(q *DeleteFilter) {
+		q.MaxExpiredAt = maxExpiredAt
+	}
+}
+
+func WithAccountID(accountID string) DeleteFilterOption {
+	return func(q *DeleteFilter) {
+		q.AccountID = accountID
+	}
+}
+
+func WithCompanyID(companyID string) DeleteFilterOption {
+	return func(q *DeleteFilter) {
+		q.CompanyID = companyID
+	}
+}
+
+func WithJwtIDs(jwtIDs ...string) DeleteFilterOption {
+	return func(q *DeleteFilter) {
+		q.JwtIDs = jwtIDs
 	}
 }

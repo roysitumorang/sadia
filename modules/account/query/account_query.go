@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/helper"
+	"github.com/roysitumorang/sadia/models"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	"go.uber.org/zap"
 )
@@ -360,7 +361,7 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 	return response, total, pages, nil
 }
 
-func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *accountModel.NewAccount) (*accountModel.Account, error) {
+func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *models.NewAccount) (*accountModel.Account, error) {
 	ctxt := "AccountQuery-CreateAccount"
 	accountID, accountSqID, _, err := helper.GenerateUniqueID()
 	if err != nil {
@@ -437,7 +438,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		accountID,
 		accountSqID,
 		request.AccountType,
-		accountModel.StatusUnconfirmed,
+		models.StatusUnconfirmed,
 		request.Name,
 		request.Username,
 		confirmationToken,

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/govalues/decimal"
 	"github.com/jackc/pgx/v5"
@@ -173,24 +172,45 @@ func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jw
 	return response, total, pages, nil
 }
 
-func (q *jwtQuery) DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.Time, accountID string, jwtIDs ...string) (int64, error) {
+func (q *jwtQuery) DeleteJWTs(ctx context.Context, tx pgx.Tx, filter *jwtModel.DeleteFilter) (int64, error) {
 	ctxt := "JwtQuery-DeleteJWTs"
 	var (
 		params     []any
 		conditions []string
 		builder    strings.Builder
 	)
-	if !maxExpiredAt.IsZero() {
-		params = append(params, maxExpiredAt)
+	if !filter.MaxExpiredAt.IsZero() {
+		params = append(params, filter.MaxExpiredAt)
 		builder.Reset()
-		_, _ = builder.WriteString("expired_at <= $")
+		_, _ = builder.WriteString("j.expired_at <= $")
 		_, _ = builder.WriteString(strconv.Itoa(len(params)))
 		conditions = append(conditions, builder.String())
 	}
-	if len(jwtIDs) > 0 {
+	if filter.AccountID != "" {
+		params = append(params, filter.AccountID)
 		builder.Reset()
-		_, _ = builder.WriteString("id IN (")
-		for i, jwtID := range jwtIDs {
+		_, _ = builder.WriteString("j.account_id = $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
+	if filter.CompanyID != "" {
+		params = append(params, filter.CompanyID)
+		builder.Reset()
+		_, _ = builder.WriteString(
+			`EXISTS(
+				SELECT 1
+				FROM users u
+				WHERE u.account_id = j.account_id
+					AND u.company_id = $`,
+		)
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		_, _ = builder.WriteString(")")
+		conditions = append(conditions, builder.String())
+	}
+	if len(filter.JwtIDs) > 0 {
+		builder.Reset()
+		_, _ = builder.WriteString("j.id IN (")
+		for i, jwtID := range filter.JwtIDs {
 			params = append(params, jwtID)
 			if i > 0 {
 				_, _ = builder.WriteString(",")
@@ -200,13 +220,13 @@ func (q *jwtQuery) DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.
 		}
 		_, _ = builder.WriteString(")")
 		condition := builder.String()
-		conditions = append(conditions, condition, strings.ReplaceAll(condition, "id", "token"))
+		conditions = append(conditions, condition, strings.ReplaceAll(condition, "j.id", "j.token"))
 	}
 	if len(conditions) == 0 {
 		return 0, nil
 	}
 	builder.Reset()
-	_, _ = builder.WriteString("DELETE FROM json_web_tokens WHERE")
+	_, _ = builder.WriteString("DELETE FROM json_web_tokens j WHERE")
 	for i, condition := range conditions {
 		if i > 0 {
 			_, _ = builder.WriteString(" OR")

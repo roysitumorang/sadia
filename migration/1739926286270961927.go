@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
+	"github.com/roysitumorang/sadia/models"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	"go.uber.org/zap"
 )
@@ -233,8 +234,8 @@ func init() {
 			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)`,
 			accountID,
 			accountSqID,
-			accountModel.AccountTypeAdmin,
-			accountModel.StatusUnconfirmed,
+			models.AccountTypeAdmin,
+			models.StatusUnconfirmed,
 			"Roy Situmorang",
 			"roy",
 			confirmationToken,

@@ -169,11 +169,11 @@ func (q *accountHTTPHandler) AdminDeactivateAccount(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("account not found").WriteResponse(c)
 	}
 	account := accounts[0]
-	if account.Status != accountModel.StatusActive {
+	if account.Status != models.StatusConfirmed {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("cannot deactivate unconfirmed & deactivated account").WriteResponse(c)
 	}
 	now := time.Now()
-	account.Status = accountModel.StatusDeactivated
+	account.Status = models.StatusDeactivated
 	account.DeactivatedBy = &currentAdmin.ID
 	account.DeactivatedAt = &now
 	account.DeactivationReason = &request.Reason
@@ -195,7 +195,7 @@ func (q *accountHTTPHandler) AdminDeactivateAccount(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, time.Time{}, account.ID); err != nil {
+	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithAccountID(account.ID))); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -413,7 +413,7 @@ func (q *accountHTTPHandler) Login(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	if len(accounts) == 0 ||
-		accounts[0].Status != accountModel.StatusActive ||
+		accounts[0].Status != models.StatusConfirmed ||
 		accounts[0].EncryptedPassword == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
 	}
@@ -449,7 +449,7 @@ func (q *accountHTTPHandler) Login(c *fiber.Ctx) error {
 			return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 		}
 		if account.LoginLockedAt != nil {
-			if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, time.Time{}, account.ID); err != nil {
+			if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithAccountID(account.ID))); err != nil {
 				helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 				return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 			}
@@ -559,7 +559,7 @@ func (q *accountHTTPHandler) ConfirmAccount(c *fiber.Ctx) error {
 	}
 	now := time.Now()
 	account := accounts[0]
-	account.Status = accountModel.StatusActive
+	account.Status = models.StatusConfirmed
 	account.Name = request.Name
 	account.Username = request.Username
 	account.ConfirmationToken = nil
@@ -800,7 +800,7 @@ func (q *accountHTTPHandler) ForgotPassword(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("login not found").WriteResponse(c)
 	}
 	account := accounts[0]
-	if account.Status != accountModel.StatusActive {
+	if account.Status != models.StatusConfirmed {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("cannot reset password for unconfirmed/deactivated account").WriteResponse(c)
 	}
 	if account.LoginLockedAt != nil {
@@ -1027,11 +1027,11 @@ func (q *accountHTTPHandler) UserDeactivateUser(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("user not found").WriteResponse(c)
 	}
 	user := users[0]
-	if user.Status != accountModel.StatusActive {
+	if user.Status != models.StatusConfirmed {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("cannot deactivate unconfirmed & deactivated user").WriteResponse(c)
 	}
 	now := time.Now()
-	user.Status = accountModel.StatusDeactivated
+	user.Status = models.StatusDeactivated
 	user.DeactivatedBy = &currentUser.ID
 	user.DeactivatedAt = &now
 	user.DeactivationReason = &request.Reason
@@ -1053,7 +1053,7 @@ func (q *accountHTTPHandler) UserDeactivateUser(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, time.Time{}, user.ID); err != nil {
+	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithAccountID(user.ID))); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}

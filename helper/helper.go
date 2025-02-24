@@ -31,8 +31,9 @@ import (
 )
 
 const (
-	numbers         = "0123456789"
-	base58alphabets = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+	numbers             = "0123456789"
+	base58alphabets     = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+	lowerCasedAlphabets = "123456789abcdefghijkmnopqrstuvwxyz"
 )
 
 var (
@@ -87,7 +88,7 @@ var (
 			return fmt.Errorf("env SQIDS_MIN_LENGTH requires a positive integer, min. 1, max %d", math.MaxUint8)
 		}
 		if sqIDs, err = sqids.New(sqids.Options{
-			Alphabet:  base58alphabets,
+			Alphabet:  lowerCasedAlphabets,
 			MinLength: uint8(sqidsMinLength),
 		}); err != nil {
 			return

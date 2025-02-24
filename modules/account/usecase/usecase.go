@@ -11,7 +11,7 @@ import (
 type (
 	AccountUseCase interface {
 		FindAccounts(ctx context.Context, filter *accountModel.Filter) ([]*accountModel.Account, *models.Pagination, error)
-		CreateAccount(ctx context.Context, tx pgx.Tx, request *accountModel.NewAccount) (*accountModel.Account, error)
+		CreateAccount(ctx context.Context, tx pgx.Tx, request *models.NewAccount) (*accountModel.Account, error)
 		UpdateAccount(ctx context.Context, tx pgx.Tx, request *accountModel.Account) error
 		FindAdmins(ctx context.Context, filter *accountModel.Filter) ([]*accountModel.Admin, *models.Pagination, error)
 		CreateAdmin(ctx context.Context, tx pgx.Tx, request *accountModel.NewAdmin) (*accountModel.Admin, error)

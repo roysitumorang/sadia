@@ -63,7 +63,7 @@ func (q *accountUseCase) FindAccounts(ctx context.Context, filter *accountModel.
 	return rows, pagination, nil
 }
 
-func (q *accountUseCase) CreateAccount(ctx context.Context, tx pgx.Tx, request *accountModel.NewAccount) (*accountModel.Account, error) {
+func (q *accountUseCase) CreateAccount(ctx context.Context, tx pgx.Tx, request *models.NewAccount) (*accountModel.Account, error) {
 	ctxt := "AccountUseCase-CreateAccount"
 	response, err := q.accountQuery.CreateAccount(ctx, tx, request)
 	if err != nil {
@@ -83,7 +83,7 @@ func (q *accountUseCase) UpdateAccount(ctx context.Context, tx pgx.Tx, request *
 
 func (q *accountUseCase) FindAdmins(ctx context.Context, filter *accountModel.Filter) ([]*accountModel.Admin, *models.Pagination, error) {
 	ctxt := "AccountUseCase-FindAdmins"
-	filter.AccountTypes = []uint8{accountModel.AccountTypeAdmin}
+	filter.AccountTypes = []uint8{models.AccountTypeAdmin}
 	admins, total, pages, err := q.accountQuery.FindAdmins(ctx, filter)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
@@ -104,7 +104,7 @@ func (q *accountUseCase) FindAdmins(ctx context.Context, filter *accountModel.Fi
 
 func (q *accountUseCase) CreateAdmin(ctx context.Context, tx pgx.Tx, request *accountModel.NewAdmin) (*accountModel.Admin, error) {
 	ctxt := "AccountUseCase-CreateAdmin"
-	request.AccountType = accountModel.AccountTypeAdmin
+	request.AccountType = models.AccountTypeAdmin
 	response, err := q.accountQuery.CreateAdmin(ctx, tx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateAdmin")
@@ -123,7 +123,7 @@ func (q *accountUseCase) UpdateAdmin(ctx context.Context, tx pgx.Tx, request *ac
 
 func (q *accountUseCase) FindUsers(ctx context.Context, filter *accountModel.Filter) ([]*accountModel.User, *models.Pagination, error) {
 	ctxt := "AccountUseCase-FindUsers"
-	filter.AccountTypes = []uint8{accountModel.AccountTypeUser}
+	filter.AccountTypes = []uint8{models.AccountTypeUser}
 	users, total, pages, err := q.accountQuery.FindUsers(ctx, filter)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
@@ -144,7 +144,7 @@ func (q *accountUseCase) FindUsers(ctx context.Context, filter *accountModel.Fil
 
 func (q *accountUseCase) CreateUser(ctx context.Context, tx pgx.Tx, request *accountModel.NewUser) (*accountModel.User, error) {
 	ctxt := "AccountUseCase-CreateUser"
-	request.AccountType = accountModel.AccountTypeUser
+	request.AccountType = models.AccountTypeUser
 	response, err := q.accountQuery.CreateUser(ctx, tx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateUser")

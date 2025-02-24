@@ -52,9 +52,9 @@ func (q *jwtUseCase) CreateJWT(ctx context.Context, tx pgx.Tx, request jwtModel.
 	return err
 }
 
-func (q *jwtUseCase) DeleteJWTs(ctx context.Context, tx pgx.Tx, maxExpiredAt time.Time, accountID string, jwtIDs ...string) (int64, error) {
+func (q *jwtUseCase) DeleteJWTs(ctx context.Context, tx pgx.Tx, filter *jwtModel.DeleteFilter) (int64, error) {
 	ctxt := "JwtUseCase-DeleteJWTs"
-	rowsAffected, err := q.jwtQuery.DeleteJWTs(ctx, tx, maxExpiredAt, accountID, jwtIDs...)
+	rowsAffected, err := q.jwtQuery.DeleteJWTs(ctx, tx, filter)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 	}
