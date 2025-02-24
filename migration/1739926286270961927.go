@@ -421,7 +421,7 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE INDEX ON stores (LOWER(name))`,
+			`CREATE UNIQUE INDEX ON stores (LOWER(name), company_id)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -653,7 +653,7 @@ func init() {
 			`CREATE TABLE orders (
 				_id bigint NOT NULL UNIQUE
 				, id character varying NOT NULL PRIMARY KEY
-				, store_id character varying NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, store_id character varying NOT NULL REFERENCES stores (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, reference_no character varying NOT NULL UNIQUE
 				, subtotal integer NOT NULL
 				, discount integer NOT NULL
@@ -710,6 +710,7 @@ func init() {
 				, order_id character varying NOT NULL REFERENCES orders (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, product_id character varying NOT NULL REFERENCES products (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, product_name character varying NOT NULL
+				, product_uom character varying NOT NULL
 				, quantity smallint NOT NULL
 				, price integer NOT NULL
 				, subtotal integer NOT NULL
