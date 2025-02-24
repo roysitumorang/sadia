@@ -1,7 +1,6 @@
 package presenter
 
 import (
-	"crypto/rsa"
 	"errors"
 	"net/url"
 	"time"
@@ -26,8 +25,6 @@ type (
 		jwtUseCase     jwtUseCase.JwtUseCase
 		accountUseCase accountUseCase.AccountUseCase
 		companyUseCase companyUseCase.CompanyUseCase
-		privateKey     *rsa.PrivateKey
-		accessTokenAge time.Duration
 	}
 )
 
@@ -35,15 +32,11 @@ func New(
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	companyUseCase companyUseCase.CompanyUseCase,
-	privateKey *rsa.PrivateKey,
-	accessTokenAge time.Duration,
 ) *companyHTTPHandler {
 	return &companyHTTPHandler{
 		jwtUseCase:     jwtUseCase,
 		accountUseCase: accountUseCase,
 		companyUseCase: companyUseCase,
-		privateKey:     privateKey,
-		accessTokenAge: accessTokenAge,
 	}
 }
 

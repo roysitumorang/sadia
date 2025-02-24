@@ -13,18 +13,21 @@ import (
 	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
 	jwtQuery "github.com/roysitumorang/sadia/modules/jwt/query"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
+	productCategoryQuery "github.com/roysitumorang/sadia/modules/product_category/query"
+	productCategoryUseCase "github.com/roysitumorang/sadia/modules/product_category/usecase"
 	serviceNsq "github.com/roysitumorang/sadia/services/nsq"
 	"go.uber.org/zap"
 )
 
 type (
 	Service struct {
-		DbWrite        *pgxpool.Pool
-		Migration      *migration.Migration
-		NsqProducer    *serviceNsq.Producer
-		AccountUseCase accountUseCase.AccountUseCase
-		JwtUseCase     jwtUseCase.JwtUseCase
-		CompanyUseCase companyUseCase.CompanyUseCase
+		DbWrite                *pgxpool.Pool
+		Migration              *migration.Migration
+		NsqProducer            *serviceNsq.Producer
+		AccountUseCase         accountUseCase.AccountUseCase
+		JwtUseCase             jwtUseCase.JwtUseCase
+		CompanyUseCase         companyUseCase.CompanyUseCase
+		ProductCategoryUseCase productCategoryUseCase.ProductCategoryUseCase
 	}
 )
 
@@ -55,6 +58,7 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 	accountQuery := accountQuery.New(dbRead, dbWrite)
 	jwtQuery := jwtQuery.New(dbRead, dbWrite)
 	companyQuery := companyQuery.New(dbRead, dbWrite)
+	productCategoryQuery := productCategoryQuery.New(dbRead, dbWrite)
 	accountUseCase, err := accountUseCase.New(ctx, accountQuery, nsqAddress, nsqConfig)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
@@ -70,12 +74,18 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
 		return nil, err
 	}
+	productCategoryUseCase, err := productCategoryUseCase.New(ctx, productCategoryQuery, nsqAddress, nsqConfig)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
+		return nil, err
+	}
 	return &Service{
-		DbWrite:        dbWrite,
-		Migration:      migration,
-		NsqProducer:    nsqProducer,
-		AccountUseCase: accountUseCase,
-		JwtUseCase:     jwtUseCase,
-		CompanyUseCase: companyUseCase,
+		DbWrite:                dbWrite,
+		Migration:              migration,
+		NsqProducer:            nsqProducer,
+		AccountUseCase:         accountUseCase,
+		JwtUseCase:             jwtUseCase,
+		CompanyUseCase:         companyUseCase,
+		ProductCategoryUseCase: productCategoryUseCase,
 	}, nil
 }

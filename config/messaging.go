@@ -3,7 +3,8 @@ package config
 const (
 	NsqChannel = "sadia"
 
-	TopicAccount = "account"
-	TopicJwt     = "jwt"
-	TopicCompany = "company"
+	TopicAccount         = "account"
+	TopicJwt             = "jwt"
+	TopicCompany         = "company"
+	TopicProductCategory = "product_category"
 )

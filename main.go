@@ -100,6 +100,28 @@ func main() {
 				return err
 			})
 			g.Go(func() error {
+				err := service.NsqProducer.Publish(ctx, config.TopicCompany, models.Message{})
+				if err != nil {
+					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrPublish")
+					return err
+				}
+				if err = service.CompanyUseCase.ConsumeMessage(ctx); err != nil {
+					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
+				}
+				return err
+			})
+			g.Go(func() error {
+				err := service.NsqProducer.Publish(ctx, config.TopicProductCategory, models.Message{})
+				if err != nil {
+					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrPublish")
+					return err
+				}
+				if err = service.ProductCategoryUseCase.ConsumeMessage(ctx); err != nil {
+					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
+				}
+				return err
+			})
+			g.Go(func() error {
 				c := cron.New(cron.WithChain(
 					cron.Recover(cron.DefaultLogger),
 				))
