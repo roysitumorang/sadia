@@ -397,11 +397,11 @@ func init() {
 				_id bigint NOT NULL UNIQUE
 				, id character varying NOT NULL PRIMARY KEY
 				, company_id character varying NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
-                , name character varying NOT NULL
-                , slug character varying NOT NULL
+				, name character varying NOT NULL
+				, slug character varying NOT NULL
 				, created_by character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
-            );`,
+			);`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -458,7 +458,7 @@ func init() {
 				, stop_at timestamp with time zone
 				, created_at timestamp with time zone NOT NULL
 				, updated_at timestamp with time zone NOT NULL
-            )`,
+			)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -500,8 +500,23 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
+			`ALTER TABLE users
+				ADD COLUMN current_session_id character varying NOT NULL REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON users (current_session_id)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
 			`ALTER TABLE stores
-				ADD COLUMN current_session_id  character varying NOT NULL REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE`,
+				ADD COLUMN current_session_id character varying NOT NULL REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return

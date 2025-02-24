@@ -119,7 +119,8 @@ func (q *storeQuery) FindStores(ctx context.Context, filter *storeModel.Filter) 
 		, s.created_by
 		, s.created_at
 		, s.updated_by
-		, s.updated_at`,
+		, s.updated_at
+		, s.current_session_id`,
 	)
 	builder.Reset()
 	_, _ = builder.WriteString(query)
@@ -169,6 +170,7 @@ func (q *storeQuery) FindStores(ctx context.Context, filter *storeModel.Filter) 
 			&store.CreatedAt,
 			&store.UpdatedBy,
 			&store.UpdatedAt,
+			&store.CurrentSessionID,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return nil, 0, 0, err
@@ -207,7 +209,8 @@ func (q *storeQuery) CreateStore(ctx context.Context, request *storeModel.Store)
 			, created_by
 			, created_at
 			, updated_by
-			, updated_at`,
+			, updated_at
+			, current_session_id`,
 		storeID,
 		storeSqID,
 		request.CompanyID,
@@ -223,6 +226,7 @@ func (q *storeQuery) CreateStore(ctx context.Context, request *storeModel.Store)
 		&response.CreatedAt,
 		&response.UpdatedBy,
 		&response.UpdatedAt,
+		&response.CurrentSessionID,
 	); err != nil {
 		var pgxErr *pgconn.PgError
 		if errors.As(err, &pgxErr) &&
@@ -251,7 +255,8 @@ func (q *storeQuery) UpdateStore(ctx context.Context, request *storeModel.Store)
 			, slug = $2
 			, updated_by = $3
 			, updated_at = $4
-		WHERE id = $5
+			, current_session_id = $5
+		WHERE id = $6
 		RETURNING id
 			, company_id
 			, name
@@ -259,11 +264,13 @@ func (q *storeQuery) UpdateStore(ctx context.Context, request *storeModel.Store)
 			, created_by
 			, created_at
 			, updated_by
-			, updated_at`,
+			, updated_at
+			, current_session_id`,
 		request.Name,
 		request.Slug,
 		request.UpdatedBy,
 		now,
+		request.CurrentSessionID,
 		request.ID,
 	).Scan(
 		&request.ID,
@@ -274,6 +281,7 @@ func (q *storeQuery) UpdateStore(ctx context.Context, request *storeModel.Store)
 		&request.CreatedAt,
 		&request.UpdatedBy,
 		&request.UpdatedAt,
+		&request.CurrentSessionID,
 	)
 	if err != nil {
 		var pgxErr *pgconn.PgError

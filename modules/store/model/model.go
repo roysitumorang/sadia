@@ -9,14 +9,15 @@ import (
 
 type (
 	Store struct {
-		ID        string    `json:"id"`
-		CompanyID string    `json:"-"`
-		Name      string    `json:"name"`
-		Slug      string    `json:"slug"`
-		CreatedBy string    `json:"-"`
-		CreatedAt time.Time `json:"-"`
-		UpdatedBy string    `json:"-"`
-		UpdatedAt time.Time `json:"-"`
+		ID               string    `json:"id"`
+		CompanyID        string    `json:"-"`
+		Name             string    `json:"name"`
+		Slug             string    `json:"slug"`
+		CreatedBy        string    `json:"-"`
+		CreatedAt        time.Time `json:"-"`
+		UpdatedBy        string    `json:"-"`
+		UpdatedAt        time.Time `json:"-"`
+		CurrentSessionID *string   `json:"current_session_id"`
 	}
 
 	Filter struct {

@@ -70,8 +70,9 @@ type (
 
 	User struct {
 		*Account
-		CompanyID string `json:"company_id"`
-		UserLevel uint8  `json:"user_level"`
+		CompanyID        string  `json:"company_id"`
+		UserLevel        uint8   `json:"user_level"`
+		CurrentSessionID *string `json:"current_session_id"`
 	}
 
 	Filter struct {

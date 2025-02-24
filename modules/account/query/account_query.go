@@ -811,6 +811,7 @@ func (q *accountQuery) FindUsers(ctx context.Context, filter *accountModel.Filte
 			account_id
 			, company_id
 			, user_level
+			, current_session_id
 		FROM users
 		WHERE account_id IN (`,
 	)
@@ -840,9 +841,10 @@ func (q *accountQuery) FindUsers(ctx context.Context, filter *accountModel.Filte
 		var (
 			accountID,
 			companyID string
-			userLevel uint8
+			userLevel        uint8
+			currentSessionID *string
 		)
-		if err = rows.Scan(&accountID, &companyID, &userLevel); err != nil {
+		if err = rows.Scan(&accountID, &companyID, &userLevel, &currentSessionID); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return nil, 0, 0, err
 		}
@@ -850,6 +852,7 @@ func (q *accountQuery) FindUsers(ctx context.Context, filter *accountModel.Filte
 			user := response[offset]
 			user.CompanyID = companyID
 			user.UserLevel = userLevel
+			user.CurrentSessionID = currentSessionID
 			response[offset] = user
 		}
 	}
@@ -873,13 +876,15 @@ func (q *accountQuery) CreateUser(ctx context.Context, tx pgx.Tx, request *accou
 			, user_level
 		) VALUES ($1, $2, $3)
 		RETURNING company_id
-			, user_level`,
+			, user_level
+			, current_session_id`,
 		account.ID,
 		request.CompanyID,
 		request.UserLevel,
 	).Scan(
 		&response.CompanyID,
 		&response.UserLevel,
+		&response.CurrentSessionID,
 	); err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
@@ -900,14 +905,18 @@ func (q *accountQuery) UpdateUser(ctx context.Context, tx pgx.Tx, request *accou
 		ctx,
 		`UPDATE users SET
 			user_level = $1
-		WHERE account_id = $2
+			, current_session_id = $2
+		WHERE account_id = $3
 		RETURNING company_id
-			, user_level`,
+			, user_level
+			, current_session_id`,
 		request.UserLevel,
+		request.CurrentSessionID,
 		request.ID,
 	).Scan(
 		&request.CompanyID,
 		&request.UserLevel,
+		&request.CurrentSessionID,
 	); err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
