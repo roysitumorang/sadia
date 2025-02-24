@@ -3,8 +3,6 @@ package sanitizer
 import (
 	"context"
 	"errors"
-	"fmt"
-	"net/mail"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -73,39 +71,9 @@ func ValidateAccount(ctx context.Context, c *fiber.Ctx) (*accountModel.NewAccoun
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
-	if response.AccountType != accountModel.AccountTypeAdmin &&
-		response.AccountType != accountModel.AccountTypeUser {
-		return nil,
-			fiber.StatusBadRequest,
-			fmt.Errorf(
-				"account_type: should be either %d or %d",
-				accountModel.AccountTypeAdmin,
-				accountModel.AccountTypeUser,
-			)
-	}
-	if response.Name = strings.TrimSpace(response.Name); response.Name == "" {
-		return nil, fiber.StatusBadRequest, errors.New("name: is required")
-	}
-	if response.Username = strings.ToLower(strings.TrimSpace(response.Username)); response.Username == "" {
-		return nil, fiber.StatusBadRequest, errors.New("username: is required")
-	}
-	if response.Email != nil {
-		if *response.Email = strings.ToLower(strings.TrimSpace(*response.Email)); *response.Email != "" {
-			if _, err = mail.ParseAddress(*response.Email); err != nil {
-				return nil, fiber.StatusBadRequest, errors.New("email: invalid address")
-			}
-		} else {
-			response.Email = nil
-		}
-	}
-	if response.Phone != nil {
-		if *response.Phone = strings.TrimSpace(*response.Phone); *response.Phone != "" {
-			if phoneNumberRegex.Find(helper.String2ByteSlice(*response.Phone)) == nil {
-				return nil, fiber.StatusBadRequest, errors.New("phone: invalid number")
-			}
-		} else {
-			response.Phone = nil
-		}
+	if err = (&response).Validate(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
+		return nil, fiber.StatusBadRequest, err
 	}
 	return &response, fiber.StatusOK, nil
 }
@@ -119,8 +87,9 @@ func ValidateDeactivation(ctx context.Context, c *fiber.Ctx) (*accountModel.Deac
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
-	if response.Reason = strings.TrimSpace(response.Reason); response.Reason == "" {
-		return nil, fiber.StatusBadRequest, errors.New("reason: is required")
+	if err = (&response).Validate(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
+		return nil, fiber.StatusBadRequest, err
 	}
 	return &response, fiber.StatusOK, nil
 }
@@ -134,11 +103,9 @@ func ValidateLogin(ctx context.Context, c *fiber.Ctx) (*accountModel.LoginReques
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
-	if response.Login = strings.TrimSpace(response.Login); response.Login == "" {
-		return nil, fiber.StatusBadRequest, errors.New("login: is required")
-	}
-	if response.Password = strings.TrimSpace(response.Password); response.Password == "" {
-		return nil, fiber.StatusBadRequest, errors.New("password: is required")
+	if err = (&response).Validate(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
+		return nil, fiber.StatusBadRequest, err
 	}
 	return &response, fiber.StatusOK, nil
 }
@@ -152,38 +119,9 @@ func ValidateConfirmation(ctx context.Context, c *fiber.Ctx) (*accountModel.Conf
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
-	if response.Name = strings.TrimSpace(response.Name); response.Name == "" {
-		return nil, fiber.StatusBadRequest, errors.New("name: is required")
-	}
-	if response.Username = strings.ToLower(strings.TrimSpace(response.Username)); response.Username == "" {
-		return nil, fiber.StatusBadRequest, errors.New("username: is required")
-	}
-	if response.Email != nil {
-		if *response.Email = strings.ToLower(strings.TrimSpace(*response.Email)); *response.Email != "" {
-			if _, err = mail.ParseAddress(*response.Email); err != nil {
-				return nil, fiber.StatusBadRequest, errors.New("email: invalid address")
-			}
-		} else {
-			response.Email = nil
-		}
-	}
-	if response.Phone != nil {
-		if *response.Phone = strings.TrimSpace(*response.Phone); *response.Phone != "" {
-			if phoneNumberRegex.Find(helper.String2ByteSlice(*response.Phone)) == nil {
-				return nil, fiber.StatusBadRequest, errors.New("phone: invalid number")
-			}
-		} else {
-			response.Phone = nil
-		}
-	}
-	if response.Base64Password = strings.TrimSpace(response.Base64Password); response.Base64Password == "" {
-		return nil, fiber.StatusBadRequest, errors.New("password: is required")
-	}
-	if response.Password, err = helper.Base64Decode(response.Base64Password); err != nil {
-		return nil, fiber.StatusBadRequest, fmt.Errorf("password: %s", err.Error())
-	}
-	if !helper.ValidPassword(response.Password) {
-		return nil, fiber.StatusBadRequest, errors.New("password: min 8 characters & should contain uppercase/lowercase/number/symbol")
+	if err = (&response).Validate(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
+		return nil, fiber.StatusBadRequest, err
 	}
 	return &response, fiber.StatusOK, nil
 }
@@ -197,8 +135,9 @@ func ValidateForgotPassword(ctx context.Context, c *fiber.Ctx) (*accountModel.Fo
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
-	if response.Login = strings.TrimSpace(response.Login); response.Login == "" {
-		return nil, fiber.StatusBadRequest, errors.New("login: is required")
+	if err = (&response).Validate(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
+		return nil, fiber.StatusBadRequest, err
 	}
 	return &response, fiber.StatusOK, nil
 }
@@ -212,14 +151,9 @@ func ValidateResetPassword(ctx context.Context, c *fiber.Ctx) (*accountModel.Res
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
-	if response.Base64Password = strings.TrimSpace(response.Base64Password); response.Base64Password == "" {
-		return nil, fiber.StatusBadRequest, errors.New("password: is required")
-	}
-	if response.Password, err = helper.Base64Decode(response.Base64Password); err != nil {
-		return nil, fiber.StatusBadRequest, fmt.Errorf("password: %s", err.Error())
-	}
-	if !helper.ValidPassword(response.Password) {
-		return nil, fiber.StatusBadRequest, errors.New("password: min 8 characters & should contain uppercase/lowercase/number/symbol")
+	if err = (&response).Validate(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
+		return nil, fiber.StatusBadRequest, err
 	}
 	return &response, fiber.StatusOK, nil
 }
@@ -233,20 +167,9 @@ func ValidateChangePassword(ctx context.Context, c *fiber.Ctx) (*accountModel.Ch
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
-	if response.Base64OldPassword = strings.TrimSpace(response.Base64OldPassword); response.Base64OldPassword == "" {
-		return nil, fiber.StatusBadRequest, errors.New("old_password: is required")
-	}
-	if response.OldPassword, err = helper.Base64Decode(response.Base64OldPassword); err != nil {
-		return nil, fiber.StatusBadRequest, fmt.Errorf("old_password: %s", err.Error())
-	}
-	if response.Base64NewPassword = strings.TrimSpace(response.Base64NewPassword); response.Base64NewPassword == "" {
-		return nil, fiber.StatusBadRequest, errors.New("new_password: is required")
-	}
-	if response.NewPassword, err = helper.Base64Decode(response.Base64NewPassword); err != nil {
-		return nil, fiber.StatusBadRequest, fmt.Errorf("new_password: %s", err.Error())
-	}
-	if !helper.ValidPassword(response.NewPassword) {
-		return nil, fiber.StatusBadRequest, errors.New("new_password: min 8 characters & should contain uppercase/lowercase/number/symbol")
+	if err = (&response).Validate(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
+		return nil, fiber.StatusBadRequest, err
 	}
 	return &response, fiber.StatusOK, nil
 }
@@ -260,14 +183,9 @@ func ValidateChangeUsername(ctx context.Context, c *fiber.Ctx) (*accountModel.Ch
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
-	if response.Base64Password = strings.TrimSpace(response.Base64Password); response.Base64Password == "" {
-		return nil, fiber.StatusBadRequest, errors.New("password: is required")
-	}
-	if response.Password, err = helper.Base64Decode(response.Base64Password); err != nil {
-		return nil, fiber.StatusBadRequest, fmt.Errorf("password: %s", err.Error())
-	}
-	if response.Username = strings.ToLower(strings.TrimSpace(response.Username)); response.Username == "" {
-		return nil, fiber.StatusBadRequest, errors.New("username: is required")
+	if err = (&response).Validate(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
+		return nil, fiber.StatusBadRequest, err
 	}
 	return &response, fiber.StatusOK, nil
 }
@@ -281,17 +199,9 @@ func ValidateChangeEmail(ctx context.Context, c *fiber.Ctx) (*accountModel.Chang
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
-	if response.Base64Password = strings.TrimSpace(response.Base64Password); response.Base64Password == "" {
-		return nil, fiber.StatusBadRequest, errors.New("password: is required")
-	}
-	if response.Password, err = helper.Base64Decode(response.Base64Password); err != nil {
-		return nil, fiber.StatusBadRequest, fmt.Errorf("password: %s", err.Error())
-	}
-	if response.Email = strings.ToLower(strings.TrimSpace(response.Email)); response.Email == "" {
-		return nil, fiber.StatusBadRequest, errors.New("email: is required")
-	}
-	if _, err = mail.ParseAddress(response.Email); err != nil {
-		return nil, fiber.StatusBadRequest, errors.New("email: invalid address")
+	if err = (&response).Validate(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
+		return nil, fiber.StatusBadRequest, err
 	}
 	return &response, fiber.StatusOK, nil
 }
@@ -305,17 +215,9 @@ func ValidateChangePhone(ctx context.Context, c *fiber.Ctx) (*accountModel.Chang
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
-	if response.Base64Password = strings.TrimSpace(response.Base64Password); response.Base64Password == "" {
-		return nil, fiber.StatusBadRequest, errors.New("password: is required")
-	}
-	if response.Password, err = helper.Base64Decode(response.Base64Password); err != nil {
-		return nil, fiber.StatusBadRequest, fmt.Errorf("password: %s", err.Error())
-	}
-	if response.Phone = strings.TrimSpace(response.Phone); response.Phone != "" {
-		return nil, fiber.StatusBadRequest, errors.New("phone: is required")
-	}
-	if phoneNumberRegex.Find(helper.String2ByteSlice(response.Phone)) == nil {
-		return nil, fiber.StatusBadRequest, errors.New("phone: invalid number")
+	if err = (&response).Validate(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
+		return nil, fiber.StatusBadRequest, err
 	}
 	return &response, fiber.StatusOK, nil
 }

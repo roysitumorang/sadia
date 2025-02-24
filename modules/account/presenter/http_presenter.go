@@ -210,13 +210,8 @@ func (q *accountHTTPHandler) Login(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login locked out, max. failed attempts exceeded").WriteResponse(c)
 	}
 	encryptedPassword := helper.String2ByteSlice(*account.EncryptedPassword)
-	password, err := request.DecodePassword()
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDecodePassword")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
 	now := time.Now()
-	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(password)) {
+	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
 		account.LoginFailedAttempts++
 		tx, err := helper.BeginTx(ctx)
 		if err != nil {
