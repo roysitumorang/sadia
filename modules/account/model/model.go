@@ -324,7 +324,7 @@ func (q *LoginRequest) Validate() error {
 	if q.Login = strings.TrimSpace(q.Login); q.Login == "" {
 		return errors.New("login: is required")
 	}
-	if q.Base64Password = strings.TrimSpace(q.Base64Password); q.Password == "" {
+	if q.Base64Password = strings.TrimSpace(q.Base64Password); q.Base64Password == "" {
 		return errors.New("password: is required")
 	}
 	password, err := helper.Base64Decode(q.Base64Password)
