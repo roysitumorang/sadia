@@ -44,7 +44,7 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Get("/:id", adminKeyAuth, q.AdminFindAccountByID).
 		Delete("/:id", superAdminKeyAuth, q.AdminDeactivateAccount).
 		Group("/me").
-		Get("", adminKeyAuth, q.AdminProfile).
+		Get("/about", adminKeyAuth, q.AdminProfile).
 		Put("/password", adminKeyAuth, q.AdminChangePassword).
 		Put("/username", adminKeyAuth, q.AdminChangeUsername).
 		Put("/email", adminKeyAuth, q.AdminChangeEmail).

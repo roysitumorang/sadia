@@ -708,7 +708,7 @@ func (q *accountQuery) FindAdmins(ctx context.Context, filter *accountModel.Filt
 	params := make([]any, n)
 	mapAdminOffsets := map[string]int{}
 	for i, account := range accounts {
-		response[i].Account = account
+		response[i] = &accountModel.Admin{Account: account}
 		params[i] = account.ID
 		if i > 0 {
 			_, _ = builder.WriteString(",")
@@ -818,7 +818,7 @@ func (q *accountQuery) FindUsers(ctx context.Context, filter *accountModel.Filte
 	params := make([]any, n)
 	mapUserOffsets := map[string]int{}
 	for i, account := range accounts {
-		response[i].Account = account
+		response[i] = &accountModel.User{Account: account}
 		params[i] = account.ID
 		if i > 0 {
 			_, _ = builder.WriteString(",")
