@@ -828,6 +828,13 @@ func (q *accountHTTPHandler) ResetPassword(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
 	}
 	account := accounts[0]
+	if account.EncryptedPassword != nil &&
+		helper.MatchedHashAndPassword(
+			helper.String2ByteSlice(*account.EncryptedPassword),
+			helper.String2ByteSlice(request.Password),
+		) {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password reuse prohibited").WriteResponse(c)
+	}
 	now := time.Now()
 	account.ResetPasswordToken = nil
 	account.ResetPasswordSentAt = nil
