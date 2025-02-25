@@ -434,6 +434,7 @@ func (q *ChangeUsername) Validate() error {
 	if q.Username = strings.ToLower(strings.TrimSpace(q.Username)); q.Username == "" {
 		return errors.New("username: is required")
 	}
+	q.Username = usernameRegex.ReplaceAllString(q.Username, "")
 	return nil
 }
 
