@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/jackc/pgx/v5"
 	"github.com/nsqio/go-nsq"
 	"github.com/roysitumorang/sadia/config"
 	"github.com/roysitumorang/sadia/helper"
@@ -71,9 +72,9 @@ func (q *storeUseCase) CreateStore(ctx context.Context, request *storeModel.Stor
 	return response, err
 }
 
-func (q *storeUseCase) UpdateStore(ctx context.Context, request *storeModel.Store) error {
+func (q *storeUseCase) UpdateStore(ctx context.Context, tx pgx.Tx, request *storeModel.Store) error {
 	ctxt := "StoreUseCase-UpdateStore"
-	err := q.storeQuery.UpdateStore(ctx, request)
+	err := q.storeQuery.UpdateStore(ctx, tx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateStore")
 	}
@@ -100,7 +101,7 @@ func (q *storeUseCase) ConsumeMessage(ctx context.Context) error {
 			zap.InfoLevel,
 			fmt.Sprintf(
 				"message on topic %s@%d: %s, consumed in %s",
-				config.TopicAccount,
+				config.TopicStore,
 				atomic.LoadUint64(&counter),
 				helper.ByteSlice2String(message.Body),
 				duration.String(),

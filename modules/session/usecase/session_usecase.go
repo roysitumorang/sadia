@@ -12,48 +12,48 @@ import (
 	"github.com/roysitumorang/sadia/config"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
-	companyModel "github.com/roysitumorang/sadia/modules/company/model"
-	companyQuery "github.com/roysitumorang/sadia/modules/company/query"
+	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
+	sessionQuery "github.com/roysitumorang/sadia/modules/session/query"
 	serviceNsq "github.com/roysitumorang/sadia/services/nsq"
 	"go.uber.org/zap"
 )
 
 type (
-	companyUseCase struct {
-		companyQuery companyQuery.CompanyQuery
+	sessionUseCase struct {
+		sessionQuery sessionQuery.SessionQuery
 		nsqConsumer  *serviceNsq.Consumer
 	}
 )
 
 func New(
 	ctx context.Context,
-	companyQuery companyQuery.CompanyQuery,
+	sessionQuery sessionQuery.SessionQuery,
 	nsqAddress string,
 	nsqConfig *nsq.Config,
-) (CompanyUseCase, error) {
-	ctxt := "companyUseCase-New"
-	nsqConsumer, err := serviceNsq.NewConsumer(ctx, nsqAddress, config.TopicCompany, config.NsqChannel, nsqConfig)
+) (SessionUseCase, error) {
+	ctxt := "SessionCategoryUseCase-New"
+	nsqConsumer, err := serviceNsq.NewConsumer(ctx, nsqAddress, config.TopicSession, config.NsqChannel, nsqConfig)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNewConsumer")
 		return nil, err
 	}
-	return &companyUseCase{
-		companyQuery: companyQuery,
+	return &sessionUseCase{
+		sessionQuery: sessionQuery,
 		nsqConsumer:  nsqConsumer,
 	}, nil
 }
 
-func (q *companyUseCase) FindCompanies(ctx context.Context, filter *companyModel.Filter) ([]*companyModel.Company, *models.Pagination, error) {
-	ctxt := "CompanyUseCase-FindCompanies"
-	companies, total, pages, err := q.companyQuery.FindCompanies(ctx, filter)
+func (q *sessionUseCase) FindSessions(ctx context.Context, filter *sessionModel.Filter) ([]*sessionModel.Session, *models.Pagination, error) {
+	ctxt := "SessionUseCase-FindSessions"
+	sessionCategories, total, pages, err := q.sessionQuery.FindSessions(ctx, filter)
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindCompanies")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindSessions")
 		return nil, nil, err
 	}
-	n := len(companies)
-	rows := make([]*companyModel.Company, n)
+	n := len(sessionCategories)
+	rows := make([]*sessionModel.Session, n)
 	if n > 0 {
-		copy(rows, companies)
+		copy(rows, sessionCategories)
 	}
 	pagination, err := helper.SetPagination(total, pages, filter.Limit, filter.Page, filter.PaginationURL, filter.UrlValues)
 	if err != nil {
@@ -63,28 +63,28 @@ func (q *companyUseCase) FindCompanies(ctx context.Context, filter *companyModel
 	return rows, pagination, nil
 }
 
-func (q *companyUseCase) CreateCompany(ctx context.Context, tx pgx.Tx, request *companyModel.NewCompany) (*companyModel.Company, error) {
-	ctxt := "CompanyUseCase-CreateCompany"
-	response, err := q.companyQuery.CreateCompany(ctx, tx, request)
+func (q *sessionUseCase) CreateSession(ctx context.Context, tx pgx.Tx, request *sessionModel.NewSession) (*sessionModel.Session, error) {
+	ctxt := "SessionUseCase-CreateSession"
+	response, err := q.sessionQuery.CreateSession(ctx, tx, request)
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateCompany")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateSession")
 	}
 	return response, err
 }
 
-func (q *companyUseCase) UpdateCompany(ctx context.Context, tx pgx.Tx, request *companyModel.Company) error {
-	ctxt := "CompanyUseCase-UpdateCompany"
-	err := q.companyQuery.UpdateCompany(ctx, tx, request)
+func (q *sessionUseCase) UpdateSession(ctx context.Context, tx pgx.Tx, request *sessionModel.Session) error {
+	ctxt := "SessionUseCase-UpdateSession"
+	err := q.sessionQuery.UpdateSession(ctx, tx, request)
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateCompany")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateSession")
 	}
 	return err
 }
 
-func (q *companyUseCase) ConsumeMessage(ctx context.Context) error {
-	ctxt := "CompanyUseCase-ConsumeMessage"
+func (q *sessionUseCase) ConsumeMessage(ctx context.Context) error {
+	ctxt := "SessionUseCase-ConsumeMessage"
 	var counter uint64
-	helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("consume topic %s", config.TopicCompany), ctxt, "")
+	helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("consume topic %s", config.TopicSession), ctxt, "")
 	err := q.nsqConsumer.AddHandler(ctx, func(message *nsq.Message) error {
 		now := time.Now()
 		atomic.AddUint64(&counter, 1)
@@ -101,7 +101,7 @@ func (q *companyUseCase) ConsumeMessage(ctx context.Context) error {
 			zap.InfoLevel,
 			fmt.Sprintf(
 				"message on topic %s@%d: %s, consumed in %s",
-				config.TopicCompany,
+				config.TopicSession,
 				atomic.LoadUint64(&counter),
 				helper.ByteSlice2String(message.Body),
 				duration.String(),

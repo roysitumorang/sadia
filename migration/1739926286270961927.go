@@ -447,17 +447,14 @@ func init() {
 				_id bigint NOT NULL UNIQUE
 				, id character varying NOT NULL PRIMARY KEY
 				, store_id character varying NOT NULL REFERENCES stores (id) ON UPDATE CASCADE ON DELETE CASCADE
-				, account_id character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, date date NOT NULL
 				, status smallint NOT NULL
 				, cashbox_value integer NOT NULL
 				, cashbox_note character varying NOT NULL
-				, take_money_value integer NOT NULL
-				, take_money_note character varying NOT NULL
-				, start_at timestamp with time zone
-				, stop_at timestamp with time zone
+				, take_money_value integer NOT NULL DEFAULT 0
+				, created_by character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
-				, updated_at timestamp with time zone NOT NULL
+				, closed_at timestamp with time zone
 			)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
@@ -479,14 +476,7 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE INDEX ON sessions (account_id)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
-			`CREATE INDEX ON sessions (date)`,
+			`CREATE UNIQUE INDEX ON sessions (date, created_by)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -500,8 +490,15 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
+			`CREATE INDEX ON sessions (created_by)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
 			`ALTER TABLE users
-				ADD COLUMN current_session_id character varying NOT NULL REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE`,
+				ADD COLUMN current_session_id character varying REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -516,7 +513,7 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`ALTER TABLE stores
-				ADD COLUMN current_session_id character varying NOT NULL REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE`,
+				ADD COLUMN current_session_id character varying REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -524,6 +521,42 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE INDEX ON stores (current_session_id)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE TABLE session_take_money_line_items (
+				_id bigint NOT NULL UNIQUE
+				, id character varying NOT NULL PRIMARY KEY
+				, session_id character varying NOT NULL REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, description character varying NOT NULL
+				, value integer NOT NULL
+				, created_by character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, created_at timestamp with time zone NOT NULL
+			)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON session_take_money_line_items (_id)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON session_take_money_line_items (session_id)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON session_take_money_line_items (created_by)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return

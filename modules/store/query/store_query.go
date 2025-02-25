@@ -245,10 +245,10 @@ func (q *storeQuery) CreateStore(ctx context.Context, request *storeModel.Store)
 	return &response, nil
 }
 
-func (q *storeQuery) UpdateStore(ctx context.Context, request *storeModel.Store) error {
+func (q *storeQuery) UpdateStore(ctx context.Context, tx pgx.Tx, request *storeModel.Store) error {
 	ctxt := "StoreQuery-UpdateStore"
 	now := time.Now()
-	err := q.dbWrite.QueryRow(
+	err := tx.QueryRow(
 		ctx,
 		`UPDATE stores SET
 			name = $1
@@ -284,6 +284,9 @@ func (q *storeQuery) UpdateStore(ctx context.Context, request *storeModel.Store)
 		&request.CurrentSessionID,
 	)
 	if err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
 		var pgxErr *pgconn.PgError
 		if errors.As(err, &pgxErr) &&
 			pgxErr.Code == pgerrcode.UniqueViolation {

@@ -100,7 +100,7 @@ func (q *productUseCase) ConsumeMessage(ctx context.Context) error {
 			zap.InfoLevel,
 			fmt.Sprintf(
 				"message on topic %s@%d: %s, consumed in %s",
-				config.TopicAccount,
+				config.TopicProduct,
 				atomic.LoadUint64(&counter),
 				helper.ByteSlice2String(message.Body),
 				duration.String(),

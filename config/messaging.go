@@ -9,4 +9,5 @@ const (
 	TopicProductCategory = "product_category"
 	TopicProduct         = "product"
 	TopicStore           = "store"
+	TopicSession         = "session"
 )

@@ -1,9 +1,11 @@
 package presenter
 
 import (
+	"errors"
 	"net/url"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
 	"github.com/roysitumorang/sadia/models"
@@ -135,8 +137,26 @@ func (q *storeHTTPHandler) UserUpdateStore(c *fiber.Ctx) error {
 	store.Name = request.Name
 	store.Slug = request.Slug
 	store.UpdatedBy = currentUser.ID
-	if err = q.storeUseCase.UpdateStore(ctx, store); err != nil {
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.storeUseCase.UpdateStore(ctx, tx, store); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateStore")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(store).WriteResponse(c)

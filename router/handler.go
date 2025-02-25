@@ -17,6 +17,8 @@ import (
 	productUseCase "github.com/roysitumorang/sadia/modules/product/usecase"
 	productCategoryQuery "github.com/roysitumorang/sadia/modules/product_category/query"
 	productCategoryUseCase "github.com/roysitumorang/sadia/modules/product_category/usecase"
+	sessionQuery "github.com/roysitumorang/sadia/modules/session/query"
+	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
 	storeQuery "github.com/roysitumorang/sadia/modules/store/query"
 	storeUseCase "github.com/roysitumorang/sadia/modules/store/usecase"
 	serviceNsq "github.com/roysitumorang/sadia/services/nsq"
@@ -34,6 +36,7 @@ type (
 		ProductCategoryUseCase productCategoryUseCase.ProductCategoryUseCase
 		ProductUseCase         productUseCase.ProductUseCase
 		StoreUseCase           storeUseCase.StoreUseCase
+		SessionUseCase         sessionUseCase.SessionUseCase
 	}
 )
 
@@ -67,6 +70,7 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 	productCategoryQuery := productCategoryQuery.New(dbRead, dbWrite)
 	productQuery := productQuery.New(dbRead, dbWrite)
 	storeQuery := storeQuery.New(dbRead, dbWrite)
+	sessionQuery := sessionQuery.New(dbRead, dbWrite)
 	accountUseCase, err := accountUseCase.New(ctx, accountQuery, nsqAddress, nsqConfig)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
@@ -97,6 +101,11 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
 		return nil, err
 	}
+	sessionUseCase, err := sessionUseCase.New(ctx, sessionQuery, nsqAddress, nsqConfig)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
+		return nil, err
+	}
 	return &Service{
 		DbWrite:                dbWrite,
 		Migration:              migration,
@@ -107,5 +116,6 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		ProductCategoryUseCase: productCategoryUseCase,
 		ProductUseCase:         productUseCase,
 		StoreUseCase:           storeUseCase,
+		SessionUseCase:         sessionUseCase,
 	}, nil
 }
