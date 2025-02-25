@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/govalues/decimal"
 	"github.com/jackc/pgx/v5"
@@ -31,30 +32,54 @@ func New(
 	}
 }
 
-func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, request jwtModel.JsonWebToken) error {
+func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, accountID string) (*jwtModel.JsonWebToken, error) {
 	ctxt := "JwtQuery-CreateJWT"
-	_, err := tx.Exec(
-		ctx,
-		`INSERT INTO json_web_tokens (
-			id
-			, token
-			, account_id
-			, created_at
-			, expired_at
-		) VALUES ($1, $2, $3, $4, $5)`,
-		request.ID,
-		request.Token,
-		request.AccountID,
-		request.CreatedAt,
-		request.ExpiredAt,
-	)
+	now := time.Now()
+	expiredAt := now.Add(helper.GetAccessTokenAge())
+	jwtID, jwtSqID, jwtToken, err := helper.GenerateUniqueID()
 	if err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
 		}
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
+		return nil, err
 	}
-	return err
+	var response jwtModel.JsonWebToken
+	if err = tx.QueryRow(
+		ctx,
+		`INSERT INTO json_web_tokens (
+			_id
+			, id
+			, token
+			, account_id
+			, created_at
+			, expired_at
+		) VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id
+			, token
+			, account_id
+			, created_at
+			, expired_at`,
+		jwtID,
+		jwtSqID,
+		jwtToken,
+		accountID,
+		now,
+		expiredAt,
+	).Scan(
+		&response.ID,
+		&response.Token,
+		&response.AccountID,
+		&response.CreatedAt,
+		&response.ExpiredAt,
+	); err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+		return nil, err
+	}
+	return &response, nil
 }
 
 func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jwtModel.JsonWebToken, int64, int64, error) {

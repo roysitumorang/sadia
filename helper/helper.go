@@ -24,6 +24,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/roysitumorang/sadia/keys"
 	"github.com/roysitumorang/sadia/models"
 	"github.com/sqids/sqids-go"
 	"github.com/vishal-bihani/go-tsid"
@@ -42,11 +43,13 @@ var (
 	jwtIssuer,
 	nsqAddress string
 	loginMaxFailedAttempts int
-	loginLockoutDuration   time.Duration
-	sqIDs                  *sqids.Sqids
-	dbWrite                *pgxpool.Pool
-	taxRate                float64
-	InitHelper             = sync.OnceValue(func() (err error) {
+	loginLockoutDuration,
+	accessTokenAge time.Duration
+	sqIDs      *sqids.Sqids
+	dbWrite    *pgxpool.Pool
+	taxRate    float64
+	privateKey *rsa.PrivateKey
+	InitHelper = sync.OnceValue(func() (err error) {
 		location, ok := os.LookupEnv("TIME_ZONE")
 		if !ok || location == "" {
 			return errors.New("env TIME_ZONE is required")
@@ -99,8 +102,16 @@ var (
 			return errors.New("env TAX_RATE is required")
 		}
 		if taxRate, err = strconv.ParseFloat(envTaxRate, 64); err != nil || taxRate < 1 {
-			err = errors.New("env TAX_RATE requires a positive integer")
+			return errors.New("env TAX_RATE requires a positive integer")
 		}
+		envAccesTokenAge, ok := os.LookupEnv("ACCESS_TOKEN_AGE")
+		if !ok || envAccesTokenAge == "" {
+			return errors.New("env ACCESS_TOKEN_AGE is required")
+		}
+		if accessTokenAge, err = time.ParseDuration(envAccesTokenAge); err != nil {
+			return
+		}
+		privateKey, err = keys.InitPrivateKey()
 		return
 	})
 )
@@ -250,7 +261,7 @@ func GetJwtIssuer() string {
 	return jwtIssuer
 }
 
-func GenerateAccessToken(id, subject, audience string, createdAt, expiredAt time.Time, privateKey *rsa.PrivateKey) (string, error) {
+func GenerateAccessToken(id, subject, audience string, createdAt, expiredAt time.Time) (string, error) {
 	numericDate := jwt.NewNumericDate(createdAt)
 	var claims jwt.RegisteredClaims
 	claims.ID = id
@@ -350,4 +361,8 @@ func GetLoginLockoutDuration() time.Duration {
 
 func GetTaxRate() float64 {
 	return taxRate
+}
+
+func GetAccessTokenAge() time.Duration {
+	return accessTokenAge
 }

@@ -25,7 +25,6 @@ import (
 	"github.com/roysitumorang/sadia/config"
 	_ "github.com/roysitumorang/sadia/docs"
 	"github.com/roysitumorang/sadia/helper"
-	"github.com/roysitumorang/sadia/keys"
 	"github.com/roysitumorang/sadia/middleware"
 	accountPresenter "github.com/roysitumorang/sadia/modules/account/presenter"
 	companyPresenter "github.com/roysitumorang/sadia/modules/company/presenter"
@@ -103,20 +102,6 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 			WaitForDelivery: true,
 		}))
 	}
-	privateKey, err := keys.InitPrivateKey()
-	if err != nil {
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrInitPrivateKey")
-		return err
-	}
-	envAccesTokenAge, ok := os.LookupEnv("ACCESS_TOKEN_AGE")
-	if !ok || envAccesTokenAge == "" {
-		return errors.New("env ACCESS_TOKEN_AGE is required")
-	}
-	accessTokenAge, err := time.ParseDuration(envAccesTokenAge)
-	if err != nil {
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrParseDuration")
-		return err
-	}
 	basicAuth := middleware.BasicAuth()
 	if helper.GetEnv() == "development" {
 		app.Get("/swagger/*", fiberSwagger.WrapHandler)
@@ -145,7 +130,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		})
 	v1 := app.Group("/v1")
 	jwtPresenter.New(q.JwtUseCase, q.AccountUseCase).Mount(v1.Group("/jwt"))
-	accountPresenter.New(q.JwtUseCase, q.AccountUseCase, privateKey, accessTokenAge).Mount(v1.Group("/account"))
+	accountPresenter.New(q.JwtUseCase, q.AccountUseCase).Mount(v1.Group("/account"))
 	companyPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase).Mount(v1.Group("/company"))
 	productCategoryPresenter.New(q.JwtUseCase, q.AccountUseCase, q.ProductCategoryUseCase).Mount(v1.Group("/product_category"))
 	productPresenter.New(q.JwtUseCase, q.AccountUseCase, q.ProductCategoryUseCase, q.ProductUseCase).Mount(v1.Group("/product"))
@@ -162,7 +147,8 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		}
 	}
 	listenerPort := fmt.Sprintf(":%d", port)
-	if err = app.Listen(listenerPort); err != nil {
+	err := app.Listen(listenerPort)
+	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrListen")
 	}
 	return err

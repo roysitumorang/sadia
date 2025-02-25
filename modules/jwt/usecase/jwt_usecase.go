@@ -43,13 +43,13 @@ func New(
 	}, nil
 }
 
-func (q *jwtUseCase) CreateJWT(ctx context.Context, tx pgx.Tx, request jwtModel.JsonWebToken) error {
+func (q *jwtUseCase) CreateJWT(ctx context.Context, tx pgx.Tx, accountID string) (*jwtModel.JsonWebToken, error) {
 	ctxt := "JwtUseCase-CreateJWT"
-	err := q.jwtQuery.CreateJWT(ctx, tx, request)
+	response, err := q.jwtQuery.CreateJWT(ctx, tx, accountID)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJwt")
 	}
-	return err
+	return response, err
 }
 
 func (q *jwtUseCase) DeleteJWTs(ctx context.Context, tx pgx.Tx, filter *jwtModel.DeleteFilter) (int64, error) {
