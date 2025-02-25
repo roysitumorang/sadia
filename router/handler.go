@@ -17,10 +17,14 @@ import (
 	productUseCase "github.com/roysitumorang/sadia/modules/product/usecase"
 	productCategoryQuery "github.com/roysitumorang/sadia/modules/product_category/query"
 	productCategoryUseCase "github.com/roysitumorang/sadia/modules/product_category/usecase"
+	sequenceQuery "github.com/roysitumorang/sadia/modules/sequence/query"
+	sequenceUseCase "github.com/roysitumorang/sadia/modules/sequence/usecase"
 	sessionQuery "github.com/roysitumorang/sadia/modules/session/query"
 	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
 	storeQuery "github.com/roysitumorang/sadia/modules/store/query"
 	storeUseCase "github.com/roysitumorang/sadia/modules/store/usecase"
+	transactionQuery "github.com/roysitumorang/sadia/modules/transaction/query"
+	transactionUseCase "github.com/roysitumorang/sadia/modules/transaction/usecase"
 	serviceNsq "github.com/roysitumorang/sadia/services/nsq"
 	"go.uber.org/zap"
 )
@@ -37,6 +41,8 @@ type (
 		ProductUseCase         productUseCase.ProductUseCase
 		StoreUseCase           storeUseCase.StoreUseCase
 		SessionUseCase         sessionUseCase.SessionUseCase
+		SequenceUseCase        sequenceUseCase.SequenceUseCase
+		TransactionUseCase     transactionUseCase.TransactionUseCase
 	}
 )
 
@@ -71,6 +77,8 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 	productQuery := productQuery.New(dbRead, dbWrite)
 	storeQuery := storeQuery.New(dbRead, dbWrite)
 	sessionQuery := sessionQuery.New(dbRead, dbWrite)
+	sequenceQuery := sequenceQuery.New(dbRead, dbWrite)
+	transactionQuery := transactionQuery.New(dbRead, dbWrite)
 	accountUseCase, err := accountUseCase.New(ctx, accountQuery, nsqAddress, nsqConfig)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
@@ -106,6 +114,12 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
 		return nil, err
 	}
+	sequenceUseCase := sequenceUseCase.New(sequenceQuery)
+	transactionUseCase, err := transactionUseCase.New(ctx, transactionQuery, nsqAddress, nsqConfig)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
+		return nil, err
+	}
 	return &Service{
 		DbWrite:                dbWrite,
 		Migration:              migration,
@@ -117,5 +131,7 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		ProductUseCase:         productUseCase,
 		StoreUseCase:           storeUseCase,
 		SessionUseCase:         sessionUseCase,
+		SequenceUseCase:        sequenceUseCase,
+		TransactionUseCase:     transactionUseCase,
 	}, nil
 }

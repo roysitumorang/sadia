@@ -10,4 +10,5 @@ const (
 	TopicProduct         = "product"
 	TopicStore           = "store"
 	TopicSession         = "session"
+	TopicTransaction     = "transaction"
 )

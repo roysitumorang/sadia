@@ -19,9 +19,10 @@ type (
 		StoreID            string               `json:"store_id"`
 		Date               string               `json:"date"`
 		Status             uint8                `json:"status"`
-		CashboxValue       uint32               `json:"cashbox_value"`
+		CashboxValue       int64                `json:"cashbox_value"`
 		CashboxNote        string               `json:"cashbox_note"`
-		TakeMoneyValue     uint32               `json:"take_money_value"`
+		TransactionValue   int64                `json:"transaction_value"`
+		TakeMoneyValue     int64                `json:"take_money_value"`
 		TakeMoneyLineItems []*TakeMoneyLineItem `json:"take_money_line_items"`
 		CreatedBy          string               `json:"created_by"`
 		CreatedAt          time.Time            `json:"created_at"`
@@ -32,7 +33,7 @@ type (
 		ID          string    `json:"id"`
 		SessionID   string    `json:"-"`
 		Description string    `json:"description"`
-		Value       uint32    `json:"value"`
+		Value       int64     `json:"value"`
 		CreatedBy   string    `json:"-"`
 		CreatedAt   time.Time `json:"-"`
 	}
@@ -53,19 +54,19 @@ type (
 
 	NewSession struct {
 		StoreID      string `json:"store_id"`
-		CashboxValue uint32 `json:"cashbox_value"`
+		CashboxValue int64  `json:"cashbox_value"`
 		CashboxNote  string `json:"cashbox_note"`
 		CreatedBy    string `json:"-"`
 	}
 
 	CloseSession struct {
-		TakeMoneyValue     uint32                          `json:"-"`
+		TakeMoneyValue     int64                           `json:"-"`
 		TakeMoneyLineItems []CloseSessionTakeMoneyLineItem `json:"take_money_line_items"`
 	}
 
 	CloseSessionTakeMoneyLineItem struct {
 		Description string `json:"description"`
-		Value       uint32 `json:"value"`
+		Value       int64  `json:"value"`
 	}
 )
 

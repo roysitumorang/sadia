@@ -45,6 +45,7 @@ var (
 	loginLockoutDuration   time.Duration
 	sqIDs                  *sqids.Sqids
 	dbWrite                *pgxpool.Pool
+	taxRate                float64
 	InitHelper             = sync.OnceValue(func() (err error) {
 		location, ok := os.LookupEnv("TIME_ZONE")
 		if !ok || location == "" {
@@ -92,6 +93,13 @@ var (
 			MinLength: uint8(sqidsMinLength),
 		}); err != nil {
 			return
+		}
+		envTaxRate, ok := os.LookupEnv("TAX_RATE")
+		if !ok || envTaxRate == "" {
+			return errors.New("env TAX_RATE is required")
+		}
+		if taxRate, err = strconv.ParseFloat(envTaxRate, 64); err != nil || taxRate < 1 {
+			err = errors.New("env TAX_RATE requires a positive integer")
 		}
 		return
 	})
@@ -335,6 +343,11 @@ func Base64Decode(input string) (string, error) {
 func GetLoginMaxFailedAttempts() int {
 	return loginMaxFailedAttempts
 }
+
 func GetLoginLockoutDuration() time.Duration {
 	return loginLockoutDuration
+}
+
+func GetTaxRate() float64 {
+	return taxRate
 }

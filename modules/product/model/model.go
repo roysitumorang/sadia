@@ -15,8 +15,8 @@ type (
 		Name       string    `json:"name"`
 		Slug       string    `json:"slug"`
 		UOM        string    `json:"uom"`
-		Stock      uint16    `json:"stock"`
-		Price      uint      `json:"price"`
+		Stock      int64     `json:"stock"`
+		Price      int64     `json:"price"`
 		CreatedBy  string    `json:"-"`
 		CreatedAt  time.Time `json:"-"`
 		UpdatedBy  string    `json:"-"`

@@ -3,6 +3,7 @@ package presenter
 import (
 	"errors"
 	"net/url"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5"
@@ -48,7 +49,7 @@ func (q *sessionHTTPHandler) Mount(r fiber.Router) {
 	r.Get("", userKeyAuth, q.UserFindSessions).
 		Post("", userKeyAuth, q.UserCreateSession).
 		Get("/mine", userKeyAuth, q.UserFindCurrentSession).
-		Put("/mine", userKeyAuth, q.UserUpdateCurrentSession)
+		Put("/mine", userKeyAuth, q.UserCloseCurrentSession)
 }
 
 func (q *sessionHTTPHandler) UserFindSessions(c *fiber.Ctx) error {
@@ -163,9 +164,9 @@ func (q *sessionHTTPHandler) UserFindCurrentSession(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(sessions[0]).WriteResponse(c)
 }
 
-func (q *sessionHTTPHandler) UserUpdateCurrentSession(c *fiber.Ctx) error {
+func (q *sessionHTTPHandler) UserCloseCurrentSession(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	ctxt := "SessionPresenter-UserUpdateCurrentSession"
+	ctxt := "SessionPresenter-UserCloseCurrentSession"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	if currentUser.CurrentSessionID == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active session").WriteResponse(c)
@@ -204,7 +205,10 @@ func (q *sessionHTTPHandler) UserUpdateCurrentSession(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("store not found").WriteResponse(c)
 	}
 	store := stores[0]
+	now := time.Now()
+	session.Status = sessionModel.StatusClosed
 	session.TakeMoneyValue = request.TakeMoneyValue
+	session.ClosedAt = &now
 	session.TakeMoneyLineItems = make([]*sessionModel.TakeMoneyLineItem, len(request.TakeMoneyLineItems))
 	for i, lineItem := range request.TakeMoneyLineItems {
 		session.TakeMoneyLineItems[i] = &sessionModel.TakeMoneyLineItem{
