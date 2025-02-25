@@ -85,6 +85,10 @@ func (q *Transaction) Validate() error {
 			return fmt.Errorf("line_items[%d].quantity: cannot be empty", i)
 		}
 	}
+	if q.PaymentMethod != PaymentMethodCash &&
+		q.PaymentMethod != PaymentMethodBankTransfer {
+		return fmt.Errorf("payment_method: should be either %d (cash) / %d (bank transfer)", PaymentMethodCash, PaymentMethodBankTransfer)
+	}
 	return nil
 }
 
