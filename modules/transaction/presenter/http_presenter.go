@@ -3,7 +3,6 @@ package presenter
 import (
 	"errors"
 	"fmt"
-	"net/url"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -96,7 +95,6 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c *fiber.Ctx) error {
 		ctx,
 		sessionModel.NewFilter(
 			sessionModel.WithSessionIDs(*currentUser.CurrentSessionID),
-			sessionModel.WithUrlValues(url.Values{}),
 		),
 	)
 	if err != nil {
@@ -189,7 +187,6 @@ func (q *transactionHTTPHandler) UserFindCurrentTransaction(c *fiber.Ctx) error 
 		transactionModel.NewFilter(
 			transactionModel.WithSessionIDs(*currentUser.CurrentSessionID),
 			transactionModel.WithTransactionIDs(c.Params("id")),
-			transactionModel.WithUrlValues(url.Values{}),
 		),
 	)
 	if err != nil {

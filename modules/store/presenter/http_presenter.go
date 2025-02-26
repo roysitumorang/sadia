@@ -2,7 +2,6 @@ package presenter
 
 import (
 	"errors"
-	"net/url"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5"
@@ -96,7 +95,6 @@ func (q *storeHTTPHandler) UserFindStoreByID(c *fiber.Ctx) error {
 		storeModel.NewFilter(
 			storeModel.WithStoreIDs(c.Params("id")),
 			storeModel.WithCompanyIDs(currentUser.CompanyID),
-			storeModel.WithUrlValues(url.Values{}),
 		),
 	)
 	if err != nil {
@@ -123,7 +121,6 @@ func (q *storeHTTPHandler) UserUpdateStore(c *fiber.Ctx) error {
 		storeModel.NewFilter(
 			storeModel.WithStoreIDs(c.Params("id")),
 			storeModel.WithCompanyIDs(currentUser.CompanyID),
-			storeModel.WithUrlValues(url.Values{}),
 		),
 	)
 	if err != nil {

@@ -143,7 +143,7 @@ func (q *Transaction) Calculate(products map[string]*productModel.Product) error
 }
 
 func NewFilter(options ...FilterOption) *Filter {
-	filter := &Filter{}
+	filter := &Filter{UrlValues: url.Values{}}
 	for _, option := range options {
 		option(filter)
 	}

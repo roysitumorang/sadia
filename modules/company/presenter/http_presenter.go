@@ -2,7 +2,6 @@ package presenter
 
 import (
 	"errors"
-	"net/url"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -122,7 +121,7 @@ func (q *companyHTTPHandler) AdminCreateCompany(c *fiber.Ctx) error {
 func (q *companyHTTPHandler) AdminFindCompanyByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	ctxt := "CompanyPresenter-AdminFindCompanyByID"
-	companies, _, err := q.companyUseCase.FindCompanies(ctx, companyModel.NewFilter(companyModel.WithCompanyIDs(c.Params("id")), companyModel.WithUrlValues(url.Values{})))
+	companies, _, err := q.companyUseCase.FindCompanies(ctx, companyModel.NewFilter(companyModel.WithCompanyIDs(c.Params("id"))))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindCompanies")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -144,7 +143,7 @@ func (q *companyHTTPHandler) AdminDeactivateCompany(c *fiber.Ctx) error {
 	}
 	companies, _, err := q.companyUseCase.FindCompanies(
 		ctx,
-		companyModel.NewFilter(companyModel.WithCompanyIDs(c.Params("id")), companyModel.WithUrlValues(url.Values{})),
+		companyModel.NewFilter(companyModel.WithCompanyIDs(c.Params("id"))),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindCompanies")
@@ -197,7 +196,7 @@ func (q *companyHTTPHandler) UserFindMyCompany(c *fiber.Ctx) error {
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	companies, _, err := q.companyUseCase.FindCompanies(
 		ctx,
-		companyModel.NewFilter(companyModel.WithCompanyIDs(currentUser.CompanyID), companyModel.WithUrlValues(url.Values{})),
+		companyModel.NewFilter(companyModel.WithCompanyIDs(currentUser.CompanyID)),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindCompanies")
@@ -220,7 +219,7 @@ func (q *companyHTTPHandler) UserUpdateMyCompany(c *fiber.Ctx) error {
 	}
 	companies, _, err := q.companyUseCase.FindCompanies(
 		ctx,
-		companyModel.NewFilter(companyModel.WithCompanyIDs(currentUser.CompanyID), companyModel.WithUrlValues(url.Values{})),
+		companyModel.NewFilter(companyModel.WithCompanyIDs(currentUser.CompanyID)),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindCompanies")

@@ -1,8 +1,6 @@
 package presenter
 
 import (
-	"net/url"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -115,7 +113,6 @@ func (q *productHTTPHandler) UserFindProductByID(c *fiber.Ctx) error {
 		productModel.NewFilter(
 			productModel.WithProductIDs(c.Params("id")),
 			productModel.WithCompanyIDs(currentUser.CompanyID),
-			productModel.WithUrlValues(url.Values{}),
 		),
 	)
 	if err != nil {
@@ -158,7 +155,6 @@ func (q *productHTTPHandler) UserUpdateProduct(c *fiber.Ctx) error {
 		productModel.NewFilter(
 			productModel.WithProductIDs(c.Params("id")),
 			productModel.WithCompanyIDs(currentUser.CompanyID),
-			productModel.WithUrlValues(url.Values{}),
 		),
 	)
 	if err != nil {

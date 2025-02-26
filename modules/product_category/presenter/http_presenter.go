@@ -1,8 +1,6 @@
 package presenter
 
 import (
-	"net/url"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -93,7 +91,6 @@ func (q *productCategoryHTTPHandler) UserFindProductCategoryByID(c *fiber.Ctx) e
 		productCategoryModel.NewFilter(
 			productCategoryModel.WithProductCategoryIDs(c.Params("id")),
 			productCategoryModel.WithCompanyIDs(currentUser.CompanyID),
-			productCategoryModel.WithUrlValues(url.Values{}),
 		),
 	)
 	if err != nil {
@@ -120,7 +117,6 @@ func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c *fiber.Ctx) err
 		productCategoryModel.NewFilter(
 			productCategoryModel.WithProductCategoryIDs(c.Params("id")),
 			productCategoryModel.WithCompanyIDs(currentUser.CompanyID),
-			productCategoryModel.WithUrlValues(url.Values{}),
 		),
 	)
 	if err != nil {

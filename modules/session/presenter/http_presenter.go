@@ -2,7 +2,6 @@ package presenter
 
 import (
 	"errors"
-	"net/url"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -151,7 +150,6 @@ func (q *sessionHTTPHandler) UserFindCurrentSession(c *fiber.Ctx) error {
 		ctx,
 		sessionModel.NewFilter(
 			sessionModel.WithSessionIDs(*currentUser.CurrentSessionID),
-			sessionModel.WithUrlValues(url.Values{}),
 		),
 	)
 	if err != nil {
@@ -180,7 +178,6 @@ func (q *sessionHTTPHandler) UserCloseCurrentSession(c *fiber.Ctx) error {
 		ctx,
 		sessionModel.NewFilter(
 			sessionModel.WithSessionIDs(*currentUser.CurrentSessionID),
-			sessionModel.WithUrlValues(url.Values{}),
 		),
 	)
 	if err != nil {

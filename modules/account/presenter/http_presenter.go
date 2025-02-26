@@ -2,7 +2,6 @@ package presenter
 
 import (
 	"errors"
-	"net/url"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -233,7 +232,7 @@ func (q *accountHTTPHandler) AdminCreateAccount(c *fiber.Ctx) error {
 func (q *accountHTTPHandler) AdminFindAccountByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	ctxt := "AccountPresenter-AdminFindAccountByID"
-	accounts, _, err := q.accountUseCase.FindAccounts(ctx, accountModel.NewFilter(accountModel.WithLogin(c.Params("id")), accountModel.WithUrlValues(url.Values{})))
+	accounts, _, err := q.accountUseCase.FindAccounts(ctx, accountModel.NewFilter(accountModel.WithLogin(c.Params("id"))))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -255,7 +254,7 @@ func (q *accountHTTPHandler) AdminDeactivateAccount(c *fiber.Ctx) error {
 	}
 	accounts, _, err := q.accountUseCase.FindAccounts(
 		ctx,
-		accountModel.NewFilter(accountModel.WithLogin(c.Params("id")), accountModel.WithUrlValues(url.Values{})),
+		accountModel.NewFilter(accountModel.WithLogin(c.Params("id"))),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
@@ -610,7 +609,7 @@ func (q *accountHTTPHandler) FindAccountByConfirmationToken(c *fiber.Ctx) error 
 	ctxt := "AccountPresenter-FindAccountByConfirmationToken"
 	accounts, _, err := q.accountUseCase.FindAccounts(
 		ctx,
-		accountModel.NewFilter(accountModel.WithConfirmationToken(c.Params("token")), accountModel.WithUrlValues(url.Values{})),
+		accountModel.NewFilter(accountModel.WithConfirmationToken(c.Params("token"))),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
@@ -632,7 +631,7 @@ func (q *accountHTTPHandler) ConfirmAccount(c *fiber.Ctx) error {
 	}
 	accounts, _, err := q.accountUseCase.FindAccounts(
 		ctx,
-		accountModel.NewFilter(accountModel.WithConfirmationToken(c.Params("token")), accountModel.WithUrlValues(url.Values{})),
+		accountModel.NewFilter(accountModel.WithConfirmationToken(c.Params("token"))),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
@@ -721,7 +720,7 @@ func (q *accountHTTPHandler) ConfirmAccountEmail(c *fiber.Ctx) error {
 	ctxt := "AccountPresenter-ConfirmAccountEmail"
 	accounts, _, err := q.accountUseCase.FindAccounts(
 		ctx,
-		accountModel.NewFilter(accountModel.WithEmailConfirmationToken(c.Params("token")), accountModel.WithUrlValues(url.Values{})),
+		accountModel.NewFilter(accountModel.WithEmailConfirmationToken(c.Params("token"))),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
@@ -768,7 +767,7 @@ func (q *accountHTTPHandler) ConfirmAccountPhone(c *fiber.Ctx) error {
 	ctxt := "AccountPresenter-ConfirmAccountPhone"
 	accounts, _, err := q.accountUseCase.FindAccounts(
 		ctx,
-		accountModel.NewFilter(accountModel.WithPhoneConfirmationToken(c.Params("token")), accountModel.WithUrlValues(url.Values{})),
+		accountModel.NewFilter(accountModel.WithPhoneConfirmationToken(c.Params("token"))),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
@@ -815,7 +814,7 @@ func (q *accountHTTPHandler) UnlockAccount(c *fiber.Ctx) error {
 	ctxt := "AccountPresenter-UnlockAccount"
 	accounts, _, err := q.accountUseCase.FindAccounts(
 		ctx,
-		accountModel.NewFilter(accountModel.WithLoginUnlockToken(c.Params("token")), accountModel.WithUrlValues(url.Values{})),
+		accountModel.NewFilter(accountModel.WithLoginUnlockToken(c.Params("token"))),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
@@ -863,7 +862,7 @@ func (q *accountHTTPHandler) ForgotPassword(c *fiber.Ctx) error {
 	}
 	accounts, _, err := q.accountUseCase.FindAccounts(
 		ctx,
-		accountModel.NewFilter(accountModel.WithLogin(request.Login), accountModel.WithUrlValues(url.Values{})),
+		accountModel.NewFilter(accountModel.WithLogin(request.Login)),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
@@ -913,7 +912,7 @@ func (q *accountHTTPHandler) FindAccountByResetPasswordToken(c *fiber.Ctx) error
 	ctxt := "AccountPresenter-FindAccountByResetPasswordToken"
 	accounts, _, err := q.accountUseCase.FindAccounts(
 		ctx,
-		accountModel.NewFilter(accountModel.WithResetPasswordToken(c.Params("token")), accountModel.WithUrlValues(url.Values{})),
+		accountModel.NewFilter(accountModel.WithResetPasswordToken(c.Params("token"))),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
@@ -935,7 +934,7 @@ func (q *accountHTTPHandler) ResetPassword(c *fiber.Ctx) error {
 	}
 	accounts, _, err := q.accountUseCase.FindAccounts(
 		ctx,
-		accountModel.NewFilter(accountModel.WithResetPasswordToken(c.Params("token")), accountModel.WithUrlValues(url.Values{})),
+		accountModel.NewFilter(accountModel.WithResetPasswordToken(c.Params("token"))),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
@@ -1064,7 +1063,7 @@ func (q *accountHTTPHandler) UserFindUserByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	ctxt := "AccountPresenter-UserFindUserByID"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
-	users, _, err := q.accountUseCase.FindUsers(ctx, accountModel.NewFilter(accountModel.WithLogin(c.Params("id")), accountModel.WithCompanyIDs(currentUser.CompanyID), accountModel.WithUrlValues(url.Values{})))
+	users, _, err := q.accountUseCase.FindUsers(ctx, accountModel.NewFilter(accountModel.WithLogin(c.Params("id")), accountModel.WithCompanyIDs(currentUser.CompanyID)))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -1086,7 +1085,7 @@ func (q *accountHTTPHandler) UserDeactivateUser(c *fiber.Ctx) error {
 	}
 	users, _, err := q.accountUseCase.FindUsers(
 		ctx,
-		accountModel.NewFilter(accountModel.WithLogin(c.Params("id")), accountModel.WithCompanyIDs(currentUser.CompanyID), accountModel.WithUrlValues(url.Values{})),
+		accountModel.NewFilter(accountModel.WithLogin(c.Params("id")), accountModel.WithCompanyIDs(currentUser.CompanyID)),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
