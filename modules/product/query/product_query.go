@@ -134,10 +134,10 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 		, p.uom
 		, p.stock
 		, p.price
-		, c.created_by
-		, c.created_at
-		, c.updated_by
-		, c.updated_at`,
+		, p.created_by
+		, p.created_at
+		, p.updated_by
+		, p.updated_at`,
 	)
 	builder.Reset()
 	_, _ = builder.WriteString(query)
@@ -225,7 +225,7 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $2, $6, $7, $8, $9, $10, $9, $10)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $10, $11)
 		RETURNING id
 			, company_id
 			, category_id
@@ -243,6 +243,7 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 		request.CompanyID,
 		request.CategoryID,
 		request.Name,
+		request.Slug,
 		request.UOM,
 		request.Stock,
 		request.Price,

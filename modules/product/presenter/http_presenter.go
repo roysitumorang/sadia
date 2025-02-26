@@ -91,7 +91,7 @@ func (q *productHTTPHandler) UserCreateProduct(c *fiber.Ctx) error {
 			return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 		}
 		if len(productCategories) == 0 {
-			return helper.NewResponse(fiber.StatusNotFound).SetMessage("category not found").WriteResponse(c)
+			return helper.NewResponse(fiber.StatusNotFound).SetMessage("category_id: not found").WriteResponse(c)
 		}
 	}
 	request.CompanyID = currentUser.CompanyID
@@ -147,7 +147,7 @@ func (q *productHTTPHandler) UserUpdateProduct(c *fiber.Ctx) error {
 			return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 		}
 		if len(productCategories) == 0 {
-			return helper.NewResponse(fiber.StatusNotFound).SetMessage("category not found").WriteResponse(c)
+			return helper.NewResponse(fiber.StatusNotFound).SetMessage("category_id: not found").WriteResponse(c)
 		}
 	}
 	products, _, err := q.productUseCase.FindProducts(
