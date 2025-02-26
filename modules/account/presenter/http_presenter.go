@@ -38,6 +38,14 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 	adminKeyAuth := middleware.AdminKeyAuth(q.jwtUseCase, q.accountUseCase)
 	superAdminKeyAuth := middleware.AdminKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.AdminLevelSuperAdmin)
 	r.Group("/admin").
+		Get("/confirmation/:token", q.AdminFindAdminByConfirmationToken).
+		Put("/confirmation/:token", q.AdminConfirmAccount).
+		Get("/email/confirm/:token", q.AdminConfirmEmail).
+		Get("/phone/confirm/:token", q.AdminConfirmPhone).
+		Get("/unlock/:token", q.AdminUnlockAccount).
+		Put("/password/forgot", q.AdminForgotPassword).
+		Get("/password/reset/:token", q.AdminFindAdminByResetPasswordToken).
+		Put("/password/reset/:token", q.AdminResetPassword).
 		Post("/login", q.AdminLogin).
 		Get("", adminKeyAuth, q.AdminFindAccounts).
 		Post("", superAdminKeyAuth, q.AdminCreateAccount).
@@ -51,14 +59,14 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Put("/phone", adminKeyAuth, q.AdminChangePhone)
 	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase)
 	ownerKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.UserLevelOwner)
-	r.Get("/confirmation/:token", q.FindAccountByConfirmationToken).
-		Put("/confirmation/:token", q.ConfirmAccount).
-		Get("/email/confirm/:token", q.ConfirmAccountEmail).
-		Get("/phone/confirm/:token", q.ConfirmAccountPhone).
-		Get("/unlock/:token", q.UnlockAccount).
-		Put("/password/forgot", q.ForgotPassword).
-		Get("/password/reset/:token", q.FindAccountByResetPasswordToken).
-		Put("/password/reset/:token", q.ResetPassword).
+	r.Get("/confirmation/:token", q.UserFindUserByConfirmationToken).
+		Put("/confirmation/:token", q.UserConfirmAccount).
+		Get("/email/confirm/:token", q.UserConfirmEmail).
+		Get("/phone/confirm/:token", q.UserConfirmPhone).
+		Get("/unlock/:token", q.UserUnlockAccount).
+		Put("/password/forgot", q.UserForgotPassword).
+		Get("/password/reset/:token", q.UserFindUserByResetPasswordToken).
+		Put("/password/reset/:token", q.UserResetPassword).
 		Post("/login", q.UserLogin).
 		Get("", ownerKeyAuth, q.UserFindUsers).
 		Post("", ownerKeyAuth, q.UserCreateUser).
@@ -70,6 +78,407 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Put("/username", userKeyAuth, q.UserChangeUsername).
 		Put("/email", userKeyAuth, q.UserChangeEmail).
 		Put("/phone", userKeyAuth, q.UserChangePhone)
+}
+
+func (q *accountHTTPHandler) AdminFindAdminByConfirmationToken(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-AdminFindAdminByConfirmationToken"
+	admins, _, err := q.accountUseCase.FindAdmins(
+		ctx,
+		accountModel.NewFilter(accountModel.WithConfirmationToken(c.Params("token"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(admins) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("admin not found").WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusOK).SetData(admins[0]).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) AdminConfirmAccount(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-AdminConfirmAccount"
+	request, statusCode, err := sanitizer.ValidateConfirmation(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateConfirmation")
+		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
+	}
+	admins, _, err := q.accountUseCase.FindAdmins(
+		ctx,
+		accountModel.NewFilter(accountModel.WithConfirmationToken(c.Params("token"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(admins) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	now := time.Now()
+	admin := admins[0]
+	admin.Status = models.StatusConfirmed
+	admin.Name = request.Name
+	admin.Username = request.Username
+	admin.ConfirmationToken = nil
+	admin.ConfirmedAt = &now
+	emailConfirmationToken, phoneConfirmationToken := helper.RandomString(32), helper.RandomNumber(6)
+	if request.Email != nil &&
+		(admin.UnconfirmedEmail == nil ||
+			*admin.UnconfirmedEmail != *request.Email) {
+		admin.UnconfirmedEmail = request.Email
+		admin.EmailConfirmationToken = &emailConfirmationToken
+		admin.EmailConfirmationSentAt = &now
+	}
+	if request.Phone != nil &&
+		(admin.UnconfirmedPhone == nil ||
+			*admin.UnconfirmedPhone != *request.Phone) {
+		admin.UnconfirmedPhone = request.Phone
+		admin.PhoneConfirmationToken = &phoneConfirmationToken
+		admin.PhoneConfirmationSentAt = &now
+	}
+	encryptedPassword, err := helper.HashPassword(request.Password)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrHashPassword")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	admin.EncryptedPassword = encryptedPassword
+	admin.LastPasswordChange = &now
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	jwt, err := q.jwtUseCase.CreateJWT(ctx, tx, admin.ID)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	tokenString, err := helper.GenerateAccessToken(admin.ID, jwt.Token, admin.Username, jwt.CreatedAt, jwt.ExpiredAt)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
+	}
+	ipAddress := c.IP()
+	admin.LoginCount++
+	admin.LastLoginAt = admin.CurrentLoginAt
+	admin.LastLoginIP = admin.CurrentLoginIP
+	admin.CurrentLoginAt = &now
+	admin.CurrentLoginIP = &ipAddress
+	if err = q.accountUseCase.UpdateAdmin(ctx, tx, admin); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	response := accountModel.AdminLoginResponse{
+		LoginResponse: accountModel.LoginResponse{
+			IDToken:   tokenString,
+			ExpiredAt: jwt.ExpiredAt,
+		},
+		Account: admin,
+	}
+	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) AdminConfirmEmail(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-AdminConfirmEmail"
+	admins, _, err := q.accountUseCase.FindAdmins(
+		ctx,
+		accountModel.NewFilter(accountModel.WithEmailConfirmationToken(c.Params("token"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(admins) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	now := time.Now()
+	admin := admins[0]
+	email := *admin.UnconfirmedEmail
+	admin.Email = &email
+	admin.UnconfirmedEmail = nil
+	admin.EmailConfirmationToken = nil
+	admin.EmailConfirmationSentAt = nil
+	admin.EmailConfirmedAt = &now
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateAdmin(ctx, tx, admin); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) AdminConfirmPhone(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-AdminConfirmPhone"
+	admins, _, err := q.accountUseCase.FindAdmins(
+		ctx,
+		accountModel.NewFilter(accountModel.WithPhoneConfirmationToken(c.Params("token"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(admins) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	now := time.Now()
+	admin := admins[0]
+	phone := *admin.UnconfirmedPhone
+	admin.Phone = &phone
+	admin.UnconfirmedPhone = nil
+	admin.PhoneConfirmationToken = nil
+	admin.PhoneConfirmationSentAt = nil
+	admin.PhoneConfirmedAt = &now
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateAdmin(ctx, tx, admin); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) AdminUnlockAccount(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-AdminUnlockAccount"
+	admins, _, err := q.accountUseCase.FindAdmins(
+		ctx,
+		accountModel.NewFilter(accountModel.WithLoginUnlockToken(c.Params("token"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(admins) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	admin := admins[0]
+	admin.LoginFailedAttempts = 0
+	admin.LoginLockedAt = nil
+	admin.LoginUnlockToken = nil
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateAdmin(ctx, tx, admin); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) AdminForgotPassword(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-AdminForgotPassword"
+	request, statusCode, err := sanitizer.ValidateForgotPassword(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateForgotPassword")
+		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
+	}
+	admins, _, err := q.accountUseCase.FindAdmins(
+		ctx,
+		accountModel.NewFilter(accountModel.WithLogin(request.Login)),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(admins) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("login not found").WriteResponse(c)
+	}
+	admin := admins[0]
+	if admin.Status != models.StatusConfirmed {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("cannot reset password for unconfirmed/deactivated account").WriteResponse(c)
+	}
+	if admin.LoginLockedAt != nil {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("cannot reset password for locked out account").WriteResponse(c)
+	}
+	now := time.Now()
+	resetPasswordToken := helper.RandomString(32)
+	admin.ResetPasswordToken = &resetPasswordToken
+	admin.ResetPasswordSentAt = &now
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateAdmin(ctx, tx, admin); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) AdminFindAdminByResetPasswordToken(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-AdminFindAdminByResetPasswordToken"
+	admins, _, err := q.accountUseCase.FindAdmins(
+		ctx,
+		accountModel.NewFilter(accountModel.WithResetPasswordToken(c.Params("token"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(admins) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusOK).SetData(admins[0]).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) AdminResetPassword(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-AdminResetPassword"
+	request, statusCode, err := sanitizer.ValidateResetPassword(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateResetPassword")
+		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
+	}
+	admins, _, err := q.accountUseCase.FindAdmins(
+		ctx,
+		accountModel.NewFilter(accountModel.WithResetPasswordToken(c.Params("token"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(admins) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	admin := admins[0]
+	if admin.EncryptedPassword != nil &&
+		helper.MatchedHashAndPassword(
+			helper.String2ByteSlice(*admin.EncryptedPassword),
+			helper.String2ByteSlice(request.Password),
+		) {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password reuse prohibited").WriteResponse(c)
+	}
+	now := time.Now()
+	admin.ResetPasswordToken = nil
+	admin.ResetPasswordSentAt = nil
+	encryptedPassword, err := helper.HashPassword(request.Password)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrHashPassword")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	admin.EncryptedPassword = encryptedPassword
+	admin.LastPasswordChange = &now
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	jwt, err := q.jwtUseCase.CreateJWT(ctx, tx, admin.ID)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	tokenString, err := helper.GenerateAccessToken(admin.ID, jwt.Token, admin.Username, jwt.CreatedAt, jwt.ExpiredAt)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = q.accountUseCase.UpdateAdmin(ctx, tx, admin); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	response := accountModel.AdminLoginResponse{
+		LoginResponse: accountModel.LoginResponse{
+			IDToken:   tokenString,
+			ExpiredAt: jwt.ExpiredAt,
+		},
+		Account: admin,
+	}
+	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
 
 func (q *accountHTTPHandler) AdminLogin(c *fiber.Ctx) error {
@@ -170,7 +579,6 @@ func (q *accountHTTPHandler) AdminLogin(c *fiber.Ctx) error {
 		},
 		Account: admin,
 	}
-
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
@@ -503,6 +911,407 @@ func (q *accountHTTPHandler) AdminChangePhone(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
+func (q *accountHTTPHandler) UserFindUserByConfirmationToken(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-UserFindUserByConfirmationToken"
+	users, _, err := q.accountUseCase.FindUsers(
+		ctx,
+		accountModel.NewFilter(accountModel.WithConfirmationToken(c.Params("token"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(users) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("account not found").WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusOK).SetData(users[0]).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) UserConfirmAccount(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-UserConfirmAccount"
+	request, statusCode, err := sanitizer.ValidateConfirmation(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateConfirmation")
+		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
+	}
+	users, _, err := q.accountUseCase.FindUsers(
+		ctx,
+		accountModel.NewFilter(accountModel.WithConfirmationToken(c.Params("token"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(users) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	now := time.Now()
+	user := users[0]
+	user.Status = models.StatusConfirmed
+	user.Name = request.Name
+	user.Username = request.Username
+	user.ConfirmationToken = nil
+	user.ConfirmedAt = &now
+	emailConfirmationToken, phoneConfirmationToken := helper.RandomString(32), helper.RandomNumber(6)
+	if request.Email != nil &&
+		(user.UnconfirmedEmail == nil ||
+			*user.UnconfirmedEmail != *request.Email) {
+		user.UnconfirmedEmail = request.Email
+		user.EmailConfirmationToken = &emailConfirmationToken
+		user.EmailConfirmationSentAt = &now
+	}
+	if request.Phone != nil &&
+		(user.UnconfirmedPhone == nil ||
+			*user.UnconfirmedPhone != *request.Phone) {
+		user.UnconfirmedPhone = request.Phone
+		user.PhoneConfirmationToken = &phoneConfirmationToken
+		user.PhoneConfirmationSentAt = &now
+	}
+	encryptedPassword, err := helper.HashPassword(request.Password)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrHashPassword")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	user.EncryptedPassword = encryptedPassword
+	user.LastPasswordChange = &now
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	jwt, err := q.jwtUseCase.CreateJWT(ctx, tx, user.ID)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	tokenString, err := helper.GenerateAccessToken(user.ID, jwt.Token, user.Username, jwt.CreatedAt, jwt.ExpiredAt)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
+	}
+	ipAddress := c.IP()
+	user.LoginCount++
+	user.LastLoginAt = user.CurrentLoginAt
+	user.LastLoginIP = user.CurrentLoginIP
+	user.CurrentLoginAt = &now
+	user.CurrentLoginIP = &ipAddress
+	if err = q.accountUseCase.UpdateUser(ctx, tx, user); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	response := accountModel.UserLoginResponse{
+		LoginResponse: accountModel.LoginResponse{
+			IDToken:   tokenString,
+			ExpiredAt: jwt.ExpiredAt,
+		},
+		Account: user,
+	}
+	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) UserConfirmEmail(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-UserConfirmEmail"
+	users, _, err := q.accountUseCase.FindUsers(
+		ctx,
+		accountModel.NewFilter(accountModel.WithEmailConfirmationToken(c.Params("token"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(users) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	now := time.Now()
+	user := users[0]
+	email := *user.UnconfirmedEmail
+	user.Email = &email
+	user.UnconfirmedEmail = nil
+	user.EmailConfirmationToken = nil
+	user.EmailConfirmationSentAt = nil
+	user.EmailConfirmedAt = &now
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateUser(ctx, tx, user); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) UserConfirmPhone(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-UserConfirmPhone"
+	users, _, err := q.accountUseCase.FindUsers(
+		ctx,
+		accountModel.NewFilter(accountModel.WithPhoneConfirmationToken(c.Params("token"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(users) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	now := time.Now()
+	user := users[0]
+	phone := *user.UnconfirmedPhone
+	user.Phone = &phone
+	user.UnconfirmedPhone = nil
+	user.PhoneConfirmationToken = nil
+	user.PhoneConfirmationSentAt = nil
+	user.PhoneConfirmedAt = &now
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateUser(ctx, tx, user); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) UserUnlockAccount(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-UserUnlockAccount"
+	users, _, err := q.accountUseCase.FindUsers(
+		ctx,
+		accountModel.NewFilter(accountModel.WithLoginUnlockToken(c.Params("token"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(users) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	account := users[0]
+	account.LoginFailedAttempts = 0
+	account.LoginLockedAt = nil
+	account.LoginUnlockToken = nil
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateUser(ctx, tx, account); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) UserForgotPassword(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-UserForgotPassword"
+	request, statusCode, err := sanitizer.ValidateForgotPassword(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateForgotPassword")
+		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
+	}
+	users, _, err := q.accountUseCase.FindUsers(
+		ctx,
+		accountModel.NewFilter(accountModel.WithLogin(request.Login)),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(users) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("login not found").WriteResponse(c)
+	}
+	user := users[0]
+	if user.Status != models.StatusConfirmed {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("cannot reset password for unconfirmed/deactivated account").WriteResponse(c)
+	}
+	if user.LoginLockedAt != nil {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("cannot reset password for locked out account").WriteResponse(c)
+	}
+	now := time.Now()
+	resetPasswordToken := helper.RandomString(32)
+	user.ResetPasswordToken = &resetPasswordToken
+	user.ResetPasswordSentAt = &now
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateUser(ctx, tx, user); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) UserFindUserByResetPasswordToken(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-UserFindUserByResetPasswordToken"
+	users, _, err := q.accountUseCase.FindUsers(
+		ctx,
+		accountModel.NewFilter(accountModel.WithResetPasswordToken(c.Params("token"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(users) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusOK).SetData(users[0]).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) UserResetPassword(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-UserResetPassword"
+	request, statusCode, err := sanitizer.ValidateResetPassword(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateResetPassword")
+		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
+	}
+	users, _, err := q.accountUseCase.FindUsers(
+		ctx,
+		accountModel.NewFilter(accountModel.WithResetPasswordToken(c.Params("token"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(users) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
+	}
+	user := users[0]
+	if user.EncryptedPassword != nil &&
+		helper.MatchedHashAndPassword(
+			helper.String2ByteSlice(*user.EncryptedPassword),
+			helper.String2ByteSlice(request.Password),
+		) {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password reuse prohibited").WriteResponse(c)
+	}
+	now := time.Now()
+	user.ResetPasswordToken = nil
+	user.ResetPasswordSentAt = nil
+	encryptedPassword, err := helper.HashPassword(request.Password)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrHashPassword")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	user.EncryptedPassword = encryptedPassword
+	user.LastPasswordChange = &now
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	jwt, err := q.jwtUseCase.CreateJWT(ctx, tx, user.ID)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	tokenString, err := helper.GenerateAccessToken(user.ID, jwt.Token, user.Username, jwt.CreatedAt, jwt.ExpiredAt)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = q.accountUseCase.UpdateUser(ctx, tx, user); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	response := accountModel.UserLoginResponse{
+		LoginResponse: accountModel.LoginResponse{
+			IDToken:   tokenString,
+			ExpiredAt: jwt.ExpiredAt,
+		},
+		Account: user,
+	}
+	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
+}
+
 func (q *accountHTTPHandler) UserLogin(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	ctxt := "AccountPresenter-UserLogin"
@@ -602,403 +1411,6 @@ func (q *accountHTTPHandler) UserLogin(c *fiber.Ctx) error {
 		Account: user,
 	}
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
-}
-
-func (q *accountHTTPHandler) FindAccountByConfirmationToken(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	ctxt := "AccountPresenter-FindAccountByConfirmationToken"
-	accounts, _, err := q.accountUseCase.FindAccounts(
-		ctx,
-		accountModel.NewFilter(accountModel.WithConfirmationToken(c.Params("token"))),
-	)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if len(accounts) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("account not found").WriteResponse(c)
-	}
-	return helper.NewResponse(fiber.StatusOK).SetData(accounts[0]).WriteResponse(c)
-}
-
-func (q *accountHTTPHandler) ConfirmAccount(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	ctxt := "AccountPresenter-ConfirmAccount"
-	request, statusCode, err := sanitizer.ValidateConfirmation(ctx, c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateConfirmation")
-		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
-	}
-	accounts, _, err := q.accountUseCase.FindAccounts(
-		ctx,
-		accountModel.NewFilter(accountModel.WithConfirmationToken(c.Params("token"))),
-	)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if len(accounts) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
-	}
-	now := time.Now()
-	account := accounts[0]
-	account.Status = models.StatusConfirmed
-	account.Name = request.Name
-	account.Username = request.Username
-	account.ConfirmationToken = nil
-	account.ConfirmedAt = &now
-	emailConfirmationToken, phoneConfirmationToken := helper.RandomString(32), helper.RandomNumber(6)
-	if request.Email != nil &&
-		(account.UnconfirmedEmail == nil ||
-			*account.UnconfirmedEmail != *request.Email) {
-		account.UnconfirmedEmail = request.Email
-		account.EmailConfirmationToken = &emailConfirmationToken
-		account.EmailConfirmationSentAt = &now
-	}
-	if request.Phone != nil &&
-		(account.UnconfirmedPhone == nil ||
-			*account.UnconfirmedPhone != *request.Phone) {
-		account.UnconfirmedPhone = request.Phone
-		account.PhoneConfirmationToken = &phoneConfirmationToken
-		account.PhoneConfirmationSentAt = &now
-	}
-	encryptedPassword, err := helper.HashPassword(request.Password)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrHashPassword")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	account.EncryptedPassword = encryptedPassword
-	account.LastPasswordChange = &now
-	tx, err := helper.BeginTx(ctx)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	defer func() {
-		errRollback := tx.Rollback(ctx)
-		if errors.Is(errRollback, pgx.ErrTxClosed) {
-			errRollback = nil
-		}
-		if errRollback != nil {
-			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
-		}
-	}()
-	jwt, err := q.jwtUseCase.CreateJWT(ctx, tx, account.ID)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	tokenString, err := helper.GenerateAccessToken(account.ID, jwt.Token, account.Username, jwt.CreatedAt, jwt.ExpiredAt)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
-	}
-	ipAddress := c.IP()
-	account.LoginCount++
-	account.LastLoginAt = account.CurrentLoginAt
-	account.LastLoginIP = account.CurrentLoginIP
-	account.CurrentLoginAt = &now
-	account.CurrentLoginIP = &ipAddress
-	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if err = tx.Commit(ctx); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	response := accountModel.LoginResponse{
-		IDToken:   tokenString,
-		ExpiredAt: jwt.ExpiredAt,
-		Account:   account,
-	}
-	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
-}
-
-func (q *accountHTTPHandler) ConfirmAccountEmail(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	ctxt := "AccountPresenter-ConfirmAccountEmail"
-	accounts, _, err := q.accountUseCase.FindAccounts(
-		ctx,
-		accountModel.NewFilter(accountModel.WithEmailConfirmationToken(c.Params("token"))),
-	)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if len(accounts) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
-	}
-	now := time.Now()
-	account := accounts[0]
-	email := *account.UnconfirmedEmail
-	account.Email = &email
-	account.UnconfirmedEmail = nil
-	account.EmailConfirmationToken = nil
-	account.EmailConfirmationSentAt = nil
-	account.EmailConfirmedAt = &now
-	tx, err := helper.BeginTx(ctx)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	defer func() {
-		errRollback := tx.Rollback(ctx)
-		if errors.Is(errRollback, pgx.ErrTxClosed) {
-			errRollback = nil
-		}
-		if errRollback != nil {
-			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
-		}
-	}()
-	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if err = tx.Commit(ctx); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
-}
-
-func (q *accountHTTPHandler) ConfirmAccountPhone(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	ctxt := "AccountPresenter-ConfirmAccountPhone"
-	accounts, _, err := q.accountUseCase.FindAccounts(
-		ctx,
-		accountModel.NewFilter(accountModel.WithPhoneConfirmationToken(c.Params("token"))),
-	)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if len(accounts) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
-	}
-	now := time.Now()
-	account := accounts[0]
-	phone := *account.UnconfirmedPhone
-	account.Phone = &phone
-	account.UnconfirmedPhone = nil
-	account.PhoneConfirmationToken = nil
-	account.PhoneConfirmationSentAt = nil
-	account.PhoneConfirmedAt = &now
-	tx, err := helper.BeginTx(ctx)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	defer func() {
-		errRollback := tx.Rollback(ctx)
-		if errors.Is(errRollback, pgx.ErrTxClosed) {
-			errRollback = nil
-		}
-		if errRollback != nil {
-			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
-		}
-	}()
-	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if err = tx.Commit(ctx); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
-}
-
-func (q *accountHTTPHandler) UnlockAccount(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	ctxt := "AccountPresenter-UnlockAccount"
-	accounts, _, err := q.accountUseCase.FindAccounts(
-		ctx,
-		accountModel.NewFilter(accountModel.WithLoginUnlockToken(c.Params("token"))),
-	)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if len(accounts) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
-	}
-	account := accounts[0]
-	account.LoginFailedAttempts = 0
-	account.LoginLockedAt = nil
-	account.LoginUnlockToken = nil
-	tx, err := helper.BeginTx(ctx)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	defer func() {
-		errRollback := tx.Rollback(ctx)
-		if errors.Is(errRollback, pgx.ErrTxClosed) {
-			errRollback = nil
-		}
-		if errRollback != nil {
-			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
-		}
-	}()
-	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if err = tx.Commit(ctx); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
-}
-
-func (q *accountHTTPHandler) ForgotPassword(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	ctxt := "AccountPresenter-ForgotPassword"
-	request, statusCode, err := sanitizer.ValidateForgotPassword(ctx, c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateForgotPassword")
-		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
-	}
-	accounts, _, err := q.accountUseCase.FindAccounts(
-		ctx,
-		accountModel.NewFilter(accountModel.WithLogin(request.Login)),
-	)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if len(accounts) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("login not found").WriteResponse(c)
-	}
-	account := accounts[0]
-	if account.Status != models.StatusConfirmed {
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("cannot reset password for unconfirmed/deactivated account").WriteResponse(c)
-	}
-	if account.LoginLockedAt != nil {
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("cannot reset password for locked out account").WriteResponse(c)
-	}
-	now := time.Now()
-	resetPasswordToken := helper.RandomString(32)
-	account.ResetPasswordToken = &resetPasswordToken
-	account.ResetPasswordSentAt = &now
-	tx, err := helper.BeginTx(ctx)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	defer func() {
-		errRollback := tx.Rollback(ctx)
-		if errors.Is(errRollback, pgx.ErrTxClosed) {
-			errRollback = nil
-		}
-		if errRollback != nil {
-			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
-		}
-	}()
-	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if err = tx.Commit(ctx); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
-}
-
-func (q *accountHTTPHandler) FindAccountByResetPasswordToken(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	ctxt := "AccountPresenter-FindAccountByResetPasswordToken"
-	accounts, _, err := q.accountUseCase.FindAccounts(
-		ctx,
-		accountModel.NewFilter(accountModel.WithResetPasswordToken(c.Params("token"))),
-	)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if len(accounts) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("account not found").WriteResponse(c)
-	}
-	return helper.NewResponse(fiber.StatusOK).SetData(accounts[0]).WriteResponse(c)
-}
-
-func (q *accountHTTPHandler) ResetPassword(c *fiber.Ctx) error {
-	ctx := c.UserContext()
-	ctxt := "AccountPresenter-ResetPassword"
-	request, statusCode, err := sanitizer.ValidateResetPassword(ctx, c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateResetPassword")
-		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
-	}
-	accounts, _, err := q.accountUseCase.FindAccounts(
-		ctx,
-		accountModel.NewFilter(accountModel.WithResetPasswordToken(c.Params("token"))),
-	)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if len(accounts) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
-	}
-	account := accounts[0]
-	if account.EncryptedPassword != nil &&
-		helper.MatchedHashAndPassword(
-			helper.String2ByteSlice(*account.EncryptedPassword),
-			helper.String2ByteSlice(request.Password),
-		) {
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password reuse prohibited").WriteResponse(c)
-	}
-	now := time.Now()
-	account.ResetPasswordToken = nil
-	account.ResetPasswordSentAt = nil
-	encryptedPassword, err := helper.HashPassword(request.Password)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrHashPassword")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	account.EncryptedPassword = encryptedPassword
-	account.LastPasswordChange = &now
-	tx, err := helper.BeginTx(ctx)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	defer func() {
-		errRollback := tx.Rollback(ctx)
-		if errors.Is(errRollback, pgx.ErrTxClosed) {
-			errRollback = nil
-		}
-		if errRollback != nil {
-			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
-		}
-	}()
-	jwt, err := q.jwtUseCase.CreateJWT(ctx, tx, account.ID)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	tokenString, err := helper.GenerateAccessToken(account.ID, jwt.Token, account.Username, jwt.CreatedAt, jwt.ExpiredAt)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	if err = tx.Commit(ctx); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
-		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
-	}
-	response := accountModel.LoginResponse{
-		IDToken:   tokenString,
-		ExpiredAt: jwt.ExpiredAt,
-		Account:   account,
-	}
-	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
 
 func (q *accountHTTPHandler) UserFindUsers(c *fiber.Ctx) error {
