@@ -38,8 +38,9 @@ func New(
 func (q *accountHTTPHandler) Mount(r fiber.Router) {
 	adminKeyAuth := middleware.AdminKeyAuth(q.jwtUseCase, q.accountUseCase)
 	superAdminKeyAuth := middleware.AdminKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.AdminLevelSuperAdmin)
-	admin := r.Group("/admin")
-	admin.Get("", adminKeyAuth, q.AdminFindAccounts).
+	r.Group("/admin").
+		Post("/login", q.AdminLogin).
+		Get("", adminKeyAuth, q.AdminFindAccounts).
 		Post("", superAdminKeyAuth, q.AdminCreateAccount).
 		Get("/:id", adminKeyAuth, q.AdminFindAccountByID).
 		Delete("/:id", superAdminKeyAuth, q.AdminDeactivateAccount).
@@ -49,27 +50,129 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Put("/username", adminKeyAuth, q.AdminChangeUsername).
 		Put("/email", adminKeyAuth, q.AdminChangeEmail).
 		Put("/phone", adminKeyAuth, q.AdminChangePhone)
-	r.Post("/login", q.Login).
-		Get("/confirmation/:token", q.FindAccountByConfirmationToken).
+	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase)
+	ownerKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.UserLevelOwner)
+	r.Get("/confirmation/:token", q.FindAccountByConfirmationToken).
 		Put("/confirmation/:token", q.ConfirmAccount).
 		Get("/email/confirm/:token", q.ConfirmAccountEmail).
 		Get("/phone/confirm/:token", q.ConfirmAccountPhone).
 		Get("/unlock/:token", q.UnlockAccount).
 		Put("/password/forgot", q.ForgotPassword).
 		Get("/password/reset/:token", q.FindAccountByResetPasswordToken).
-		Put("/password/reset/:token", q.ResetPassword)
-	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase)
-	ownerKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.UserLevelOwner)
-	r.Get("", ownerKeyAuth, q.UserFindUsers).
+		Put("/password/reset/:token", q.ResetPassword).
+		Post("/login", q.UserLogin).
+		Get("", ownerKeyAuth, q.UserFindUsers).
 		Post("", ownerKeyAuth, q.UserCreateUser).
 		Get("/:id", ownerKeyAuth, q.UserFindUserByID).
 		Delete("/:id", ownerKeyAuth, q.UserDeactivateUser).
 		Group("/me").
-		Get("", userKeyAuth, q.UserProfile).
+		Get("/about", userKeyAuth, q.UserProfile).
 		Put("/password", userKeyAuth, q.UserChangePassword).
 		Put("/username", userKeyAuth, q.UserChangeUsername).
 		Put("/email", userKeyAuth, q.UserChangeEmail).
 		Put("/phone", userKeyAuth, q.UserChangePhone)
+}
+
+func (q *accountHTTPHandler) AdminLogin(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-AdminLogin"
+	request, statusCode, err := sanitizer.ValidateLogin(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateLogin")
+		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
+	}
+	admins, _, err := q.accountUseCase.FindAdmins(
+		ctx,
+		accountModel.NewFilter(accountModel.WithLogin(request.Login)),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(admins) == 0 ||
+		admins[0].Status != models.StatusConfirmed ||
+		admins[0].EncryptedPassword == nil {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
+	}
+	admin := admins[0]
+	if admin.LoginLockedAt != nil {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login locked out, max. failed attempts exceeded").WriteResponse(c)
+	}
+	encryptedPassword := helper.String2ByteSlice(*admin.EncryptedPassword)
+	now := time.Now()
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
+		if admin.LoginFailedAttempts++; admin.LoginFailedAttempts >= helper.GetLoginMaxFailedAttempts() {
+			loginLockoutToken := helper.RandomString(32)
+			admin.LoginLockedAt = &now
+			admin.LoginUnlockToken = &loginLockoutToken
+		}
+		if err = q.accountUseCase.UpdateAdmin(ctx, tx, admin); err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
+			return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+		}
+		if admin.LoginLockedAt != nil {
+			if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithAccountID(admin.ID))); err != nil {
+				helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
+				return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+			}
+		}
+		if err = tx.Commit(ctx); err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+			return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+		}
+		if admin.LoginLockedAt != nil {
+			return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login locked out, max. failed attempts exceeded").WriteResponse(c)
+		}
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
+	}
+	jwt, err := q.jwtUseCase.CreateJWT(ctx, tx, admin.ID)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	tokenString, err := helper.GenerateAccessToken(admin.ID, jwt.Token, admin.Username, jwt.CreatedAt, jwt.ExpiredAt)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
+	}
+	ipAddress := c.IP()
+	admin.LoginCount++
+	admin.LastLoginAt = admin.CurrentLoginAt
+	admin.LastLoginIP = admin.CurrentLoginIP
+	admin.CurrentLoginAt = &now
+	admin.CurrentLoginIP = &ipAddress
+	admin.LoginFailedAttempts = 0
+	if err = q.accountUseCase.UpdateAdmin(ctx, tx, admin); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	response := accountModel.AdminLoginResponse{
+		LoginResponse: accountModel.LoginResponse{
+			IDToken:   tokenString,
+			ExpiredAt: jwt.ExpiredAt,
+		},
+		Account: admin,
+	}
+
+	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
 func (q *accountHTTPHandler) AdminFindAccounts(c *fiber.Ctx) error {
@@ -401,32 +504,32 @@ func (q *accountHTTPHandler) AdminChangePhone(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) Login(c *fiber.Ctx) error {
+func (q *accountHTTPHandler) UserLogin(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	ctxt := "AccountPresenter-Login"
+	ctxt := "AccountPresenter-UserLogin"
 	request, statusCode, err := sanitizer.ValidateLogin(ctx, c)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateLogin")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
-	accounts, _, err := q.accountUseCase.FindAccounts(
+	users, _, err := q.accountUseCase.FindUsers(
 		ctx,
-		accountModel.NewFilter(accountModel.WithLogin(request.Login), accountModel.WithUrlValues(url.Values{})),
+		accountModel.NewFilter(accountModel.WithLogin(request.Login)),
 	)
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if len(accounts) == 0 ||
-		accounts[0].Status != models.StatusConfirmed ||
-		accounts[0].EncryptedPassword == nil {
+	if len(users) == 0 ||
+		users[0].Status != models.StatusConfirmed ||
+		users[0].EncryptedPassword == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
 	}
-	account := accounts[0]
-	if account.LoginLockedAt != nil {
+	user := users[0]
+	if user.LoginLockedAt != nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login locked out, max. failed attempts exceeded").WriteResponse(c)
 	}
-	encryptedPassword := helper.String2ByteSlice(*account.EncryptedPassword)
+	encryptedPassword := helper.String2ByteSlice(*user.EncryptedPassword)
 	now := time.Now()
 	tx, err := helper.BeginTx(ctx)
 	if err != nil {
@@ -443,17 +546,17 @@ func (q *accountHTTPHandler) Login(c *fiber.Ctx) error {
 		}
 	}()
 	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
-		if account.LoginFailedAttempts++; account.LoginFailedAttempts >= helper.GetLoginMaxFailedAttempts() {
+		if user.LoginFailedAttempts++; user.LoginFailedAttempts >= helper.GetLoginMaxFailedAttempts() {
 			loginLockoutToken := helper.RandomString(32)
-			account.LoginLockedAt = &now
-			account.LoginUnlockToken = &loginLockoutToken
+			user.LoginLockedAt = &now
+			user.LoginUnlockToken = &loginLockoutToken
 		}
-		if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
-			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
+		if err = q.accountUseCase.UpdateUser(ctx, tx, user); err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 			return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 		}
-		if account.LoginLockedAt != nil {
-			if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithAccountID(account.ID))); err != nil {
+		if user.LoginLockedAt != nil {
+			if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithAccountID(user.ID))); err != nil {
 				helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 				return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 			}
@@ -462,40 +565,42 @@ func (q *accountHTTPHandler) Login(c *fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 			return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 		}
-		if account.LoginLockedAt != nil {
+		if user.LoginLockedAt != nil {
 			return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login locked out, max. failed attempts exceeded").WriteResponse(c)
 		}
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
 	}
-	jwt, err := q.jwtUseCase.CreateJWT(ctx, tx, account.ID)
+	jwt, err := q.jwtUseCase.CreateJWT(ctx, tx, user.ID)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	tokenString, err := helper.GenerateAccessToken(account.ID, jwt.Token, account.Username, jwt.CreatedAt, jwt.ExpiredAt)
+	tokenString, err := helper.GenerateAccessToken(user.ID, jwt.Token, user.Username, jwt.CreatedAt, jwt.ExpiredAt)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
 	}
 	ipAddress := c.IP()
-	account.LoginCount++
-	account.LastLoginAt = account.CurrentLoginAt
-	account.LastLoginIP = account.CurrentLoginIP
-	account.CurrentLoginAt = &now
-	account.CurrentLoginIP = &ipAddress
-	account.LoginFailedAttempts = 0
-	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
+	user.LoginCount++
+	user.LastLoginAt = user.CurrentLoginAt
+	user.LastLoginIP = user.CurrentLoginIP
+	user.CurrentLoginAt = &now
+	user.CurrentLoginIP = &ipAddress
+	user.LoginFailedAttempts = 0
+	if err = q.accountUseCase.UpdateUser(ctx, tx, user); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	if err = tx.Commit(ctx); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	response := accountModel.LoginResponse{
-		IDToken:   tokenString,
-		ExpiredAt: jwt.ExpiredAt,
-		Account:   account,
+	response := accountModel.UserLoginResponse{
+		LoginResponse: accountModel.LoginResponse{
+			IDToken:   tokenString,
+			ExpiredAt: jwt.ExpiredAt,
+		},
+		Account: user,
 	}
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }

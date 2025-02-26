@@ -287,7 +287,7 @@ func RandomString(length int) string {
 			break
 		}
 	}
-	for i := 0; i < length; i++ {
+	for i := range length {
 		randomBytes[i] = base58alphabets[randomBytes[i]%58]
 	}
 	return ByteSlice2String(randomBytes)
@@ -301,7 +301,7 @@ func RandomNumber(length int) string {
 			break
 		}
 	}
-	for i := 0; i < length; i++ {
+	for i := range length {
 		randomBytes[i] = numbers[randomBytes[i]%10]
 	}
 	return ByteSlice2String(randomBytes)
@@ -327,7 +327,7 @@ func ValidPassword(password string) bool {
 }
 
 func HashPassword(password string) (*string, error) {
-	hashByte, err := bcrypt.GenerateFromPassword(String2ByteSlice(password), bcrypt.MinCost)
+	hashByte, err := bcrypt.GenerateFromPassword(String2ByteSlice(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
 	}

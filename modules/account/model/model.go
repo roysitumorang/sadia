@@ -128,12 +128,12 @@ type (
 
 	AdminLoginResponse struct {
 		LoginResponse
-		Account *Admin `json:"account"`
+		Account *Admin `json:"admin"`
 	}
 
 	UserLoginResponse struct {
 		LoginResponse
-		Account *User `json:"account"`
+		Account *User `json:"user"`
 	}
 
 	Confirmation struct {
@@ -194,7 +194,7 @@ var (
 )
 
 func NewFilter(options ...FilterOption) *Filter {
-	filter := &Filter{}
+	filter := &Filter{UrlValues: url.Values{}}
 	for _, option := range options {
 		option(filter)
 	}
