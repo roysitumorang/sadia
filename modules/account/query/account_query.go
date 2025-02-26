@@ -178,6 +178,13 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
 	}
+	if filter.Username != "" {
+		params = append(params, filter.Username)
+		builder.Reset()
+		_, _ = builder.WriteString("a.username = $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
 	if filter.ConfirmationToken != "" {
 		params = append(params, filter.ConfirmationToken)
 		builder.Reset()
@@ -185,10 +192,24 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		_, _ = builder.WriteString(strconv.Itoa(len(params)))
 		conditions = append(conditions, builder.String())
 	}
+	if filter.Email != "" {
+		params = append(params, filter.Email)
+		builder.Reset()
+		_, _ = builder.WriteString("a.email = $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
 	if filter.EmailConfirmationToken != "" {
 		params = append(params, filter.EmailConfirmationToken)
 		builder.Reset()
 		_, _ = builder.WriteString("a.email_confirmation_token = $")
+		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		conditions = append(conditions, builder.String())
+	}
+	if filter.Phone != "" {
+		params = append(params, filter.Phone)
+		builder.Reset()
+		_, _ = builder.WriteString("a.phone = $")
 		_, _ = builder.WriteString(strconv.Itoa(len(params)))
 		conditions = append(conditions, builder.String())
 	}

@@ -86,8 +86,11 @@ type (
 		UserLevels []uint8
 		Login,
 		Keyword,
+		Username,
 		ConfirmationToken,
+		Email,
 		EmailConfirmationToken,
+		Phone,
 		PhoneConfirmationToken,
 		LoginUnlockToken,
 		ResetPasswordToken,
@@ -123,7 +126,7 @@ type (
 	LoginResponse struct {
 		IDToken   string    `json:"id_token"`
 		ExpiredAt time.Time `json:"expired_at"`
-		Account   *Account  `json:"account"`
+		Account   *Account  `json:"-"`
 	}
 
 	AdminLoginResponse struct {
@@ -249,15 +252,33 @@ func WithKeyword(keyword string) FilterOption {
 	}
 }
 
+func WithUsername(username string) FilterOption {
+	return func(q *Filter) {
+		q.Username = username
+	}
+}
+
 func WithConfirmationToken(confirmationToken string) FilterOption {
 	return func(q *Filter) {
 		q.ConfirmationToken = confirmationToken
 	}
 }
 
+func WithEmail(email string) FilterOption {
+	return func(q *Filter) {
+		q.Email = email
+	}
+}
+
 func WithEmailConfirmationToken(emailConfirmationToken string) FilterOption {
 	return func(q *Filter) {
 		q.EmailConfirmationToken = emailConfirmationToken
+	}
+}
+
+func WithPhone(phone string) FilterOption {
+	return func(q *Filter) {
+		q.Phone = phone
 	}
 }
 

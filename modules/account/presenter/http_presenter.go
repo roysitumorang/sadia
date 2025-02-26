@@ -92,7 +92,7 @@ func (q *accountHTTPHandler) AdminFindAdminByConfirmationToken(c *fiber.Ctx) err
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
 	if len(admins) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("admin not found").WriteResponse(c)
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(admins[0]).WriteResponse(c)
 }
@@ -573,12 +573,10 @@ func (q *accountHTTPHandler) AdminLogin(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	response := accountModel.AdminLoginResponse{
-		LoginResponse: accountModel.LoginResponse{
-			IDToken:   tokenString,
-			ExpiredAt: jwt.ExpiredAt,
-		},
 		Account: admin,
 	}
+	response.IDToken = tokenString
+	response.ExpiredAt = jwt.ExpiredAt
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
@@ -772,12 +770,25 @@ func (q *accountHTTPHandler) AdminChangeUsername(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateChangeUsername")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if currentAdmin.Username == request.Username {
-		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
-	}
 	encryptedPassword := helper.String2ByteSlice(*currentAdmin.EncryptedPassword)
 	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password: invalid").WriteResponse(c)
+	}
+	if currentAdmin.Username == request.Username {
+		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+	}
+	accounts, _, err := q.accountUseCase.FindAccounts(
+		ctx,
+		accountModel.NewFilter(
+			accountModel.WithUsername(request.Username),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(accounts) > 0 && accounts[0].ID != currentAdmin.ID {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("username already exists").WriteResponse(c)
 	}
 	now := time.Now()
 	currentAdmin.Username = request.Username
@@ -822,6 +833,19 @@ func (q *accountHTTPHandler) AdminChangeEmail(c *fiber.Ctx) error {
 	}
 	if currentAdmin.UnconfirmedEmail != nil && *currentAdmin.UnconfirmedEmail == request.Email {
 		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+	}
+	accounts, _, err := q.accountUseCase.FindAccounts(
+		ctx,
+		accountModel.NewFilter(
+			accountModel.WithEmail(request.Email),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(accounts) > 0 && accounts[0].ID != currentAdmin.ID {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("email already exists").WriteResponse(c)
 	}
 	if currentAdmin.Email != nil && *currentAdmin.Email == request.Email {
 		currentAdmin.UnconfirmedEmail = nil
@@ -875,6 +899,19 @@ func (q *accountHTTPHandler) AdminChangePhone(c *fiber.Ctx) error {
 	if currentAdmin.UnconfirmedPhone != nil && *currentAdmin.UnconfirmedPhone == request.Phone {
 		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 	}
+	accounts, _, err := q.accountUseCase.FindAccounts(
+		ctx,
+		accountModel.NewFilter(
+			accountModel.WithPhone(request.Phone),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(accounts) > 0 && accounts[0].ID != currentAdmin.ID {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("phone already exists").WriteResponse(c)
+	}
 	if currentAdmin.Phone != nil && *currentAdmin.Phone == request.Phone {
 		currentAdmin.UnconfirmedPhone = nil
 		currentAdmin.PhoneConfirmationToken = nil
@@ -923,7 +960,7 @@ func (q *accountHTTPHandler) UserFindUserByConfirmationToken(c *fiber.Ctx) error
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
 	if len(users) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("account not found").WriteResponse(c)
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(users[0]).WriteResponse(c)
 }
@@ -1607,12 +1644,25 @@ func (q *accountHTTPHandler) UserChangeUsername(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateChangeUsername")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if currentUser.Username == request.Username {
-		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
-	}
 	encryptedPassword := helper.String2ByteSlice(*currentUser.EncryptedPassword)
 	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password: invalid").WriteResponse(c)
+	}
+	if currentUser.Username == request.Username {
+		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+	}
+	accounts, _, err := q.accountUseCase.FindAccounts(
+		ctx,
+		accountModel.NewFilter(
+			accountModel.WithUsername(request.Username),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(accounts) > 0 && accounts[0].ID != currentUser.ID {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("username already exists").WriteResponse(c)
 	}
 	now := time.Now()
 	currentUser.Username = request.Username
@@ -1657,6 +1707,19 @@ func (q *accountHTTPHandler) UserChangeEmail(c *fiber.Ctx) error {
 	}
 	if currentUser.UnconfirmedEmail != nil && *currentUser.UnconfirmedEmail == request.Email {
 		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+	}
+	accounts, _, err := q.accountUseCase.FindAccounts(
+		ctx,
+		accountModel.NewFilter(
+			accountModel.WithEmail(request.Email),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(accounts) > 0 && accounts[0].ID != currentUser.ID {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("email already exists").WriteResponse(c)
 	}
 	if currentUser.Email != nil && *currentUser.Email == request.Email {
 		currentUser.UnconfirmedEmail = nil
@@ -1709,6 +1772,19 @@ func (q *accountHTTPHandler) UserChangePhone(c *fiber.Ctx) error {
 	}
 	if currentUser.UnconfirmedPhone != nil && *currentUser.UnconfirmedPhone == request.Phone {
 		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+	}
+	accounts, _, err := q.accountUseCase.FindAccounts(
+		ctx,
+		accountModel.NewFilter(
+			accountModel.WithPhone(request.Phone),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(accounts) > 0 && accounts[0].ID != currentUser.ID {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("phone already exists").WriteResponse(c)
 	}
 	if currentUser.Phone != nil && *currentUser.Phone == request.Phone {
 		currentUser.UnconfirmedPhone = nil
