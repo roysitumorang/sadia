@@ -567,7 +567,7 @@ func init() {
 			`CREATE TABLE product_categories (
 				_id bigint NOT NULL UNIQUE
 				, id character varying NOT NULL PRIMARY KEY
-				, company_id character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, company_id character varying NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, name character varying NOT NULL
 				, slug character varying NOT NULL
 				, created_by character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
