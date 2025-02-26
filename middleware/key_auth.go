@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"errors"
-	"net/url"
 	"strings"
 	"time"
 
@@ -44,12 +43,10 @@ func AdminKeyAuth(
 				return false, err
 			}
 			ctx := c.UserContext()
-			urlValues := url.Values{}
 			jsonWebTokens, _, err := jwtUseCase.FindJWTs(
 				ctx,
 				jwtModel.NewFilter(
 					jwtModel.WithTokens(claims.Subject),
-					jwtModel.WithUrlValues(urlValues),
 				),
 			)
 			if err != nil || len(jsonWebTokens) == 0 {
@@ -61,7 +58,6 @@ func AdminKeyAuth(
 				accountModel.NewFilter(
 					accountModel.WithAccountIDs(jwt.AccountID),
 					accountModel.WithAdminLevels(adminLevels...),
-					accountModel.WithUrlValues(urlValues),
 				),
 			)
 			if err != nil || len(admins) == 0 {
@@ -102,24 +98,21 @@ func UserKeyAuth(
 				return false, err
 			}
 			ctx := c.UserContext()
-			urlValues := url.Values{}
 			jsonWebTokens, _, err := jwtUseCase.FindJWTs(
 				ctx,
 				jwtModel.NewFilter(
 					jwtModel.WithTokens(claims.Subject),
-					jwtModel.WithUrlValues(urlValues),
 				),
 			)
 			if err != nil || len(jsonWebTokens) == 0 {
 				return false, err
 			}
 			jwt := jsonWebTokens[0]
-			users, _, err := accountUseCase.FindAdmins(
+			users, _, err := accountUseCase.FindUsers(
 				ctx,
 				accountModel.NewFilter(
 					accountModel.WithAccountIDs(jwt.AccountID),
 					accountModel.WithUserLevels(userLevels...),
-					accountModel.WithUrlValues(urlValues),
 				),
 			)
 			if err != nil || len(users) == 0 {

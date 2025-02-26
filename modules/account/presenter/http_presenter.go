@@ -72,13 +72,14 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Put("/password/forgot", q.UserForgotPassword).
 		Get("/password/reset/:token", q.UserFindUserByResetPasswordToken).
 		Put("/password/reset/:token", q.UserResetPassword).
-		Post("/login", q.UserLogin).
-		Get("", ownerKeyAuth, q.UserFindUsers).
+		Post("/login", q.UserLogin)
+	users := r.Group("/users")
+	users.Get("", ownerKeyAuth, q.UserFindUsers).
 		Post("", ownerKeyAuth, q.UserCreateUser).
 		Get("/:id", ownerKeyAuth, q.UserFindUserByID).
-		Delete("/:id", ownerKeyAuth, q.UserDeactivateUser).
-		Group("/me").
-		Get("/about", userKeyAuth, q.UserProfile).
+		Delete("/:id", ownerKeyAuth, q.UserDeactivateUser)
+	me := r.Group("/me")
+	me.Get("/about", userKeyAuth, q.UserProfile).
 		Put("/password", userKeyAuth, q.UserChangePassword).
 		Put("/username", userKeyAuth, q.UserChangeUsername).
 		Put("/email", userKeyAuth, q.UserChangeEmail).
