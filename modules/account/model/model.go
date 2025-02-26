@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/mail"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
@@ -186,7 +185,6 @@ type (
 )
 
 var (
-	usernameRegex                            = regexp.MustCompile("[^a-z0-9]+")
 	ErrLoginFailed                           = customErrors.New(fiber.StatusBadRequest, "login failed")
 	ErrUniqueUsernameViolation               = errors.New("username: already exists")
 	ErrUniqueEmailViolation                  = errors.New("email: already exists")
@@ -379,7 +377,7 @@ func (q *Confirmation) Validate() error {
 	if q.Username = strings.ToLower(strings.TrimSpace(q.Username)); q.Username == "" {
 		return errors.New("username: is required")
 	}
-	q.Username = usernameRegex.ReplaceAllString(q.Username, "")
+	q.Username = models.UsernameRegex.ReplaceAllString(q.Username, "")
 	if q.Email != nil {
 		if *q.Email = strings.ToLower(strings.TrimSpace(*q.Email)); *q.Email != "" {
 			if _, err := mail.ParseAddress(*q.Email); err != nil {
@@ -469,7 +467,7 @@ func (q *ChangeUsername) Validate() error {
 	if q.Username = strings.ToLower(strings.TrimSpace(q.Username)); q.Username == "" {
 		return errors.New("username: is required")
 	}
-	q.Username = usernameRegex.ReplaceAllString(q.Username, "")
+	q.Username = models.UsernameRegex.ReplaceAllString(q.Username, "")
 	return nil
 }
 

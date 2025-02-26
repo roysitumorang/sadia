@@ -73,6 +73,7 @@ func (q *productCategoryHTTPHandler) UserCreateProductCategory(c *fiber.Ctx) err
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateProductCategory")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
+	request.CompanyID = currentUser.CompanyID
 	request.CreatedBy = currentUser.ID
 	response, err := q.productCategoryUseCase.CreateProductCategory(ctx, request)
 	if err != nil {
@@ -127,6 +128,10 @@ func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c *fiber.Ctx) err
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("category not found").WriteResponse(c)
 	}
 	productCategory := productCategories[0]
+	if productCategory.Name == request.Name &&
+		productCategory.Slug == request.Slug {
+		return helper.NewResponse(fiber.StatusOK).SetData(productCategory).WriteResponse(c)
+	}
 	productCategory.Name = request.Name
 	productCategory.Slug = request.Slug
 	productCategory.UpdatedBy = currentUser.ID

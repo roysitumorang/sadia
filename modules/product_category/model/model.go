@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/roysitumorang/sadia/models"
 )
 
 type (
@@ -41,9 +43,11 @@ func (q *ProductCategory) Validate() error {
 	if q.Name = strings.TrimSpace(q.Name); q.Name == "" {
 		return errors.New("name: is required")
 	}
-	if q.Slug = strings.TrimSpace(q.Slug); q.Slug == "" {
-		return errors.New("slug: is required")
+	q.Slug = strings.TrimSpace(q.Slug)
+	if q.Slug == "" {
+		q.Slug = strings.ToLower(q.Name)
 	}
+	q.Slug = models.UsernameRegex.ReplaceAllString(q.Slug, "")
 	return nil
 }
 
