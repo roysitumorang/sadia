@@ -37,8 +37,8 @@ func New(
 func (q *accountHTTPHandler) Mount(r fiber.Router) {
 	adminKeyAuth := middleware.AdminKeyAuth(q.jwtUseCase, q.accountUseCase)
 	superAdminKeyAuth := middleware.AdminKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.AdminLevelSuperAdmin)
-	r.Group("/admin").
-		Get("/confirmation/:token", q.AdminFindAdminByConfirmationToken).
+	admin := r.Group("/admin")
+	admin.Get("/confirmation/:token", q.AdminFindAdminByConfirmationToken).
 		Put("/confirmation/:token", q.AdminConfirmAccount).
 		Get("/email/confirm/:token", q.AdminConfirmEmail).
 		Get("/phone/confirm/:token", q.AdminConfirmPhone).
@@ -46,12 +46,17 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Put("/password/forgot", q.AdminForgotPassword).
 		Get("/password/reset/:token", q.AdminFindAdminByResetPasswordToken).
 		Put("/password/reset/:token", q.AdminResetPassword).
-		Post("/login", q.AdminLogin).
-		Get("", adminKeyAuth, q.AdminFindAccounts).
-		Post("", superAdminKeyAuth, q.AdminCreateAccount).
-		Get("/:id", adminKeyAuth, q.AdminFindAccountByID).
-		Delete("/:id", superAdminKeyAuth, q.AdminDeactivateAccount).
-		Group("/me").
+		Post("/login", q.AdminLogin)
+	admin.Group("/admins").
+		Get("", adminKeyAuth, q.AdminFindAdmins).
+		Post("", superAdminKeyAuth, q.AdminCreateAdmin).
+		Get("/:id", adminKeyAuth, q.AdminFindAdminByID).
+		Delete("/:id", superAdminKeyAuth, q.AdminDeactivateAdmin)
+	admin.Group("/users").
+		Get("", adminKeyAuth, q.AdminFindUsers).
+		Get("/:id", adminKeyAuth, q.AdminFindUserByID).
+		Delete("/:id", superAdminKeyAuth, q.AdminDeactivateUser)
+	admin.Group("/me").
 		Get("/about", adminKeyAuth, q.AdminProfile).
 		Put("/password", adminKeyAuth, q.AdminChangePassword).
 		Put("/username", adminKeyAuth, q.AdminChangeUsername).
@@ -580,17 +585,17 @@ func (q *accountHTTPHandler) AdminLogin(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminFindAccounts(c *fiber.Ctx) error {
+func (q *accountHTTPHandler) AdminFindAdmins(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	ctxt := "AccountPresenter-AdminFindAccounts"
-	filter, err := sanitizer.FindAccounts(ctx, c)
+	ctxt := "AccountPresenter-AdminFindAdmins"
+	filter, err := sanitizer.FindAdmins(ctx, c)
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	rows, pagination, err := q.accountUseCase.FindAccounts(ctx, filter)
+	rows, pagination, err := q.accountUseCase.FindAdmins(ctx, filter)
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(map[string]any{
@@ -599,13 +604,13 @@ func (q *accountHTTPHandler) AdminFindAccounts(c *fiber.Ctx) error {
 	}).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminCreateAccount(c *fiber.Ctx) error {
+func (q *accountHTTPHandler) AdminCreateAdmin(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	ctxt := "AccountPresenter-AdminCreateAccount"
+	ctxt := "AccountPresenter-AdminCreateAdmin"
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
-	request, statusCode, err := sanitizer.ValidateAccount(ctx, c)
+	request, statusCode, err := sanitizer.ValidateAdmin(ctx, c)
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateAccount")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateAdmin")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
 	request.CreatedBy = &currentAdmin.ID
@@ -623,7 +628,7 @@ func (q *accountHTTPHandler) AdminCreateAccount(c *fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	response, err := q.accountUseCase.CreateAccount(ctx, tx, request)
+	response, err := q.accountUseCase.CreateAdmin(ctx, tx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateAccount")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -635,49 +640,55 @@ func (q *accountHTTPHandler) AdminCreateAccount(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminFindAccountByID(c *fiber.Ctx) error {
+func (q *accountHTTPHandler) AdminFindAdminByID(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	ctxt := "AccountPresenter-AdminFindAccountByID"
-	accounts, _, err := q.accountUseCase.FindAccounts(ctx, accountModel.NewFilter(accountModel.WithLogin(c.Params("id"))))
+	ctxt := "AccountPresenter-AdminFindAdminByID"
+	admins, _, err := q.accountUseCase.FindAdmins(
+		ctx,
+		accountModel.NewFilter(accountModel.WithAccountIDs(c.Params("id"))),
+	)
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if len(accounts) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("account not found").WriteResponse(c)
+	if len(admins) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("admin not found").WriteResponse(c)
 	}
-	return helper.NewResponse(fiber.StatusOK).SetData(accounts[0]).WriteResponse(c)
+	return helper.NewResponse(fiber.StatusOK).SetData(admins[0]).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminDeactivateAccount(c *fiber.Ctx) error {
+func (q *accountHTTPHandler) AdminDeactivateAdmin(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	ctxt := "AccountPresenter-AdminDeactivateAccount"
+	ctxt := "AccountPresenter-AdminDeactivateAdmin"
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
 	request, statusCode, err := sanitizer.ValidateDeactivation(ctx, c)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateDeactivation")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
-	accounts, _, err := q.accountUseCase.FindAccounts(
+	if currentAdmin.ID == c.Params("id") {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("self deactivation prohibited").WriteResponse(c)
+	}
+	admins, _, err := q.accountUseCase.FindAdmins(
 		ctx,
 		accountModel.NewFilter(accountModel.WithLogin(c.Params("id"))),
 	)
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if len(accounts) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("account not found").WriteResponse(c)
+	if len(admins) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("admin not found").WriteResponse(c)
 	}
-	account := accounts[0]
-	if account.Status != models.StatusConfirmed {
+	admin := admins[0]
+	if admin.Status != models.StatusConfirmed {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("cannot deactivate unconfirmed & deactivated account").WriteResponse(c)
 	}
 	now := time.Now()
-	account.Status = models.StatusDeactivated
-	account.DeactivatedBy = &currentAdmin.ID
-	account.DeactivatedAt = &now
-	account.DeactivationReason = &request.Reason
+	admin.Status = models.StatusDeactivated
+	admin.DeactivatedBy = &currentAdmin.ID
+	admin.DeactivatedAt = &now
+	admin.DeactivationReason = &request.Reason
 	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
@@ -692,11 +703,11 @@ func (q *accountHTTPHandler) AdminDeactivateAccount(c *fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountUseCase.UpdateAccount(ctx, tx, account); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
+	if err = q.accountUseCase.UpdateAdmin(ctx, tx, admin); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithAccountID(account.ID))); err != nil {
+	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithAccountID(admin.ID))); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -704,7 +715,101 @@ func (q *accountHTTPHandler) AdminDeactivateAccount(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	return helper.NewResponse(fiber.StatusOK).SetData(account).WriteResponse(c)
+	return helper.NewResponse(fiber.StatusOK).SetData(admin).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) AdminFindUsers(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-AdminFindUsers"
+	filter, err := sanitizer.FindUsers(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	rows, pagination, err := q.accountUseCase.FindUsers(ctx, filter)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusOK).SetData(map[string]any{
+		"pagination": pagination,
+		"rows":       rows,
+	}).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) AdminFindUserByID(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-AdminFindUserByID"
+	users, _, err := q.accountUseCase.FindUsers(
+		ctx,
+		accountModel.NewFilter(accountModel.WithAccountIDs(c.Params("id"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(users) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("user not found").WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusOK).SetData(users[0]).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) AdminDeactivateUser(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	ctxt := "AccountPresenter-AdminDeactivateUser"
+	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
+	request, statusCode, err := sanitizer.ValidateDeactivation(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateDeactivation")
+		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
+	}
+	users, _, err := q.accountUseCase.FindUsers(
+		ctx,
+		accountModel.NewFilter(accountModel.WithLogin(c.Params("id"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(users) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("user not found").WriteResponse(c)
+	}
+	user := users[0]
+	if user.Status != models.StatusConfirmed {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("cannot deactivate unconfirmed & deactivated user").WriteResponse(c)
+	}
+	now := time.Now()
+	user.Status = models.StatusDeactivated
+	user.DeactivatedBy = &currentAdmin.ID
+	user.DeactivatedAt = &now
+	user.DeactivationReason = &request.Reason
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if err = q.accountUseCase.UpdateUser(ctx, tx, user); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithAccountID(user.ID))); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusOK).SetData(user).WriteResponse(c)
 }
 
 func (q *accountHTTPHandler) AdminProfile(c *fiber.Ctx) error {
@@ -1527,6 +1632,9 @@ func (q *accountHTTPHandler) UserDeactivateUser(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	ctxt := "AccountPresenter-UserDeactivateUser"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
+	if currentUser.ID == c.Params("id") {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("self deactivation prohibited").WriteResponse(c)
+	}
 	request, statusCode, err := sanitizer.ValidateDeactivation(ctx, c)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateDeactivation")

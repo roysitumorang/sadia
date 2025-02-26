@@ -74,6 +74,22 @@ func ValidateAccount(ctx context.Context, c *fiber.Ctx) (*models.NewAccount, int
 	return &response, fiber.StatusOK, nil
 }
 
+func ValidateAdmin(ctx context.Context, c *fiber.Ctx) (*accountModel.NewAdmin, int, error) {
+	ctxt := "AccountSanitizer-ValidateAdmin"
+	var response accountModel.NewAdmin
+	err := c.BodyParser(&response)
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		return nil, fiberErr.Code, err
+	}
+	if err = (&response).Validate(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
+		return nil, fiber.StatusBadRequest, err
+	}
+	return &response, fiber.StatusOK, nil
+}
+
 func ValidateUser(ctx context.Context, c *fiber.Ctx) (*accountModel.NewUser, int, error) {
 	ctxt := "AccountSanitizer-ValidateUser"
 	var response accountModel.NewUser
@@ -232,4 +248,92 @@ func ValidateChangePhone(ctx context.Context, c *fiber.Ctx) (*accountModel.Chang
 		return nil, fiber.StatusBadRequest, err
 	}
 	return &response, fiber.StatusOK, nil
+}
+
+func FindAdmins(ctx context.Context, c *fiber.Ctx) (*accountModel.Filter, error) {
+	ctxt := "AccountSanitizer-FindAdmins"
+	originalURL, err := url.ParseRequestURI(c.OriginalURL())
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseRequestURI")
+		return nil, err
+	}
+	var builder strings.Builder
+	_, _ = builder.WriteString(c.BaseURL())
+	_, _ = builder.WriteString(originalURL.Path)
+	urlValues := originalURL.Query()
+	var options []accountModel.FilterOption
+	options = append(options, accountModel.WithPaginationURL(builder.String()))
+	if keyword := strings.TrimSpace(c.Query("q")); keyword != "" {
+		urlValues.Set("q", keyword)
+		options = append(options, accountModel.WithKeyword(keyword))
+	}
+	if rawStatusList, ok := urlValues["status"]; ok {
+		mapStatus := map[string]int{}
+		var statusList []int
+		for _, rawStatus := range rawStatusList {
+			rawStatus = strings.TrimSpace(rawStatus)
+			if _, ok := mapStatus[rawStatus]; rawStatus == "" || ok {
+				continue
+			}
+			status, err := strconv.Atoi(rawStatus)
+			if err != nil {
+				continue
+			}
+			statusList = append(statusList, status)
+			mapStatus[rawStatus] = 1
+		}
+		options = append(options, accountModel.WithStatusList(statusList...))
+	}
+	if limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64); limit > 0 {
+		urlValues.Set("limit", c.Query("limit"))
+		options = append(options, accountModel.WithLimit(limit))
+	}
+	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
+	page = max(page, 1)
+	options = append(options, accountModel.WithPage(page), accountModel.WithUrlValues(urlValues))
+	return accountModel.NewFilter(options...), nil
+}
+
+func FindUsers(ctx context.Context, c *fiber.Ctx) (*accountModel.Filter, error) {
+	ctxt := "AccountSanitizer-FindUsers"
+	originalURL, err := url.ParseRequestURI(c.OriginalURL())
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseRequestURI")
+		return nil, err
+	}
+	var builder strings.Builder
+	_, _ = builder.WriteString(c.BaseURL())
+	_, _ = builder.WriteString(originalURL.Path)
+	urlValues := originalURL.Query()
+	var options []accountModel.FilterOption
+	options = append(options, accountModel.WithPaginationURL(builder.String()))
+	if keyword := strings.TrimSpace(c.Query("q")); keyword != "" {
+		urlValues.Set("q", keyword)
+		options = append(options, accountModel.WithKeyword(keyword))
+	}
+	if rawStatusList, ok := urlValues["status"]; ok {
+		mapStatus := map[string]int{}
+		var statusList []int
+		for _, rawStatus := range rawStatusList {
+			rawStatus = strings.TrimSpace(rawStatus)
+			if _, ok := mapStatus[rawStatus]; rawStatus == "" || ok {
+				continue
+			}
+			status, err := strconv.Atoi(rawStatus)
+			if err != nil {
+				continue
+			}
+			statusList = append(statusList, status)
+			mapStatus[rawStatus] = 1
+		}
+		options = append(options, accountModel.WithStatusList(statusList...))
+	}
+	if limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64); limit > 0 {
+		urlValues.Set("limit", c.Query("limit"))
+		options = append(options, accountModel.WithLimit(limit))
+	}
+	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
+	page = max(page, 1)
+	options = append(options, accountModel.WithPage(page), accountModel.WithUrlValues(urlValues))
+	return accountModel.NewFilter(options...), nil
 }

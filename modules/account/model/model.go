@@ -324,6 +324,17 @@ func WithUrlValues(urlValues url.Values) FilterOption {
 	}
 }
 
+func (q *NewAdmin) Validate() error {
+	if err := q.NewAccount.Validate(); err != nil {
+		return err
+	}
+	if q.AdminLevel != AdminLevelSuperAdmin &&
+		q.AdminLevel != AdminLevelAdmin {
+		return fmt.Errorf("admin_level: should be either %d (super admin) / %d (admin)", AdminLevelSuperAdmin, AdminLevelAdmin)
+	}
+	return nil
+}
+
 func (q *NewUser) Validate() error {
 	if err := q.NewAccount.Validate(); err != nil {
 		return err
@@ -332,7 +343,7 @@ func (q *NewUser) Validate() error {
 		return errors.New("company_id: is required")
 	}
 	if q.UserLevel != UserLevelOwner && q.UserLevel != UserLevelStaff {
-		return fmt.Errorf("user_level: should be either %d (owner) / %d staff", UserLevelOwner, UserLevelStaff)
+		return fmt.Errorf("user_level: should be either %d (owner) / %d (staff)", UserLevelOwner, UserLevelStaff)
 	}
 	return nil
 }
