@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -38,8 +39,8 @@ type (
 
 	NewCompany struct {
 		Name      string             `json:"name"`
-		Slug      string             `json:"slug"`
-		Status    int8               `json:"status"`
+		Slug      string             `json:"-"`
+		Status    int8               `json:"-"`
 		Owner     *models.NewAccount `json:"owner"`
 		CreatedBy string             `json:"-"`
 	}
@@ -109,6 +110,13 @@ func WithUrlValues(urlValues url.Values) FilterOption {
 }
 
 func (q *NewCompany) Validate() error {
+	if q.Owner == nil {
+		return errors.New("owner: is required")
+	}
+	q.Owner.AccountType = models.AccountTypeUser
+	if err := q.Owner.Validate(); err != nil {
+		return fmt.Errorf("owner.%s", err.Error())
+	}
 	if q.Name = strings.TrimSpace(q.Name); q.Name == "" {
 		return errors.New("name: is required")
 	}

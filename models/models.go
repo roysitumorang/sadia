@@ -102,7 +102,7 @@ func (q *NewAccount) Validate() error {
 		}
 	}
 	if q.Email == nil && q.Phone == nil {
-		return errors.New("at least email or phone number required")
+		return errors.New("email: at least a valid email or phone number required")
 	}
 	return nil
 }

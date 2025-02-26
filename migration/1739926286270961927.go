@@ -377,7 +377,7 @@ func init() {
 			ctx,
 			`CREATE TABLE users (
 				account_id character varying NOT NULL PRIMARY KEY REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
-				, company_id character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, company_id character varying NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, user_level smallint NOT NULL
 			)`,
 		); err != nil {

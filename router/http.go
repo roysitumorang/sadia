@@ -71,6 +71,8 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 				"/v1/admin/account/*": "/v1/account/admin/$1",
 				"/v1/admin/jwt":       "/v1/jwt/admin",
 				"/v1/admin/jwt/*":     "/v1/jwt/admin/$1",
+				"/v1/admin/company":   "/v1/company/admin",
+				"/v1/admin/company/*": "/v1/company/admin/$1",
 			},
 		}),
 		cors.New(),

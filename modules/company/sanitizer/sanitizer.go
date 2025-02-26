@@ -10,7 +10,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/roysitumorang/sadia/helper"
-	"github.com/roysitumorang/sadia/models"
 	companyModel "github.com/roysitumorang/sadia/modules/company/model"
 	"go.uber.org/zap"
 )
@@ -69,11 +68,6 @@ func ValidateCompany(ctx context.Context, c *fiber.Ctx) (*companyModel.NewCompan
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
-		return nil, fiber.StatusBadRequest, err
-	}
-	response.Owner.AccountType = models.AccountTypeUser
-	if err = response.Owner.Validate(); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
 		return nil, fiber.StatusBadRequest, err
 	}
