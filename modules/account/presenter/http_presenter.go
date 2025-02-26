@@ -306,18 +306,24 @@ func (q *accountHTTPHandler) AdminChangeEmail(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateChangeEmail")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if currentAdmin.Email != nil && *currentAdmin.Email == request.Email {
-		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
-	}
 	encryptedPassword := helper.String2ByteSlice(*currentAdmin.EncryptedPassword)
 	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password: invalid").WriteResponse(c)
 	}
-	now := time.Now()
-	emailConfirmationToken := helper.RandomString(32)
-	currentAdmin.UnconfirmedEmail = &request.Email
-	currentAdmin.EmailConfirmationToken = &emailConfirmationToken
-	currentAdmin.EmailConfirmationSentAt = &now
+	if currentAdmin.UnconfirmedEmail != nil && *currentAdmin.UnconfirmedEmail == request.Email {
+		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+	}
+	if currentAdmin.Email != nil && *currentAdmin.Email == request.Email {
+		currentAdmin.UnconfirmedEmail = nil
+		currentAdmin.EmailConfirmationToken = nil
+		currentAdmin.EmailConfirmationSentAt = nil
+	} else {
+		now := time.Now()
+		emailConfirmationToken := helper.RandomString(32)
+		currentAdmin.UnconfirmedEmail = &request.Email
+		currentAdmin.EmailConfirmationToken = &emailConfirmationToken
+		currentAdmin.EmailConfirmationSentAt = &now
+	}
 	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
@@ -352,18 +358,24 @@ func (q *accountHTTPHandler) AdminChangePhone(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateChangePhone")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if currentAdmin.Phone != nil && *currentAdmin.Phone == request.Phone {
-		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
-	}
 	encryptedPassword := helper.String2ByteSlice(*currentAdmin.EncryptedPassword)
 	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password: invalid").WriteResponse(c)
 	}
-	now := time.Now()
-	phoneConfirmationToken := helper.RandomNumber(6)
-	currentAdmin.UnconfirmedPhone = &request.Phone
-	currentAdmin.PhoneConfirmationToken = &phoneConfirmationToken
-	currentAdmin.PhoneConfirmationSentAt = &now
+	if currentAdmin.UnconfirmedPhone != nil && *currentAdmin.UnconfirmedPhone == request.Phone {
+		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+	}
+	if currentAdmin.Phone != nil && *currentAdmin.Phone == request.Phone {
+		currentAdmin.UnconfirmedPhone = nil
+		currentAdmin.PhoneConfirmationToken = nil
+		currentAdmin.PhoneConfirmationSentAt = nil
+	} else {
+		now := time.Now()
+		phoneConfirmationToken := helper.RandomNumber(6)
+		currentAdmin.UnconfirmedPhone = &request.Phone
+		currentAdmin.PhoneConfirmationToken = &phoneConfirmationToken
+		currentAdmin.PhoneConfirmationSentAt = &now
+	}
 	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
@@ -1123,18 +1135,24 @@ func (q *accountHTTPHandler) UserChangeEmail(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateChangeEmail")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if currentUser.Email != nil && *currentUser.Email == request.Email {
-		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
-	}
 	encryptedPassword := helper.String2ByteSlice(*currentUser.EncryptedPassword)
 	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password: invalid").WriteResponse(c)
 	}
-	now := time.Now()
-	emailConfirmationToken := helper.RandomString(32)
-	currentUser.UnconfirmedEmail = &request.Email
-	currentUser.EmailConfirmationToken = &emailConfirmationToken
-	currentUser.EmailConfirmationSentAt = &now
+	if currentUser.UnconfirmedEmail != nil && *currentUser.UnconfirmedEmail == request.Email {
+		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+	}
+	if currentUser.Email != nil && *currentUser.Email == request.Email {
+		currentUser.UnconfirmedEmail = nil
+		currentUser.EmailConfirmationToken = nil
+		currentUser.EmailConfirmationSentAt = nil
+	} else {
+		now := time.Now()
+		emailConfirmationToken := helper.RandomString(32)
+		currentUser.UnconfirmedEmail = &request.Email
+		currentUser.EmailConfirmationToken = &emailConfirmationToken
+		currentUser.EmailConfirmationSentAt = &now
+	}
 	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
@@ -1169,18 +1187,24 @@ func (q *accountHTTPHandler) UserChangePhone(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateChangePhone")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if currentUser.Phone != nil && *currentUser.Phone == request.Phone {
-		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
-	}
 	encryptedPassword := helper.String2ByteSlice(*currentUser.EncryptedPassword)
 	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password: invalid").WriteResponse(c)
 	}
-	now := time.Now()
-	phoneConfirmationToken := helper.RandomNumber(6)
-	currentUser.UnconfirmedPhone = &request.Phone
-	currentUser.PhoneConfirmationToken = &phoneConfirmationToken
-	currentUser.PhoneConfirmationSentAt = &now
+	if currentUser.UnconfirmedPhone != nil && *currentUser.UnconfirmedPhone == request.Phone {
+		return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+	}
+	if currentUser.Phone != nil && *currentUser.Phone == request.Phone {
+		currentUser.UnconfirmedPhone = nil
+		currentUser.PhoneConfirmationToken = nil
+		currentUser.PhoneConfirmationSentAt = nil
+	} else {
+		now := time.Now()
+		phoneConfirmationToken := helper.RandomNumber(6)
+		currentUser.UnconfirmedPhone = &request.Phone
+		currentUser.PhoneConfirmationToken = &phoneConfirmationToken
+		currentUser.PhoneConfirmationSentAt = &now
+	}
 	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
