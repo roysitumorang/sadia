@@ -130,13 +130,15 @@ type (
 	}
 
 	AdminLoginResponse struct {
-		LoginResponse
-		Account *Admin `json:"admin"`
+		IDToken   string    `json:"id_token"`
+		ExpiredAt time.Time `json:"expired_at"`
+		Account   *Admin    `json:"admin"`
 	}
 
 	UserLoginResponse struct {
-		LoginResponse
-		Account *User `json:"user"`
+		IDToken   string    `json:"id_token"`
+		ExpiredAt time.Time `json:"expired_at"`
+		Account   *User     `json:"user"`
 	}
 
 	Confirmation struct {

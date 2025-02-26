@@ -189,11 +189,9 @@ func (q *accountHTTPHandler) AdminConfirmAccount(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	response := accountModel.AdminLoginResponse{
-		LoginResponse: accountModel.LoginResponse{
-			IDToken:   tokenString,
-			ExpiredAt: jwt.ExpiredAt,
-		},
-		Account: admin,
+		IDToken:   tokenString,
+		ExpiredAt: jwt.ExpiredAt,
+		Account:   admin,
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
@@ -477,11 +475,9 @@ func (q *accountHTTPHandler) AdminResetPassword(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	response := accountModel.AdminLoginResponse{
-		LoginResponse: accountModel.LoginResponse{
-			IDToken:   tokenString,
-			ExpiredAt: jwt.ExpiredAt,
-		},
-		Account: admin,
+		IDToken:   tokenString,
+		ExpiredAt: jwt.ExpiredAt,
+		Account:   admin,
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
@@ -1157,11 +1153,9 @@ func (q *accountHTTPHandler) UserConfirmAccount(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	response := accountModel.UserLoginResponse{
-		LoginResponse: accountModel.LoginResponse{
-			IDToken:   tokenString,
-			ExpiredAt: jwt.ExpiredAt,
-		},
-		Account: user,
+		IDToken:   tokenString,
+		ExpiredAt: jwt.ExpiredAt,
+		Account:   user,
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
@@ -1445,11 +1439,9 @@ func (q *accountHTTPHandler) UserResetPassword(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	response := accountModel.UserLoginResponse{
-		LoginResponse: accountModel.LoginResponse{
-			IDToken:   tokenString,
-			ExpiredAt: jwt.ExpiredAt,
-		},
-		Account: user,
+		IDToken:   tokenString,
+		ExpiredAt: jwt.ExpiredAt,
+		Account:   user,
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
@@ -1546,11 +1538,9 @@ func (q *accountHTTPHandler) UserLogin(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	response := accountModel.UserLoginResponse{
-		LoginResponse: accountModel.LoginResponse{
-			IDToken:   tokenString,
-			ExpiredAt: jwt.ExpiredAt,
-		},
-		Account: user,
+		IDToken:   tokenString,
+		ExpiredAt: jwt.ExpiredAt,
+		Account:   user,
 	}
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
