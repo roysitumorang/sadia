@@ -401,6 +401,8 @@ func init() {
 				, slug character varying NOT NULL
 				, created_by character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
+				, updated_by character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, updated_at timestamp with time zone NOT NULL
 			);`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
@@ -437,6 +439,13 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE INDEX ON stores (created_by)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON stores (updated_by)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return

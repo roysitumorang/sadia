@@ -201,7 +201,7 @@ func (q *storeQuery) CreateStore(ctx context.Context, request *storeModel.Store)
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $2, $5, $6, $5, $6)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $6, $7)
 		RETURNING id
 			, company_id
 			, name
@@ -215,6 +215,7 @@ func (q *storeQuery) CreateStore(ctx context.Context, request *storeModel.Store)
 		storeSqID,
 		request.CompanyID,
 		request.Name,
+		request.Slug,
 		request.CreatedBy,
 		now,
 	).Scan(
