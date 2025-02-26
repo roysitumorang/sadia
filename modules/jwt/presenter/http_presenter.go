@@ -4,9 +4,11 @@ import (
 	"errors"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
+	"github.com/roysitumorang/sadia/models"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
 	jwtModel "github.com/roysitumorang/sadia/modules/jwt/model"
 	"github.com/roysitumorang/sadia/modules/jwt/sanitizer"
@@ -59,6 +61,18 @@ func (q *jwtHTTPHandler) AdminFindJWTs(c *fiber.Ctx) error {
 func (q *jwtHTTPHandler) AdminDeleteJWT(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	ctxt := "JwtPresenter-AdminDeleteJWT"
+	currentJwt, _ := c.Locals(models.CurrentJwt).(*jwt.RegisteredClaims)
+	jsonWebTokens, _, err := q.jwtUseCase.FindJWTs(
+		ctx,
+		jwtModel.NewFilter(jwtModel.WithJwtIDs(c.Params("id"))),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindJWTs")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(jsonWebTokens) > 0 && jsonWebTokens[0].Token == currentJwt.Subject {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("self delete prohibited").WriteResponse(c)
+	}
 	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
@@ -73,7 +87,7 @@ func (q *jwtHTTPHandler) AdminDeleteJWT(c *fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithJwtIDs(c.Params("id")))); err != nil {
+	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithDeleteJwtIDs(c.Params("id")))); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}

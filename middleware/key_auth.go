@@ -69,6 +69,7 @@ func AdminKeyAuth(
 			}
 			admin := admins[0]
 			c.Locals(models.CurrentAdmin, admin)
+			c.Locals(models.CurrentJwt, claims)
 			return true, nil
 		},
 		ContextKey: "token",
@@ -126,6 +127,7 @@ func UserKeyAuth(
 			}
 			user := users[0]
 			c.Locals(models.CurrentUser, user)
+			c.Locals(models.CurrentJwt, claims)
 			return true, nil
 		},
 		ContextKey: "token",

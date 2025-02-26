@@ -185,7 +185,7 @@ func main() {
 							helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 						}
 					}()
-					rowsAffected, err := service.JwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithMaxExpiredAt(time.Now())))
+					rowsAffected, err := service.JwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithDeleteMaxExpiredAt(time.Now())))
 					if err != nil {
 						helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 						return

@@ -89,6 +89,20 @@ func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jw
 		conditions []string
 		builder    strings.Builder
 	)
+	if len(filter.JwtIDs) > 0 {
+		builder.Reset()
+		_, _ = builder.WriteString("id IN (")
+		for i, jwtID := range filter.JwtIDs {
+			params = append(params, jwtID)
+			if i > 0 {
+				_, _ = builder.WriteString(",")
+			}
+			_, _ = builder.WriteString("$")
+			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		}
+		_, _ = builder.WriteString(")")
+		conditions = append(conditions, builder.String())
+	}
 	if len(filter.AccountIDs) > 0 {
 		builder.Reset()
 		_, _ = builder.WriteString("account_id IN (")

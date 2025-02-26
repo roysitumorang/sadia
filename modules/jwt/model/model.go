@@ -15,6 +15,7 @@ type (
 	}
 
 	Filter struct {
+		JwtIDs,
 		AccountIDs,
 		Tokens []string
 		PaginationURL string
@@ -41,6 +42,12 @@ func NewFilter(options ...FilterOption) *Filter {
 		option(filter)
 	}
 	return filter
+}
+
+func WithJwtIDs(jwtIDs ...string) FilterOption {
+	return func(q *Filter) {
+		q.JwtIDs = jwtIDs
+	}
 }
 
 func WithAccountIDs(accountIDs ...string) FilterOption {
@@ -87,25 +94,25 @@ func NewDeleteFilter(options ...DeleteFilterOption) *DeleteFilter {
 	return filter
 }
 
-func WithMaxExpiredAt(maxExpiredAt time.Time) DeleteFilterOption {
+func WithDeleteMaxExpiredAt(maxExpiredAt time.Time) DeleteFilterOption {
 	return func(q *DeleteFilter) {
 		q.MaxExpiredAt = maxExpiredAt
 	}
 }
 
-func WithAccountID(accountID string) DeleteFilterOption {
+func WithDeleteAccountID(accountID string) DeleteFilterOption {
 	return func(q *DeleteFilter) {
 		q.AccountID = accountID
 	}
 }
 
-func WithCompanyID(companyID string) DeleteFilterOption {
+func WithDeleteCompanyID(companyID string) DeleteFilterOption {
 	return func(q *DeleteFilter) {
 		q.CompanyID = companyID
 	}
 }
 
-func WithJwtIDs(jwtIDs ...string) DeleteFilterOption {
+func WithDeleteJwtIDs(jwtIDs ...string) DeleteFilterOption {
 	return func(q *DeleteFilter) {
 		q.JwtIDs = jwtIDs
 	}

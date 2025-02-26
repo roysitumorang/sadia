@@ -13,6 +13,7 @@ import (
 const (
 	CurrentAdmin = "current_admin"
 	CurrentUser  = "current_user"
+	CurrentJwt   = "current_jwt"
 )
 
 const (
