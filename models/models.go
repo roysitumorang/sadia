@@ -6,6 +6,8 @@ import (
 	"net/mail"
 	"regexp"
 	"strings"
+
+	"github.com/nyaruka/phonenumbers"
 )
 
 const (
@@ -86,6 +88,11 @@ func (q *NewAccount) Validate() error {
 	}
 	if q.Phone != nil {
 		if *q.Phone = strings.TrimSpace(*q.Phone); *q.Phone != "" {
+			phone, err := phonenumbers.Parse(*q.Phone, "ID")
+			if err != nil {
+				return err
+			}
+			*q.Phone = phonenumbers.Format(phone, phonenumbers.E164)
 			if PhoneNumberRegex.Find([]byte(*q.Phone)) == nil {
 				return errors.New("phone: invalid number")
 			}

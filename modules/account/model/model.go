@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/nyaruka/phonenumbers"
 	customErrors "github.com/roysitumorang/sadia/errors"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
@@ -465,9 +466,14 @@ func (q *ChangePhone) Validate() error {
 		return fmt.Errorf("password: %s", err.Error())
 	}
 	q.Password = password
-	if q.Phone = strings.TrimSpace(q.Phone); q.Phone != "" {
+	if q.Phone = strings.TrimSpace(q.Phone); q.Phone == "" {
 		return errors.New("phone: is required")
 	}
+	phone, err := phonenumbers.Parse(q.Phone, "ID")
+	if err != nil {
+		return err
+	}
+	q.Phone = phonenumbers.Format(phone, phonenumbers.E164)
 	if models.PhoneNumberRegex.Find(helper.String2ByteSlice(q.Phone)) == nil {
 		return errors.New("phone: invalid number")
 	}
