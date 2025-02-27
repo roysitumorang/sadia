@@ -37,17 +37,17 @@ type (
 		Email                   *string    `json:"email"`
 		UnconfirmedEmail        *string    `json:"unconfirmed_email"`
 		EmailConfirmationToken  *string    `json:"-"`
-		EmailConfirmationSentAt *time.Time `json:"-"`
-		EmailConfirmedAt        *time.Time `json:"-"`
+		EmailConfirmationSentAt *time.Time `json:"email_confirmation_sent_at"`
+		EmailConfirmedAt        *time.Time `json:"email_confirmed_at"`
 		Phone                   *string    `json:"phone"`
 		UnconfirmedPhone        *string    `json:"unconfirmed_phone"`
 		PhoneConfirmationToken  *string    `json:"-"`
-		PhoneConfirmationSentAt *time.Time `json:"-"`
-		PhoneConfirmedAt        *time.Time `json:"-"`
+		PhoneConfirmationSentAt *time.Time `json:"phone_confirmation_sent_at"`
+		PhoneConfirmedAt        *time.Time `json:"phone_confirmed_at"`
 		EncryptedPassword       *string    `json:"-"`
 		LastPasswordChange      *time.Time `json:"last_password_change"`
 		ResetPasswordToken      *string    `json:"-"`
-		ResetPasswordSentAt     *time.Time `json:"-"`
+		ResetPasswordSentAt     *time.Time `json:"reset_password_sent_at"`
 		LoginCount              uint       `json:"login_count"`
 		CurrentLoginAt          *time.Time `json:"current_login_at"`
 		CurrentLoginIP          *string    `json:"current_login_ip"`
@@ -57,10 +57,10 @@ type (
 		LoginUnlockToken        *string    `json:"-"`
 		LoginLockedAt           *time.Time `json:"login_locked_at"`
 		CreatedBy               *string    `json:"-"`
-		CreatedAt               time.Time  `json:"-"`
-		UpdatedAt               time.Time  `json:"-"`
+		CreatedAt               time.Time  `json:"created_at"`
+		UpdatedAt               time.Time  `json:"updated_at"`
 		DeactivatedBy           *string    `json:"-"`
-		DeactivatedAt           *time.Time `json:"-"`
+		DeactivatedAt           *time.Time `json:"deactivated_at"`
 		DeactivationReason      *string    `json:"-"`
 	}
 
