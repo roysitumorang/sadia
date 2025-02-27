@@ -611,7 +611,7 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE INDEX ON product_categories (slug, company_id)`,
+			`CREATE UNIQUE INDEX ON product_categories (slug, company_id)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
