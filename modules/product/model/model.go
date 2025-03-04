@@ -11,6 +11,7 @@ import (
 
 type (
 	Product struct {
+		RowNo      uint64    `json:"row_no,omitempty"`
 		ID         string    `json:"id"`
 		CompanyID  string    `json:"-"`
 		CategoryID *string   `json:"category_id"`

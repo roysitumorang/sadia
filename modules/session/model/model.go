@@ -15,6 +15,7 @@ const (
 
 type (
 	Session struct {
+		RowNo              uint64               `json:"row_no,omitempty"`
 		ID                 string               `json:"id"`
 		StoreID            string               `json:"store_id"`
 		Date               string               `json:"date"`

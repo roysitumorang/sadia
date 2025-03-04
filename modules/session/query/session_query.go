@@ -141,7 +141,8 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 	query = strings.ReplaceAll(
 		query,
 		"COUNT(1)",
-		`s.id
+		`ROW_NUMBER() OVER (ORDER BY -s._id) AS row_no
+		, s.id
 		, s.store_id
 		, s.date
 		, s.status
@@ -155,7 +156,6 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 	)
 	builder.Reset()
 	_, _ = builder.WriteString(query)
-	_, _ = builder.WriteString(" ORDER by -s._id")
 	pages := int64(1)
 	if filter.Limit > 0 {
 		totalDecimal, err := decimal.New(total, 0)
@@ -209,6 +209,7 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 			TakeMoneyLineItems: []*sessionModel.TakeMoneyLineItem{},
 		}
 		if err = rows.Scan(
+			&session.RowNo,
 			&session.ID,
 			&session.StoreID,
 			&session.Date,

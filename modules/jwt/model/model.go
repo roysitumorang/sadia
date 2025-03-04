@@ -7,6 +7,7 @@ import (
 
 type (
 	JsonWebToken struct {
+		RowNo     uint64    `json:"row_no,omitempty"`
 		ID        string    `json:"string"`
 		Token     string    `json:"token"`
 		AccountID string    `json:"account_id"`

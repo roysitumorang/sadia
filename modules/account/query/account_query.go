@@ -262,7 +262,8 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 	query = strings.ReplaceAll(
 		query,
 		"COUNT(1)",
-		`a.id
+		`ROW_NUMBER() OVER (ORDER BY -a._id) AS row_no
+		, a.id
 		, a.account_type
 		, a.status
 		, a.name
@@ -300,7 +301,6 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 	)
 	builder.Reset()
 	_, _ = builder.WriteString(query)
-	_, _ = builder.WriteString(" ORDER by -a._id")
 	pages := int64(1)
 	if filter.Limit > 0 {
 		totalDecimal, err := decimal.New(total, 0)
@@ -338,6 +338,7 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 	for rows.Next() {
 		var account accountModel.Account
 		if err = rows.Scan(
+			&account.RowNo,
 			&account.ID,
 			&account.AccountType,
 			&account.Status,

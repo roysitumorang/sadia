@@ -113,7 +113,8 @@ func (q *companyQuery) FindCompanies(ctx context.Context, filter *companyModel.F
 	query = strings.ReplaceAll(
 		query,
 		"COUNT(1)",
-		`c.id
+		`ROW_NUMBER() OVER (ORDER BY -c._id) AS row_no
+		, c.id
 		, c.name
 		, c.slug
 		, c.status
@@ -127,7 +128,6 @@ func (q *companyQuery) FindCompanies(ctx context.Context, filter *companyModel.F
 	)
 	builder.Reset()
 	_, _ = builder.WriteString(query)
-	_, _ = builder.WriteString(" ORDER by -c._id")
 	pages := int64(1)
 	if filter.Limit > 0 {
 		totalDecimal, err := decimal.New(total, 0)
@@ -165,6 +165,7 @@ func (q *companyQuery) FindCompanies(ctx context.Context, filter *companyModel.F
 	for rows.Next() {
 		var company companyModel.Company
 		if err = rows.Scan(
+			&company.RowNo,
 			&company.ID,
 			&company.Name,
 			&company.Slug,

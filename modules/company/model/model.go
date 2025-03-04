@@ -12,6 +12,7 @@ import (
 
 type (
 	Company struct {
+		RowNo              uint64     `json:"row_no,omitempty"`
 		ID                 string     `json:"id"`
 		Name               string     `json:"name"`
 		Slug               string     `json:"slug"`

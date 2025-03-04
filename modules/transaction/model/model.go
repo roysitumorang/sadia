@@ -24,6 +24,7 @@ const (
 
 type (
 	Transaction struct {
+		RowNo         uint64      `json:"row_no,omitempty"`
 		ID            string      `json:"id"`
 		SessionID     string      `json:"session_id"`
 		ReferenceNo   string      `json:"reference_no"`

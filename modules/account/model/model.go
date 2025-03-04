@@ -27,6 +27,7 @@ const (
 
 type (
 	Account struct {
+		RowNo                   uint64     `json:"row_no,omitempty"`
 		ID                      string     `json:"id"`
 		AccountType             uint8      `json:"account_type"`
 		Status                  int8       `json:"status"`

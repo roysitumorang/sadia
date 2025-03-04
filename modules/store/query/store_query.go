@@ -112,7 +112,8 @@ func (q *storeQuery) FindStores(ctx context.Context, filter *storeModel.Filter) 
 	query = strings.ReplaceAll(
 		query,
 		"COUNT(1)",
-		`s.id
+		`ROW_NUMBER() OVER (ORDER BY -s._id) AS row_no
+		, s.id
 		, s.company_id
 		, s.name
 		, s.slug
@@ -124,7 +125,6 @@ func (q *storeQuery) FindStores(ctx context.Context, filter *storeModel.Filter) 
 	)
 	builder.Reset()
 	_, _ = builder.WriteString(query)
-	_, _ = builder.WriteString(" ORDER by -s._id")
 	pages := int64(1)
 	if filter.Limit > 0 {
 		totalDecimal, err := decimal.New(total, 0)
@@ -162,6 +162,7 @@ func (q *storeQuery) FindStores(ctx context.Context, filter *storeModel.Filter) 
 	for rows.Next() {
 		var store storeModel.Store
 		if err = rows.Scan(
+			&store.RowNo,
 			&store.ID,
 			&store.CompanyID,
 			&store.Name,

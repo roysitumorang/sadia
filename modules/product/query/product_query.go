@@ -126,7 +126,8 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 	query = strings.ReplaceAll(
 		query,
 		"COUNT(1)",
-		`p.id
+		`ROW_NUMBER() OVER (ORDER BY -p._id) AS row_no
+		, p.id
 		, p.company_id
 		, p.category_id
 		, p.name
@@ -141,7 +142,6 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 	)
 	builder.Reset()
 	_, _ = builder.WriteString(query)
-	_, _ = builder.WriteString(" ORDER by -p._id")
 	pages := int64(1)
 	if filter.Limit > 0 {
 		totalDecimal, err := decimal.New(total, 0)
@@ -179,6 +179,7 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 	for rows.Next() {
 		var product productModel.Product
 		if err = rows.Scan(
+			&product.RowNo,
 			&product.ID,
 			&product.CompanyID,
 			&product.CategoryID,

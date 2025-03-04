@@ -156,7 +156,7 @@ func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jw
 	if total == 0 {
 		return nil, 0, 0, nil
 	}
-	query = strings.ReplaceAll(query, "COUNT(1)", "id, token, account_id, created_at, expired_at")
+	query = strings.ReplaceAll(query, "COUNT(1)", "ROW_NUMBER() OVER (ORDER BY -_id) AS row_no, id, token, account_id, created_at, expired_at")
 	builder.Reset()
 	_, _ = builder.WriteString(query)
 	_, _ = builder.WriteString(" ORDER by -_id")
@@ -197,6 +197,7 @@ func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jw
 	for rows.Next() {
 		var jwt jwtModel.JsonWebToken
 		if err = rows.Scan(
+			&jwt.RowNo,
 			&jwt.ID,
 			&jwt.Token,
 			&jwt.AccountID,

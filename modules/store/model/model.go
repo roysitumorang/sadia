@@ -11,6 +11,7 @@ import (
 
 type (
 	Store struct {
+		RowNo            uint64    `json:"row_no,omitempty"`
 		ID               string    `json:"id"`
 		CompanyID        string    `json:"-"`
 		Name             string    `json:"name"`

@@ -149,7 +149,8 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 	query = strings.ReplaceAll(
 		query,
 		"COUNT(1)",
-		`t.id
+		`ROW_NUMBER() OVER (ORDER BY -t._id) AS row_no
+		, t.id
 		, t.session_id
 		, t.reference_no
 		, t.subtotal
@@ -163,7 +164,6 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 	)
 	builder.Reset()
 	_, _ = builder.WriteString(query)
-	_, _ = builder.WriteString(" ORDER by -t._id")
 	pages := int64(1)
 	if filter.Limit > 0 {
 		totalDecimal, err := decimal.New(total, 0)
@@ -200,7 +200,8 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 	builder.Reset()
 	_, _ = builder.WriteString(
 		`SELECT
-			id
+			ROW_NUMBER() OVER (ORDER BY -_id) AS row_no,
+			, id
 			, transaction_id
 			, product_id
 			, product_name
@@ -221,6 +222,7 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 			LineItems: []*transactionModel.LineItem{},
 		}
 		if err = rows.Scan(
+			&transaction.RowNo,
 			&transaction.ID,
 			&transaction.SessionID,
 			&transaction.ReferenceNo,
