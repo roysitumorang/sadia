@@ -17,11 +17,11 @@ require (
 	github.com/nsqio/go-nsq v1.1.0
 	github.com/nyaruka/phonenumbers v1.5.0
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/rushysloth/go-tsid v1.0.6
 	github.com/spf13/cobra v1.9.1
 	github.com/sqids/sqids-go v0.4.1
 	github.com/swaggo/fiber-swagger v1.3.0
 	github.com/swaggo/swag v1.16.4
-	github.com/vishal-bihani/go-tsid v1.0.5
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.36.0
 	golang.org/x/sync v0.12.0

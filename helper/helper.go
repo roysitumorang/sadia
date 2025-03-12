@@ -26,8 +26,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/keys"
 	"github.com/roysitumorang/sadia/models"
+	"github.com/rushysloth/go-tsid"
 	"github.com/sqids/sqids-go"
-	"github.com/vishal-bihani/go-tsid"
 	"golang.org/x/crypto/bcrypt"
 )
 
