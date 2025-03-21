@@ -94,8 +94,8 @@ github.com/mattn/go-runewidth v0.0.16/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nsqio/go-nsq v1.1.0 h1:PQg+xxiUjA7V+TLdXw7nVrJ5Jbl3sN86EhGCQj4+FYE=
 github.com/nsqio/go-nsq v1.1.0/go.mod h1:vKq36oyeVXgsS5Q8YEO7WghqidAVXQlcFxzQbQTuDEY=
-github.com/nyaruka/phonenumbers v1.5.0 h1:0M+Gd9zl53QC4Nl5z1Yj1O/zPk2XXBUwR/vlzdXSJv4=
-github.com/nyaruka/phonenumbers v1.5.0/go.mod h1:gv+CtldaFz+G3vHHnasBSirAi3O2XLqZzVWz4V1pl2E=
+github.com/nyaruka/phonenumbers v1.6.0 h1:r9ax45fFg+YLUs2X4bNXm5RAxWl00hYjFgNlv32vtHk=
+github.com/nyaruka/phonenumbers v1.6.0/go.mod h1:7gjs+Lchqm49adhAKB5cdcng5ZXgt6x7Jgvi0ZorUtU=
 github.com/otiai10/copy v1.7.0/go.mod h1:rmRl6QPdJj6EiUqXQ/4Nn2lLXoNQjFCQbbNrxgc/t3U=
 github.com/otiai10/curr v0.0.0-20150429015615-9b4961190c95/go.mod h1:9qAhocn7zKJG+0mI8eUu6xqkFDYS2kb2saOteoSB3cE=
 github.com/otiai10/curr v1.0.0/go.mod h1:LskTG5wDwr8Rs+nNQ+1LlxRjAtTZZjtJW4rMXl6j4vs=
