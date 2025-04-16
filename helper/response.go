@@ -6,10 +6,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-)
-
-const (
-	APP = "sadia"
+	"github.com/roysitumorang/sadia/config"
 )
 
 type (
@@ -31,7 +28,7 @@ func NewResponse(statusCode int) *Response {
 		StatusCode: statusCode,
 		Status:     http.StatusText(statusCode),
 		Timestamp:  time.Now(),
-		App:        APP,
+		App:        config.AppName,
 	}
 }
 

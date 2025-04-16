@@ -21,6 +21,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"github.com/gofiber/fiber/v2/middleware/rewrite"
+	"github.com/gofiber/fiber/v2/utils"
 	"github.com/joho/godotenv"
 	"github.com/roysitumorang/sadia/config"
 	_ "github.com/roysitumorang/sadia/docs"
@@ -63,7 +64,12 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		fiberzap.New(fiberzap.Config{
 			Logger: helper.GetLogger(),
 		}),
-		requestid.New(),
+		requestid.New(requestid.Config{
+			Next:       nil,
+			Header:     fiber.HeaderXRequestID,
+			Generator:  utils.UUIDv4,
+			ContextKey: "requestid",
+		}),
 		compress.New(),
 		rewrite.New(rewrite.Config{
 			Rules: map[string]string{
