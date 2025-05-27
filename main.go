@@ -25,6 +25,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -131,7 +132,7 @@ func main() {
 		Short: "new/run migration",
 		Args: func(_ *cobra.Command, args []string) (err error) {
 			if len(args) == 0 {
-				err = errors.New("requires at least 1 arg (new|run")
+				err = errors.New("requires at least 1 arg (new|run)")
 				return
 			}
 			if args[0] != "new" && args[0] != "run" {
@@ -174,11 +175,48 @@ func main() {
 			helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("%s migration successfully in %s", activity, duration.String()), ctxt, "")
 		},
 	}
+	cmdImport := &cobra.Command{
+		Use:   "import",
+		Short: "import products from excel",
+		Args: func(_ *cobra.Command, args []string) (err error) {
+			if len(args) < 3 {
+				return errors.New("requires excel filename, company ID & admin ID")
+			}
+			if _, err := os.Stat(args[0]); os.IsNotExist(err) {
+				return errors.New("excel file not found")
+			}
+			return
+		},
+		Run: func(_ *cobra.Command, args []string) {
+			now := time.Now()
+			if err := godotenv.Load(".env"); err != nil {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrLoad")
+				return
+			}
+			if err := helper.InitHelper(); err != nil {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrInitHelper")
+				return
+			}
+			service, err := router.MakeHandler(ctx)
+			if err != nil {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrMakeHandler")
+				return
+			}
+			helper.InitDbWrite(service.DbWrite)
+			if err := service.ProductUseCase.Import(ctx, args[0], args[1], args[2]); err != nil {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrImport")
+				return
+			}
+			duration := time.Since(now)
+			helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("importing products from excel successfully in %s", duration.String()), ctxt, "")
+		},
+	}
 	rootCmd := &cobra.Command{Use: config.AppName}
 	rootCmd.AddCommand(
 		cmdVersion,
 		cmdRun,
 		cmdMigration,
+		cmdImport,
 	)
 	rootCmd.SuggestionsMinimumDistance = 1
 	if err := rootCmd.Execute(); err != nil {

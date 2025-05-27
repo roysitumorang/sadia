@@ -93,7 +93,7 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 		builder.Reset()
 		_, _ = builder.WriteString("(LOWER(p.name) LIKE $")
 		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(" OR p.slug LIKE $")
+		_, _ = builder.WriteString(" OR LOWER(p.code) LIKE $")
 		_, _ = builder.WriteString(n)
 		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
@@ -131,10 +131,17 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 		, p.company_id
 		, p.category_id
 		, p.name
-		, p.slug
+		, p.code
 		, p.uom
+		, p.stock_type
+		, p.minimum_stock
 		, p.stock
-		, p.price
+		, p.purchase_price
+		, p.selling_price
+		, p.weight
+		, p.discount_type
+		, p.discount_value
+		, p.rack_position
 		, p.created_by
 		, p.created_at
 		, p.updated_by
@@ -184,10 +191,17 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 			&product.CompanyID,
 			&product.CategoryID,
 			&product.Name,
-			&product.Slug,
+			&product.Code,
 			&product.UOM,
+			&product.StockType,
+			&product.MinimumStock,
 			&product.Stock,
-			&product.Price,
+			&product.PurchasePrice,
+			&product.SellingPrice,
+			&product.Weight,
+			&product.DiscountType,
+			&product.DiscountValue,
+			&product.RackPosition,
 			&product.CreatedBy,
 			&product.CreatedAt,
 			&product.UpdatedBy,
@@ -218,23 +232,37 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 			, company_id
 			, category_id
 			, name
-			, slug
+			, code
 			, uom
+			, stock_type
+			, minimum_stock
 			, stock
-			, price
+			, purchase_price
+			, selling_price
+			, weight
+			, discount_type
+			, discount_value
+			, rack_position
 			, created_by
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $10, $11)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $17, $18)
 		RETURNING id
 			, company_id
 			, category_id
 			, name
-			, slug
+			, code
 			, uom
+			, stock_type
+			, minimum_stock
 			, stock
-			, price
+			, purchase_price
+			, selling_price
+			, weight
+			, discount_type
+			, discount_value
+			, rack_position
 			, created_by
 			, created_at
 			, updated_by
@@ -244,10 +272,17 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 		request.CompanyID,
 		request.CategoryID,
 		request.Name,
-		request.Slug,
+		request.Code,
 		request.UOM,
+		request.StockType,
+		request.MinimumStock,
 		request.Stock,
-		request.Price,
+		request.PurchasePrice,
+		request.SellingPrice,
+		request.Weight,
+		request.DiscountType,
+		request.DiscountValue,
+		request.RackPosition,
 		request.CreatedBy,
 		now,
 	).Scan(
@@ -255,10 +290,17 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 		&response.CompanyID,
 		&response.CategoryID,
 		&response.Name,
-		&response.Slug,
+		&response.Code,
 		&response.UOM,
+		&response.StockType,
+		&response.MinimumStock,
 		&response.Stock,
-		&response.Price,
+		&response.PurchasePrice,
+		&response.SellingPrice,
+		&response.Weight,
+		&response.DiscountType,
+		&response.DiscountValue,
+		&response.RackPosition,
 		&response.CreatedBy,
 		&response.CreatedAt,
 		&response.UpdatedBy,
@@ -270,8 +312,8 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 			switch pgxErr.ConstraintName {
 			case "products_lower_company_id_idx":
 				err = productModel.ErrUniqueNameViolation
-			case "products_slug_company_id_idx":
-				err = productModel.ErrUniqueSlugViolation
+			case "products_code_company_id_idx":
+				err = productModel.ErrUniqueCodeViolation
 			}
 		} else {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
@@ -289,31 +331,52 @@ func (q *productQuery) UpdateProduct(ctx context.Context, request *productModel.
 		`UPDATE products SET
 			category_id = $1
 			, name = $2
-			, slug = $3
+			, code = $3
 			, uom = $4
-			, stock = $5
-			, price = $6
-			, updated_by = $7
-			, updated_at = $8
-		WHERE id = $9
+			, stock_type = $5
+			, minimum_stock = $6
+			, stock = $7
+			, purchase_price = $8
+			, selling_price = $9
+			, weight = $10
+			, discount_type = $11
+			, discount_value = $12
+			, rack_position = $13
+			, updated_by = $14
+			, updated_at = $15
+		WHERE id = $16
 		RETURNING id
 			, company_id
 			, category_id
 			, name
-			, slug
+			, code
 			, uom
+			, stock_type
+			, minimum_stock
 			, stock
-			, price
+			, purchase_price
+			, selling_price
+			, weight
+			, discount_type
+			, discount_value
+			, rack_position
 			, created_by
 			, created_at
 			, updated_by
 			, updated_at`,
 		request.CategoryID,
 		request.Name,
-		request.Slug,
+		request.Code,
 		request.UOM,
+		request.StockType,
+		request.MinimumStock,
 		request.Stock,
-		request.Price,
+		request.PurchasePrice,
+		request.SellingPrice,
+		request.Weight,
+		request.DiscountType,
+		request.DiscountValue,
+		request.RackPosition,
 		request.UpdatedBy,
 		now,
 		request.ID,
@@ -322,10 +385,17 @@ func (q *productQuery) UpdateProduct(ctx context.Context, request *productModel.
 		&request.CompanyID,
 		&request.CategoryID,
 		&request.Name,
-		&request.Slug,
+		&request.Code,
 		&request.UOM,
+		&request.StockType,
+		&request.MinimumStock,
 		&request.Stock,
-		&request.Price,
+		&request.PurchasePrice,
+		&request.SellingPrice,
+		&request.Weight,
+		&request.DiscountType,
+		&request.DiscountValue,
+		&request.RackPosition,
 		&request.CreatedBy,
 		&request.CreatedAt,
 		&request.UpdatedBy,
@@ -338,12 +408,109 @@ func (q *productQuery) UpdateProduct(ctx context.Context, request *productModel.
 			switch pgxErr.ConstraintName {
 			case "products_lower_company_id_idx":
 				err = productModel.ErrUniqueNameViolation
-			case "products_slug_company_id_idx":
-				err = productModel.ErrUniqueSlugViolation
+			case "products_code_company_id_idx":
+				err = productModel.ErrUniqueCodeViolation
 			}
 		} else {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		}
+	}
+	return err
+}
+
+func (q *productQuery) Import(ctx context.Context, products []productModel.Product, companyID, adminID string) (err error) {
+	ctxt := "ProductQuery-Import"
+	var (
+		productID   int64
+		productSqID string
+		now         time.Time
+	)
+	tx, err := q.dbWrite.Begin(ctx)
+	if err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrBegin")
+		return
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errRollback == pgx.ErrTxClosed {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
+	}()
+	for _, product := range products {
+		if productID, productSqID, _, err = helper.GenerateUniqueID(); err != nil {
+			if errRollback := tx.Rollback(ctx); errRollback != nil {
+				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+			}
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
+			return
+		}
+		now = time.Now()
+		if _, err = tx.Exec(
+			ctx,
+			`INSERT INTO products (
+				_id
+				, id
+				, company_id
+				, category_id
+				, name
+				, code
+				, uom
+				, stock_type
+				, minimum_stock
+				, stock
+				, purchase_price
+				, selling_price
+				, weight
+				, discount_type
+				, discount_value
+				, rack_position
+				, created_by
+				, created_at
+				, updated_by
+				, updated_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $17, $18)`,
+			productID,
+			productSqID,
+			companyID,
+			product.CategoryID,
+			product.Name,
+			product.Code,
+			product.UOM,
+			product.StockType,
+			product.MinimumStock,
+			product.Stock,
+			product.PurchasePrice,
+			product.SellingPrice,
+			product.Weight,
+			product.DiscountType,
+			product.DiscountValue,
+			product.RackPosition,
+			adminID,
+			now,
+		); err != nil {
+			if errRollback := tx.Rollback(ctx); errRollback != nil {
+				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+			}
+			var pgxErr *pgconn.PgError
+			if errors.As(err, &pgxErr) &&
+				pgxErr.Code == pgerrcode.UniqueViolation {
+				switch pgxErr.ConstraintName {
+				case "products_lower_company_id_idx":
+					err = productModel.ErrUniqueNameViolation
+				case "products_code_company_id_idx":
+					err = productModel.ErrUniqueCodeViolation
+				}
+			} else {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			}
+			return err
+		}
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrCommit")
 	}
 	return err
 }

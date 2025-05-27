@@ -167,10 +167,11 @@ func (q *productHTTPHandler) UserUpdateProduct(c *fiber.Ctx) error {
 	product := products[0]
 	product.CategoryID = request.CategoryID
 	product.Name = request.Name
-	product.Slug = request.Slug
+	product.Code = request.Code
 	product.UOM = request.UOM
 	product.Stock = request.Stock
-	product.Price = request.Price
+	product.PurchasePrice = request.PurchasePrice
+	product.SellingPrice = request.SellingPrice
 	product.UpdatedBy = currentUser.ID
 	if err = q.productUseCase.UpdateProduct(ctx, product); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateProduct")

@@ -105,7 +105,7 @@ func (q *Transaction) Calculate(products map[string]*productModel.Product) error
 		}
 		lineItem.ProductName = product.Name
 		lineItem.ProductUOM = product.UOM
-		lineItem.Price = product.Price
+		lineItem.Price = product.SellingPrice
 		if lineItem.Quantity > product.Stock {
 			return fmt.Errorf("line_items[%d]:quantity %d exceeds stock", i, lineItem.Quantity)
 		}

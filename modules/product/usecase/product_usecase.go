@@ -2,11 +2,13 @@ package usecase
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	productModel "github.com/roysitumorang/sadia/modules/product/model"
 	productQuery "github.com/roysitumorang/sadia/modules/product/query"
+	"github.com/xuri/excelize/v2"
 	"go.uber.org/zap"
 )
 
@@ -67,4 +69,59 @@ func (q *productUseCase) ConsumeMessage(ctx context.Context, topic string, messa
 		return nil
 	}
 	return nil
+}
+
+func (q *productUseCase) Import(ctx context.Context, filename, companyID, adminID string) error {
+	ctxt := "ProductUseCase-Import"
+	f, err := excelize.OpenFile(filename)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrOpenFile")
+		return err
+	}
+	defer func() {
+		if err = f.Close(); err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrClose")
+		}
+	}()
+	rows, err := f.GetRows("barang")
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGetRows")
+		return err
+	}
+	var (
+		products []productModel.Product
+		product  productModel.Product
+	)
+	for i, row := range rows {
+		if i < 2 {
+			continue
+		}
+		sellingPrice, err := strconv.ParseInt(row[5], 10, 64)
+		if err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+			return err
+		}
+		purchasePrice, err := strconv.ParseInt(row[6], 10, 64)
+		if err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+			return err
+		}
+		stock, err := strconv.ParseInt(row[8], 10, 64)
+		if err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+			return err
+		}
+		product.Code = row[1]
+		product.Name = row[2]
+		product.SellingPrice = sellingPrice
+		product.PurchasePrice = purchasePrice
+		product.Stock = stock
+		product.UOM = row[11]
+		product.RackPosition = row[13]
+		products = append(products, product)
+	}
+	if err = q.productQuery.Import(ctx, products, companyID, adminID); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrImport")
+	}
+	return err
 }

@@ -13,5 +13,6 @@ type (
 		CreateProduct(ctx context.Context, request *productModel.Product) (*productModel.Product, error)
 		UpdateProduct(ctx context.Context, request *productModel.Product) error
 		ConsumeMessage(ctx context.Context, topic string, message []byte) error
+		Import(ctx context.Context, filename, companyID, adminID string) error
 	}
 )
