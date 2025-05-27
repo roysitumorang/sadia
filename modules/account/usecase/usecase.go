@@ -19,6 +19,6 @@ type (
 		FindUsers(ctx context.Context, filter *accountModel.Filter) ([]*accountModel.User, *models.Pagination, error)
 		CreateUser(ctx context.Context, tx pgx.Tx, request *accountModel.NewUser) (*accountModel.User, error)
 		UpdateUser(ctx context.Context, tx pgx.Tx, request *accountModel.User) error
-		ConsumeMessage(ctx context.Context) error
+		ConsumeMessage(ctx context.Context, topic string, message []byte) error
 	}
 )

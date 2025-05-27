@@ -13,6 +13,6 @@ type (
 		FindStores(ctx context.Context, filter *storeModel.Filter) ([]*storeModel.Store, *models.Pagination, error)
 		CreateStore(ctx context.Context, request *storeModel.Store) (*storeModel.Store, error)
 		UpdateStore(ctx context.Context, tx pgx.Tx, request *storeModel.Store) error
-		ConsumeMessage(ctx context.Context) error
+		ConsumeMessage(ctx context.Context, topic string, message []byte) error
 	}
 )

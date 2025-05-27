@@ -32,7 +32,6 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/roysitumorang/sadia/config"
 	"github.com/roysitumorang/sadia/helper"
-	"github.com/roysitumorang/sadia/models"
 	jwtModel "github.com/roysitumorang/sadia/modules/jwt/model"
 	"github.com/roysitumorang/sadia/router"
 	"github.com/spf13/cobra"
@@ -78,92 +77,7 @@ func main() {
 				return service.HTTPServerMain(ctx)
 			})
 			g.Go(func() error {
-				err := service.NsqProducer.Publish(ctx, config.TopicAccount, models.Message{})
-				if err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrPublish")
-					return err
-				}
-				if err = service.AccountUseCase.ConsumeMessage(ctx); err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
-				}
-				return err
-			})
-			g.Go(func() error {
-				err := service.NsqProducer.Publish(ctx, config.TopicJwt, models.Message{})
-				if err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrPublish")
-					return err
-				}
-				if err = service.JwtUseCase.ConsumeMessage(ctx); err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
-				}
-				return err
-			})
-			g.Go(func() error {
-				err := service.NsqProducer.Publish(ctx, config.TopicCompany, models.Message{})
-				if err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrPublish")
-					return err
-				}
-				if err = service.CompanyUseCase.ConsumeMessage(ctx); err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
-				}
-				return err
-			})
-			g.Go(func() error {
-				err := service.NsqProducer.Publish(ctx, config.TopicProductCategory, models.Message{})
-				if err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrPublish")
-					return err
-				}
-				if err = service.ProductCategoryUseCase.ConsumeMessage(ctx); err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
-				}
-				return err
-			})
-			g.Go(func() error {
-				err := service.NsqProducer.Publish(ctx, config.TopicProduct, models.Message{})
-				if err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrPublish")
-					return err
-				}
-				if err = service.ProductUseCase.ConsumeMessage(ctx); err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
-				}
-				return err
-			})
-			g.Go(func() error {
-				err := service.NsqProducer.Publish(ctx, config.TopicStore, models.Message{})
-				if err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrPublish")
-					return err
-				}
-				if err = service.StoreUseCase.ConsumeMessage(ctx); err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
-				}
-				return err
-			})
-			g.Go(func() error {
-				err := service.NsqProducer.Publish(ctx, config.TopicSession, models.Message{})
-				if err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrPublish")
-					return err
-				}
-				if err = service.SessionUseCase.ConsumeMessage(ctx); err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
-				}
-				return err
-			})
-			g.Go(func() error {
-				err := service.NsqProducer.Publish(ctx, config.TopicTransaction, models.Message{})
-				if err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrPublish")
-					return err
-				}
-				if err = service.TransactionUseCase.ConsumeMessage(ctx); err != nil {
-					helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrConsumeMessage")
-				}
-				return err
+				return service.Consume(ctx)
 			})
 			g.Go(func() error {
 				c := cron.New(cron.WithChain(

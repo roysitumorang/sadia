@@ -13,6 +13,6 @@ type (
 		FindCompanies(ctx context.Context, filter *companyModel.Filter) ([]*companyModel.Company, *models.Pagination, error)
 		CreateCompany(ctx context.Context, tx pgx.Tx, request *companyModel.NewCompany) (*companyModel.Company, error)
 		UpdateCompany(ctx context.Context, tx pgx.Tx, request *companyModel.Company) error
-		ConsumeMessage(ctx context.Context) error
+		ConsumeMessage(ctx context.Context, topic string, message []byte) error
 	}
 )

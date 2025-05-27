@@ -2,45 +2,27 @@ package usecase
 
 import (
 	"context"
-	"fmt"
-	"sync/atomic"
-	"time"
 
-	"github.com/goccy/go-json"
 	"github.com/jackc/pgx/v5"
-	"github.com/nsqio/go-nsq"
-	"github.com/roysitumorang/sadia/config"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	accountQuery "github.com/roysitumorang/sadia/modules/account/query"
-	serviceNsq "github.com/roysitumorang/sadia/services/nsq"
 	"go.uber.org/zap"
 )
 
 type (
 	accountUseCase struct {
 		accountQuery accountQuery.AccountQuery
-		nsqConsumer  *serviceNsq.Consumer
 	}
 )
 
 func New(
-	ctx context.Context,
 	accountQuery accountQuery.AccountQuery,
-	nsqAddress string,
-	nsqConfig *nsq.Config,
-) (AccountUseCase, error) {
-	ctxt := "AccountUseCase-New"
-	nsqConsumer, err := serviceNsq.NewConsumer(ctx, nsqAddress, config.TopicAccount, config.NsqChannel, nsqConfig)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNewConsumer")
-		return nil, err
-	}
+) AccountUseCase {
 	return &accountUseCase{
 		accountQuery: accountQuery,
-		nsqConsumer:  nsqConsumer,
-	}, nil
+	}
 }
 
 func (q *accountUseCase) FindAccounts(ctx context.Context, filter *accountModel.Filter) ([]*accountModel.Account, *models.Pagination, error) {
@@ -161,38 +143,9 @@ func (q *accountUseCase) UpdateUser(ctx context.Context, tx pgx.Tx, request *acc
 	return err
 }
 
-func (q *accountUseCase) ConsumeMessage(ctx context.Context) error {
-	ctxt := "AccountUseCase-ConsumeMessage"
-	var counter uint64
-	helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("consume topic %s", config.TopicAccount), ctxt, "")
-	err := q.nsqConsumer.AddHandler(ctx, func(message *nsq.Message) error {
-		now := time.Now()
-		atomic.AddUint64(&counter, 1)
-		var body models.Message
-		if err := json.Unmarshal(message.Body, &body); err != nil {
-			message.Finish()
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrUnmarshal")
-			return nil
-		}
-		message.Finish()
-		duration := time.Since(now)
-		helper.Log(
-			ctx,
-			zap.InfoLevel,
-			fmt.Sprintf(
-				"message on topic %s@%d: %s, consumed in %s",
-				config.TopicAccount,
-				atomic.LoadUint64(&counter),
-				helper.ByteSlice2String(message.Body),
-				duration.String(),
-			),
-			ctxt,
-			"",
-		)
+func (q *accountUseCase) ConsumeMessage(ctx context.Context, topic string, message []byte) error {
+	if topic != models.TopicAccount {
 		return nil
-	})
-	if err != nil {
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrAddHandler")
 	}
-	return err
+	return nil
 }

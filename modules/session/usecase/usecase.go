@@ -13,6 +13,6 @@ type (
 		FindSessions(ctx context.Context, filter *sessionModel.Filter) ([]*sessionModel.Session, *models.Pagination, error)
 		CreateSession(ctx context.Context, tx pgx.Tx, request *sessionModel.NewSession) (*sessionModel.Session, error)
 		UpdateSession(ctx context.Context, tx pgx.Tx, request *sessionModel.Session) error
-		ConsumeMessage(ctx context.Context) error
+		ConsumeMessage(ctx context.Context, topic string, message []byte) error
 	}
 )

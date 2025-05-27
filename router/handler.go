@@ -2,11 +2,17 @@ package router
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"os"
+	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/config"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/migration"
+	"github.com/roysitumorang/sadia/models"
 	accountQuery "github.com/roysitumorang/sadia/modules/account/query"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
 	companyQuery "github.com/roysitumorang/sadia/modules/company/query"
@@ -25,7 +31,7 @@ import (
 	storeUseCase "github.com/roysitumorang/sadia/modules/store/usecase"
 	transactionQuery "github.com/roysitumorang/sadia/modules/transaction/query"
 	transactionUseCase "github.com/roysitumorang/sadia/modules/transaction/usecase"
-	serviceNsq "github.com/roysitumorang/sadia/services/nsq"
+	"github.com/roysitumorang/sadia/services/kafka"
 	"go.uber.org/zap"
 )
 
@@ -33,7 +39,7 @@ type (
 	Service struct {
 		DbWrite                *pgxpool.Pool
 		Migration              *migration.Migration
-		NsqProducer            *serviceNsq.Producer
+		KafkaService           *kafka.KafkaService
 		AccountUseCase         accountUseCase.AccountUseCase
 		JwtUseCase             jwtUseCase.JwtUseCase
 		CompanyUseCase         companyUseCase.CompanyUseCase
@@ -59,17 +65,23 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		return nil, err
 	}
 	migration := migration.New(dbRead, dbWrite)
-	nsqAddress := helper.GetNsqAddress()
-	nsqConfig := serviceNsq.NewConfig()
-	nsqProducer, err := serviceNsq.NewProducer(ctx, nsqAddress, nsqConfig)
+	kafkaService, err := kafka.New(ctx, strings.Split(os.Getenv("KAFKA_BROKERS"), ","))
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNewProducer")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
 		return nil, err
 	}
-	if err := nsqProducer.Ping(ctx); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrPing")
+	if err = kafkaService.Ping(ctx); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrPing")
 		return nil, err
 	}
+	topics := make([]kafka.Topic, len(models.SliceTopics))
+	for i, topic := range models.SliceTopics {
+		topics[i] = kafka.Topic{
+			Name:     topic,
+			Payloads: []map[string]any{},
+		}
+	}
+	_ = kafkaService.Publish(ctx, topics...)
 	accountQuery := accountQuery.New(dbRead, dbWrite)
 	jwtQuery := jwtQuery.New(dbRead, dbWrite)
 	companyQuery := companyQuery.New(dbRead, dbWrite)
@@ -79,51 +91,19 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 	sessionQuery := sessionQuery.New(dbRead, dbWrite)
 	sequenceQuery := sequenceQuery.New(dbRead, dbWrite)
 	transactionQuery := transactionQuery.New(dbRead, dbWrite)
-	accountUseCase, err := accountUseCase.New(ctx, accountQuery, nsqAddress, nsqConfig)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
-		return nil, err
-	}
-	jwtUseCase, err := jwtUseCase.New(ctx, jwtQuery, nsqAddress, nsqConfig)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
-		return nil, err
-	}
-	companyUseCase, err := companyUseCase.New(ctx, companyQuery, nsqAddress, nsqConfig)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
-		return nil, err
-	}
-	productCategoryUseCase, err := productCategoryUseCase.New(ctx, productCategoryQuery, nsqAddress, nsqConfig)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
-		return nil, err
-	}
-	productUseCase, err := productUseCase.New(ctx, productQuery, nsqAddress, nsqConfig)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
-		return nil, err
-	}
-	storeUseCase, err := storeUseCase.New(ctx, storeQuery, nsqAddress, nsqConfig)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
-		return nil, err
-	}
-	sessionUseCase, err := sessionUseCase.New(ctx, sessionQuery, nsqAddress, nsqConfig)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
-		return nil, err
-	}
+	accountUseCase := accountUseCase.New(accountQuery)
+	jwtUseCase := jwtUseCase.New(jwtQuery)
+	companyUseCase := companyUseCase.New(companyQuery)
+	productCategoryUseCase := productCategoryUseCase.New(productCategoryQuery)
+	productUseCase := productUseCase.New(productQuery)
+	storeUseCase := storeUseCase.New(storeQuery)
+	sessionUseCase := sessionUseCase.New(sessionQuery)
 	sequenceUseCase := sequenceUseCase.New(sequenceQuery)
-	transactionUseCase, err := transactionUseCase.New(ctx, transactionQuery, nsqAddress, nsqConfig)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
-		return nil, err
-	}
+	transactionUseCase := transactionUseCase.New(transactionQuery)
 	return &Service{
 		DbWrite:                dbWrite,
 		Migration:              migration,
-		NsqProducer:            nsqProducer,
+		KafkaService:           kafkaService,
 		AccountUseCase:         accountUseCase,
 		JwtUseCase:             jwtUseCase,
 		CompanyUseCase:         companyUseCase,
@@ -134,4 +114,63 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		SequenceUseCase:        sequenceUseCase,
 		TransactionUseCase:     transactionUseCase,
 	}, nil
+}
+
+func (q *Service) Consume(ctx context.Context) error {
+	ctxt := "Router-Consume"
+	defer func() {
+		if r := recover(); r != nil {
+			err, ok := r.(error)
+			if !ok {
+				err = fmt.Errorf("%v", r)
+			}
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrRecover")
+		}
+	}()
+	for {
+		fetches := q.KafkaService.PollFetches(ctx)
+		if fetches.IsClientClosed() {
+			return nil
+		}
+		if errs := fetches.Errors(); len(errs) > 0 {
+			err := errors.New(fmt.Sprint(errs))
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrPollFetches")
+			return err
+		}
+		records := fetches.Records()
+		if err := q.KafkaService.CommitUncommittedOffsets(ctx); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrCommitUncommittedOffsets")
+			return err
+		}
+		q.KafkaService.AllowRebalance()
+		for _, record := range records {
+			now := time.Now()
+			if err := q.AccountUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
+			}
+			if err := q.CompanyUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
+			}
+			if err := q.JwtUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
+			}
+			if err := q.ProductUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
+			}
+			if err := q.ProductCategoryUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
+			}
+			if err := q.SessionUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
+			}
+			if err := q.StoreUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
+			}
+			if err := q.TransactionUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
+			}
+			duration := time.Since(now)
+			helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("consumed message on topic %s[%d]@%d: %s in %s", record.Topic, record.Partition, record.Offset, record.Value, duration.String()), ctxt, "")
+		}
+	}
 }

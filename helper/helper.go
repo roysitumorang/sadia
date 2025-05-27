@@ -40,8 +40,8 @@ const (
 var (
 	timeZone *time.Location
 	env,
-	jwtIssuer,
-	nsqAddress string
+	jwtIssuer string
+	kafkaBrokers           []string
 	loginMaxFailedAttempts int
 	loginLockoutDuration,
 	accessTokenAge time.Duration
@@ -66,9 +66,11 @@ var (
 		if jwtIssuer, ok = os.LookupEnv("JWT_ISSUER"); !ok || jwtIssuer == "" {
 			return errors.New("env JWT_ISSUER is required")
 		}
-		if nsqAddress, ok = os.LookupEnv("NSQ_ADDRESS"); !ok || nsqAddress == "" {
-			return errors.New("env NSQ_ADDRESS is required")
+		envKafkaBrokers, ok := os.LookupEnv("KAFKA_BROKERS")
+		if !ok || envKafkaBrokers == "" {
+			return errors.New("env KAFKA_BROKERS is required")
 		}
+		kafkaBrokers = strings.Split(envKafkaBrokers, ";")
 		envLoginMaxFailedAttempts, ok := os.LookupEnv("LOGIN_MAX_FAILED_ATTEMPTS")
 		if !ok || envLoginMaxFailedAttempts == "" {
 			return errors.New("env LOGIN_MAX_FAILED_ATTEMPTS is required")
@@ -275,8 +277,8 @@ func GenerateAccessToken(id, subject, audience string, createdAt, expiredAt time
 	return token.SignedString(privateKey)
 }
 
-func GetNsqAddress() string {
-	return nsqAddress
+func GetKafkaBrokers() []string {
+	return kafkaBrokers
 }
 
 // RandomString generate random string

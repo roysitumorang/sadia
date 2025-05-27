@@ -12,6 +12,6 @@ type (
 		FindProducts(ctx context.Context, filter *productModel.Filter) ([]*productModel.Product, *models.Pagination, error)
 		CreateProduct(ctx context.Context, request *productModel.Product) (*productModel.Product, error)
 		UpdateProduct(ctx context.Context, request *productModel.Product) error
-		ConsumeMessage(ctx context.Context) error
+		ConsumeMessage(ctx context.Context, topic string, message []byte) error
 	}
 )

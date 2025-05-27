@@ -12,6 +12,6 @@ type (
 	TransactionUseCase interface {
 		FindTransactions(ctx context.Context, filter *transactionModel.Filter) ([]*transactionModel.Transaction, *models.Pagination, error)
 		CreateTransaction(ctx context.Context, tx pgx.Tx, request *transactionModel.Transaction) (*transactionModel.Transaction, error)
-		ConsumeMessage(ctx context.Context) error
+		ConsumeMessage(ctx context.Context, topic string, message []byte) error
 	}
 )

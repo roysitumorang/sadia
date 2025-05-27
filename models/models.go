@@ -27,6 +27,17 @@ const (
 	StatusDeactivated int8 = -1
 )
 
+const (
+	TopicAccount         = "account"
+	TopicJwt             = "jwt"
+	TopicCompany         = "company"
+	TopicProductCategory = "product_category"
+	TopicProduct         = "product"
+	TopicStore           = "store"
+	TopicSession         = "session"
+	TopicTransaction     = "transaction"
+)
+
 type (
 	Pagination struct {
 		Links struct {
@@ -62,6 +73,26 @@ var (
 	Limits           = []int{1, 10, 25, 50, 100}
 	PhoneNumberRegex = regexp.MustCompile(`^\+[1-9]\d{1,14}$`)
 	UsernameRegex    = regexp.MustCompile("[^a-z0-9]+")
+	SliceTopics      = []string{
+		TopicAccount,
+		TopicJwt,
+		TopicCompany,
+		TopicProductCategory,
+		TopicProduct,
+		TopicStore,
+		TopicSession,
+		TopicTransaction,
+	}
+	MapTopics = map[string]int{
+		TopicAccount:         1,
+		TopicJwt:             1,
+		TopicCompany:         1,
+		TopicProductCategory: 1,
+		TopicProduct:         1,
+		TopicStore:           1,
+		TopicSession:         1,
+		TopicTransaction:     1,
+	}
 )
 
 func (q *NewAccount) Validate() error {
