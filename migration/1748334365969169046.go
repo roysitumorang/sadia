@@ -242,14 +242,28 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE INDEX ON products (LOWER(name), company_id)`,
+			`CREATE UNIQUE INDEX ON products (LOWER(name), LOWER(code), LOWER(uom), company_id)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE INDEX ON products (code, company_id)`,
+			`CREATE INDEX ON products (LOWER(name))`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON products (LOWER(code))`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON products (LOWER(uom))`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
