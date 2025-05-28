@@ -49,7 +49,7 @@ func (q *sequenceQuery) SaveSequence(ctx context.Context, name, savedBy string) 
 			, updated_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $5, $6)
 		ON CONFLICT (name) DO UPDATE SET
-			number = number + 1
+			number = sequences.number + 1
 		RETURNING id
 			, name
 			, number

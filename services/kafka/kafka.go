@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/roysitumorang/sadia/config"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	"github.com/twmb/franz-go/pkg/kgo"
@@ -28,7 +29,7 @@ func New(ctx context.Context, brokers []string) (*KafkaService, error) {
 	ctxt := "KafkaService-New"
 	client, err := kgo.NewClient(
 		kgo.SeedBrokers(brokers...),
-		kgo.ConsumerGroup("notification"),
+		kgo.ConsumerGroup(config.AppName),
 		kgo.AllowAutoTopicCreation(),
 		kgo.ConsumeTopics(models.SliceTopics...),
 		kgo.DisableAutoCommit(),

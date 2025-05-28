@@ -57,7 +57,7 @@ func (q *transactionHTTPHandler) Mount(r fiber.Router) {
 	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase)
 	r.Get("", userKeyAuth, q.UserFindTransactions).
 		Post("", userKeyAuth, q.UserCreateTransaction).
-		Get("/:id", userKeyAuth, q.UserFindCurrentTransaction)
+		Get("/:id", userKeyAuth, q.UserFindTransaction)
 }
 
 func (q *transactionHTTPHandler) UserFindTransactions(c *fiber.Ctx) error {
@@ -89,7 +89,7 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c *fiber.Ctx) error {
 	ctxt := "TransactionPresenter-UserCreateTransaction"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	if currentUser.CurrentSessionID == nil {
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active transaction").WriteResponse(c)
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active session").WriteResponse(c)
 	}
 	sessions, _, err := q.sessionUseCase.FindSessions(
 		ctx,
@@ -122,7 +122,7 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c *fiber.Ctx) error {
 		),
 	)
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindStores")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProducts")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
 	if len(products) == 0 {
@@ -133,6 +133,7 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c *fiber.Ctx) error {
 		mapProducts[product.ID] = product
 	}
 	if err = request.Calculate(mapProducts); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCalculate")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
 	session.TransactionValue += request.Total
@@ -141,8 +142,10 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c *fiber.Ctx) error {
 	period := now.In(timeZone).Format("20060102")
 	sequence, err := q.sequenceUseCase.SaveSequence(ctx, fmt.Sprintf("%s-%s", transactionModel.TableName, period), currentUser.ID)
 	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrSaveSequence")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
+	request.SessionID = session.ID
 	request.ReferenceNo = fmt.Sprintf(transactionModel.ReferenceNoFormat, period, sequence.Number)
 	request.CreatedBy = currentUser.ID
 	tx, err := helper.BeginTx(ctx)
@@ -175,12 +178,12 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *transactionHTTPHandler) UserFindCurrentTransaction(c *fiber.Ctx) error {
+func (q *transactionHTTPHandler) UserFindTransaction(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	ctxt := "TransactionPresenter-UserFindCurrentTransaction"
+	ctxt := "TransactionPresenter-UserFindTransaction"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	if currentUser.CurrentSessionID == nil {
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active transaction").WriteResponse(c)
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active session").WriteResponse(c)
 	}
 	transactions, _, err := q.transactionUseCase.FindTransactions(
 		ctx,

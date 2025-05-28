@@ -8,13 +8,9 @@ import (
 	"sync"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/roysitumorang/sadia/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-)
-
-const (
-	topic   = "sadia-service-log"
-	service = "sadia"
 )
 
 var (
@@ -46,14 +42,14 @@ func GetLogger() *zap.Logger {
 	return logger
 }
 
-func logContext(_ context.Context, context, scope string) *zap.Logger {
+func logContext(context, scope string) *zap.Logger {
 	defer func() {
 		_ = logger.Sync()
 	}()
 	fields := []zap.Field{
-		zap.String("topic", topic),
+		zap.String("topic", fmt.Sprintf("%s-service-log", config.AppName)),
 		zap.String("context", context),
-		zap.String("service", service),
+		zap.String("service", config.AppName),
 	}
 	if scope != "" {
 		fields = append(fields, zap.String("scope", scope))
@@ -62,7 +58,7 @@ func logContext(_ context.Context, context, scope string) *zap.Logger {
 }
 
 func Log(ctx context.Context, level zapcore.Level, message, context, scope string) {
-	entry := logContext(ctx, context, scope)
+	entry := logContext(context, scope)
 	switch level {
 	case zap.DebugLevel:
 		entry.Debug(message)
@@ -90,7 +86,7 @@ func Log(ctx context.Context, level zapcore.Level, message, context, scope strin
 }
 
 func Capture(ctx context.Context, level zapcore.Level, err error, context, scope string) {
-	entry := logContext(ctx, context, scope)
+	entry := logContext(context, scope)
 	switch level {
 	case zap.DebugLevel:
 		entry.Debug(err.Error())

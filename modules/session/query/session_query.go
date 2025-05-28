@@ -144,7 +144,7 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 		`ROW_NUMBER() OVER (ORDER BY -s._id) AS row_no
 		, s.id
 		, s.store_id
-		, s.date
+		, s.date::text
 		, s.status
 		, s.cashbox_value
 		, s.cashbox_note
@@ -305,7 +305,7 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 			, created_by = EXCLUDED.created_by
 		RETURNING id
 			, store_id
-			, date
+			, date::text
 			, status
 			, cashbox_value
 			, cashbox_note
@@ -409,7 +409,7 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 		WHERE id = $5
 		RETURNING id
 			, store_id
-			, date
+			, date::text
 			, status
 			, cashbox_value
 			, cashbox_note
@@ -430,6 +430,7 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 		&request.Status,
 		&request.CashboxValue,
 		&request.CashboxNote,
+		&request.TransactionValue,
 		&request.TakeMoneyValue,
 		&request.CreatedBy,
 		&request.CreatedAt,

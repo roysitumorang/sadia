@@ -387,9 +387,15 @@ func init() {
 				, transaction_id character varying NOT NULL REFERENCES transactions (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, product_id character varying NOT NULL REFERENCES products (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, product_name character varying NOT NULL
+				, product_code character varying NOT NULL
 				, product_uom character varying NOT NULL
+				, purchase_price bigint NOT NULL
+				, selling_price bigint NOT NULL
+				, weight bigint NOT NULL
+				, discount_type smallint NOT NULL
+				, discount_value bigint NOT NULL
+				, discount_amount bigint NOT NULL
 				, quantity bigint NOT NULL
-				, price bigint NOT NULL
 				, subtotal bigint NOT NULL
 			)`,
 		); err != nil {

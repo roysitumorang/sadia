@@ -40,14 +40,20 @@ type (
 	}
 
 	LineItem struct {
-		ID            string `json:"id"`
-		TransactionID string `json:"-"`
-		ProductID     string `json:"product_id"`
-		ProductName   string `json:"product_name"`
-		ProductUOM    string `json:"product_uom"`
-		Quantity      int64  `json:"quantity"`
-		Price         int64  `json:"price"`
-		Subtotal      int64  `json:"subtotal"`
+		ID             string `json:"id"`
+		TransactionID  string `json:"-"`
+		ProductID      string `json:"product_id"`
+		ProductName    string `json:"product_name"`
+		ProductCode    string `json:"product_code"`
+		ProductUOM     string `json:"product_uom"`
+		PurchasePrice  int64  `json:"purchase_price"`
+		SellingPrice   int64  `json:"selling_price"`
+		Weight         int64  `json:"weight"`
+		DiscountType   int    `json:"discount_type"`
+		DiscountValue  int64  `json:"discount_value"`
+		DiscountAmount int64  `json:"discount_amount"`
+		Quantity       int64  `json:"quantity"`
+		Subtotal       int64  `json:"subtotal"`
 	}
 
 	Filter struct {
@@ -95,6 +101,10 @@ func (q *Transaction) Validate() error {
 
 func (q *Transaction) Calculate(products map[string]*productModel.Product) error {
 	q.Subtotal = 0
+	hundredDecimal, err := decimal.New(100, 0)
+	if err != nil {
+		return err
+	}
 	for i, lineItem := range q.LineItems {
 		product, ok := products[lineItem.ProductID]
 		if !ok {
@@ -104,12 +114,39 @@ func (q *Transaction) Calculate(products map[string]*productModel.Product) error
 			return fmt.Errorf("line_items[%d]:product_id %s is out of stock", i, lineItem.ProductID)
 		}
 		lineItem.ProductName = product.Name
+		lineItem.ProductCode = product.Code
 		lineItem.ProductUOM = product.UOM
-		lineItem.Price = product.SellingPrice
+		lineItem.PurchasePrice = product.PurchasePrice
+		lineItem.SellingPrice = product.SellingPrice
+		lineItem.Weight = product.Weight
 		if lineItem.Quantity > product.Stock {
 			return fmt.Errorf("line_items[%d]:quantity %d exceeds stock", i, lineItem.Quantity)
 		}
-		lineItem.Subtotal = lineItem.Price * lineItem.Quantity
+		lineItem.Subtotal = lineItem.SellingPrice * lineItem.Quantity
+		lineItem.DiscountAmount = 0
+		lineItem.DiscountValue = product.DiscountValue
+		switch lineItem.DiscountType = product.DiscountType; lineItem.DiscountType {
+		case productModel.DiscountTypePercentage:
+			discountValue, err := decimal.New(lineItem.DiscountValue, 0)
+			if err != nil {
+				return err
+			}
+			subTotal, err := decimal.New(lineItem.Subtotal, 0)
+			if err != nil {
+				return err
+			}
+			discountAmount, err := discountValue.Mul(subTotal)
+			if err != nil {
+				return err
+			}
+			if discountAmount, err = discountAmount.Quo(hundredDecimal); err != nil {
+				return err
+			}
+			lineItem.DiscountAmount, _, _ = discountAmount.Floor(0).Int64(0)
+		case productModel.DiscountTypeAmount:
+			lineItem.DiscountAmount = (lineItem.SellingPrice - lineItem.DiscountValue) * lineItem.Quantity
+		}
+		lineItem.Subtotal -= lineItem.DiscountAmount
 		q.Subtotal += lineItem.Subtotal
 		q.LineItems[i] = lineItem
 	}
@@ -127,10 +164,6 @@ func (q *Transaction) Calculate(products map[string]*productModel.Product) error
 	if err != nil {
 		return err
 	}
-	hundredDecimal, err := decimal.New(100, 0)
-	if err != nil {
-		return err
-	}
 	taxDecimal, err := subtotalDecimal.Mul(taxRateDecimal)
 	if err != nil {
 		return err
@@ -138,7 +171,7 @@ func (q *Transaction) Calculate(products map[string]*productModel.Product) error
 	if taxDecimal, err = taxDecimal.Quo(hundredDecimal); err != nil {
 		return err
 	}
-	q.Tax, _, _ = taxDecimal.Int64(0)
+	q.Tax, _, _ = taxDecimal.Ceil(0).Int64(0)
 	q.Total = subtotal + q.Tax
 	return nil
 }

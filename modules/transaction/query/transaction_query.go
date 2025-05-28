@@ -205,9 +205,15 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 			, transaction_id
 			, product_id
 			, product_name
+			, product_code
 			, product_uom
+			, purchase_price
+			, selling_price
+			, weight
+			, discount_type
+			, discount_value
+			, discount_amount
 			, quantity
-			, price
 			, subtotal
 			, created_by
 			, created_at
@@ -268,9 +274,15 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 			&lineItem.TransactionID,
 			&lineItem.ProductID,
 			&lineItem.ProductName,
+			&lineItem.ProductCode,
 			&lineItem.ProductUOM,
+			&lineItem.PurchasePrice,
+			&lineItem.SellingPrice,
+			&lineItem.Weight,
+			&lineItem.DiscountType,
+			&lineItem.DiscountValue,
+			&lineItem.DiscountAmount,
 			&lineItem.Quantity,
-			&lineItem.Price,
 			&lineItem.Subtotal,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
@@ -368,7 +380,7 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 	if len(request.LineItems) == 0 {
 		return &response, nil
 	}
-	params := []any{response.ID}
+	var params []any
 	var builder strings.Builder
 	_, _ = builder.WriteString(
 		`INSERT INTO transaction_line_items (
@@ -377,13 +389,33 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			, transaction_id
 			, product_id
 			, product_name
+			, product_code
 			, product_uom
+			, purchase_price
+			, selling_price
+			, weight
+			, discount_type
+			, discount_value
+			, discount_amount
 			, quantity
-			, price
 			, subtotal
 		) VALUES `,
 	)
 	for i, lineItem := range request.LineItems {
+		if _, err = tx.Exec(
+			ctx,
+			`UPDATE products SET
+				stock = stock - $1
+			WHERE id = $2`,
+			lineItem.Quantity,
+			lineItem.ProductID,
+		); err != nil {
+			if errRollback := tx.Rollback(ctx); errRollback != nil {
+				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+			}
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return nil, err
+		}
 		lineItemID, lineItemSqID, _, err := helper.GenerateUniqueID()
 		if err != nil {
 			if errRollback := tx.Rollback(ctx); errRollback != nil {
@@ -396,11 +428,18 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			params,
 			lineItemID,
 			lineItemSqID,
+			response.ID,
 			lineItem.ProductID,
 			lineItem.ProductName,
+			lineItem.ProductCode,
 			lineItem.ProductUOM,
+			lineItem.PurchasePrice,
+			lineItem.SellingPrice,
+			lineItem.Weight,
+			lineItem.DiscountType,
+			lineItem.DiscountValue,
+			lineItem.DiscountAmount,
 			lineItem.Quantity,
-			lineItem.Price,
 			lineItem.Subtotal,
 		)
 		n := len(params)
@@ -408,10 +447,26 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			_, _ = builder.WriteString(",")
 		}
 		_, _ = builder.WriteString("($")
+		_, _ = builder.WriteString(strconv.Itoa(n - 14))
+		_, _ = builder.WriteString(",$")
+		_, _ = builder.WriteString(strconv.Itoa(n - 13))
+		_, _ = builder.WriteString(",$")
+		_, _ = builder.WriteString(strconv.Itoa(n - 12))
+		_, _ = builder.WriteString(",$")
+		_, _ = builder.WriteString(strconv.Itoa(n - 11))
+		_, _ = builder.WriteString(",$")
+		_, _ = builder.WriteString(strconv.Itoa(n - 10))
+		_, _ = builder.WriteString(",$")
+		_, _ = builder.WriteString(strconv.Itoa(n - 9))
+		_, _ = builder.WriteString(",$")
+		_, _ = builder.WriteString(strconv.Itoa(n - 8))
+		_, _ = builder.WriteString(",$")
+		_, _ = builder.WriteString(strconv.Itoa(n - 7))
+		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 6))
 		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 5))
-		_, _ = builder.WriteString(",$1,$")
+		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 4))
 		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 3))
@@ -428,12 +483,18 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			, transaction_id
 			, product_id
 			, product_name
+			, product_code
 			, product_uom
+			, purchase_price
+			, selling_price
+			, weight
+			, discount_type
+			, discount_value
+			, discount_amount
 			, quantity
-			, price
 			, subtotal`,
 	)
-	rows, err := tx.Query(ctx, builder.String(), params)
+	rows, err := tx.Query(ctx, builder.String(), params...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = nil
 	}
@@ -451,9 +512,15 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			&lineItem.TransactionID,
 			&lineItem.ProductID,
 			&lineItem.ProductName,
+			&lineItem.ProductCode,
 			&lineItem.ProductUOM,
+			&lineItem.PurchasePrice,
+			&lineItem.SellingPrice,
+			&lineItem.Weight,
+			&lineItem.DiscountType,
+			&lineItem.DiscountValue,
+			&lineItem.DiscountAmount,
 			&lineItem.Quantity,
-			&lineItem.Price,
 			&lineItem.Subtotal,
 		); err != nil {
 			if errRollback := tx.Rollback(ctx); errRollback != nil {
