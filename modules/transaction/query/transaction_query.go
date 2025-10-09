@@ -149,7 +149,7 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 	query = strings.ReplaceAll(
 		query,
 		"COUNT(1)",
-		`ROW_NUMBER() OVER (ORDER BY -t._id) AS row_no
+		`ROW_NUMBER() OVER (ORDER BY t.id DESC) AS row_no
 		, t.id
 		, t.session_id
 		, t.reference_no
@@ -200,7 +200,7 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 	builder.Reset()
 	_, _ = builder.WriteString(
 		`SELECT
-			ROW_NUMBER() OVER (ORDER BY -_id) AS row_no,
+			ROW_NUMBER() OVER (ORDER BY id DESC) AS row_no
 			, id
 			, transaction_id
 			, product_id
@@ -254,7 +254,7 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 		_, _ = builder.WriteString("$")
 		_, _ = builder.WriteString(strconv.Itoa(n))
 	}
-	_, _ = builder.WriteString(") ORDER BY _id")
+	_, _ = builder.WriteString(") ORDER BY id")
 	if len(response) == 0 {
 		return nil, 0, 0, nil
 	}
@@ -300,24 +300,14 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 
 func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, request *transactionModel.Transaction) (*transactionModel.Transaction, error) {
 	ctxt := "TransactionQuery-CreateTransaction"
-	transactionID, transactionSqID, _, err := helper.GenerateUniqueID()
-	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
-		return nil, err
-	}
 	now := time.Now()
 	response := transactionModel.Transaction{
 		LineItems: []*transactionModel.LineItem{},
 	}
-	if err = tx.QueryRow(
+	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO transactions (
-			_id
-			, id
-			, session_id
+			session_id
 			, reference_no
 			, subtotal
 			, discount
@@ -327,7 +317,7 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			, payment_method
 			, created_by
 			, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id
 			, session_id
 			, reference_no
@@ -339,8 +329,6 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			, payment_method
 			, created_by
 			, created_at`,
-		transactionID,
-		transactionSqID,
 		request.SessionID,
 		request.ReferenceNo,
 		request.Subtotal,
@@ -384,9 +372,7 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 	var builder strings.Builder
 	_, _ = builder.WriteString(
 		`INSERT INTO transaction_line_items (
-			_id
-			, id
-			, transaction_id
+			transaction_id
 			, product_id
 			, product_name
 			, product_code
@@ -402,7 +388,7 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 		) VALUES `,
 	)
 	for i, lineItem := range request.LineItems {
-		if _, err = tx.Exec(
+		if _, err := tx.Exec(
 			ctx,
 			`UPDATE products SET
 				stock = stock - $1
@@ -416,18 +402,8 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return nil, err
 		}
-		lineItemID, lineItemSqID, _, err := helper.GenerateUniqueID()
-		if err != nil {
-			if errRollback := tx.Rollback(ctx); errRollback != nil {
-				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-			}
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
-			return nil, err
-		}
 		params = append(
 			params,
-			lineItemID,
-			lineItemSqID,
 			response.ID,
 			lineItem.ProductID,
 			lineItem.ProductName,
@@ -447,10 +423,6 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			_, _ = builder.WriteString(",")
 		}
 		_, _ = builder.WriteString("($")
-		_, _ = builder.WriteString(strconv.Itoa(n - 14))
-		_, _ = builder.WriteString(",$")
-		_, _ = builder.WriteString(strconv.Itoa(n - 13))
-		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 12))
 		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 11))

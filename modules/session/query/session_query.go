@@ -141,7 +141,7 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 	query = strings.ReplaceAll(
 		query,
 		"COUNT(1)",
-		`ROW_NUMBER() OVER (ORDER BY -s._id) AS row_no
+		`ROW_NUMBER() OVER (ORDER BY s.id DESC) AS row_no
 		, s.id
 		, s.store_id
 		, s.date::text
@@ -235,7 +235,7 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 		_, _ = builder.WriteString("$")
 		_, _ = builder.WriteString(strconv.Itoa(n))
 	}
-	_, _ = builder.WriteString(") ORDER BY _id")
+	_, _ = builder.WriteString(") ORDER BY id")
 	if len(response) == 0 {
 		return nil, 0, 0, nil
 	}
@@ -273,24 +273,14 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 
 func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *sessionModel.NewSession) (*sessionModel.Session, error) {
 	ctxt := "SessionQuery-CreateSession"
-	sessionID, sessionSqID, _, err := helper.GenerateUniqueID()
-	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
-		return nil, err
-	}
 	now := time.Now()
 	response := sessionModel.Session{
 		TakeMoneyLineItems: []*sessionModel.TakeMoneyLineItem{},
 	}
-	if err = tx.QueryRow(
+	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO sessions (
-			_id
-			, id
-			, store_id
+			store_id
 			, date
 			, status
 			, cashbox_value
@@ -299,7 +289,7 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 			, take_money_value
 			, created_by
 			, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		ON CONFLICT (date, created_by) DO UPDATE SET
 			date = EXCLUDED.date
 			, created_by = EXCLUDED.created_by
@@ -314,8 +304,6 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 			, created_by
 			, created_at
 			, closed_at`,
-		sessionID,
-		sessionSqID,
 		request.StoreID,
 		now.In(helper.LoadTimeZone()).Format(time.DateOnly),
 		sessionModel.StatusOnGoing,

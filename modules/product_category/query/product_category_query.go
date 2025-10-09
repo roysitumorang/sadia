@@ -112,7 +112,7 @@ func (q *productCategoryQuery) FindProductCategories(ctx context.Context, filter
 	query = strings.ReplaceAll(
 		query,
 		"COUNT(1)",
-		`ROW_NUMBER() OVER (ORDER BY -c._id) AS row_no
+		`ROW_NUMBER() OVER (ORDER BY c.id DESC) AS row_no
 		, c.id
 		, c.company_id
 		, c.name
@@ -181,26 +181,19 @@ func (q *productCategoryQuery) FindProductCategories(ctx context.Context, filter
 
 func (q *productCategoryQuery) CreateProductCategory(ctx context.Context, request *productCategoryModel.ProductCategory) (*productCategoryModel.ProductCategory, error) {
 	ctxt := "ProductCategoryQuery-CreateProductCategory"
-	productCategoryID, productCategorySqID, _, err := helper.GenerateUniqueID()
-	if err != nil {
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
-		return nil, err
-	}
 	now := time.Now()
 	var response productCategoryModel.ProductCategory
-	if err = q.dbWrite.QueryRow(
+	if err := q.dbWrite.QueryRow(
 		ctx,
 		`INSERT INTO product_categories (
-			_id
-			, id
-			, company_id
+			company_id
 			, name
 			, slug
 			, created_by
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $6, $7)
+		) VALUES ($1, $2, $3, $4, $5, $4, $5)
 		RETURNING id
 			, company_id
 			, name
@@ -209,8 +202,6 @@ func (q *productCategoryQuery) CreateProductCategory(ctx context.Context, reques
 			, created_at
 			, updated_by
 			, updated_at`,
-		productCategoryID,
-		productCategorySqID,
 		request.CompanyID,
 		request.Name,
 		request.Slug,

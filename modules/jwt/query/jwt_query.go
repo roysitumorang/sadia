@@ -36,7 +36,7 @@ func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, accountID string) (
 	ctxt := "JwtQuery-CreateJWT"
 	now := time.Now()
 	expiredAt := now.Add(helper.GetAccessTokenAge())
-	jwtID, jwtSqID, jwtToken, err := helper.GenerateUniqueID()
+	_, _, jwtToken, err := helper.GenerateUniqueID()
 	if err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
@@ -48,20 +48,16 @@ func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, accountID string) (
 	if err = tx.QueryRow(
 		ctx,
 		`INSERT INTO json_web_tokens (
-			_id
-			, id
-			, token
+			token
 			, account_id
 			, created_at
 			, expired_at
-		) VALUES ($1, $2, $3, $4, $5, $6)
+		) VALUES ($1, $2, $3, $4)
 		RETURNING id
 			, token
 			, account_id
 			, created_at
 			, expired_at`,
-		jwtID,
-		jwtSqID,
 		jwtToken,
 		accountID,
 		now,
@@ -156,10 +152,10 @@ func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jw
 	if total == 0 {
 		return nil, 0, 0, nil
 	}
-	query = strings.ReplaceAll(query, "COUNT(1)", "ROW_NUMBER() OVER (ORDER BY -_id) AS row_no, id, token, account_id, created_at, expired_at")
+	query = strings.ReplaceAll(query, "COUNT(1)", "ROW_NUMBER() OVER (ORDER BY id DESC) AS row_no, id, token, account_id, created_at, expired_at")
 	builder.Reset()
 	_, _ = builder.WriteString(query)
-	_, _ = builder.WriteString(" ORDER by -_id")
+	_, _ = builder.WriteString(" ORDER BY id DESC")
 	pages := int64(1)
 	if filter.Limit > 0 {
 		totalDecimal, err := decimal.New(total, 0)

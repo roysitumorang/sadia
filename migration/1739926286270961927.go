@@ -17,8 +17,7 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE accounts (
-				_id bigint NOT NULL UNIQUE
-				, id character varying NOT NULL PRIMARY KEY
+				id character(36) NOT NULL DEFAULT uuidv7() PRIMARY KEY
 				, account_type smallint NOT NULL
 				, status smallint NOT NULL
 				, name character varying NOT NULL
@@ -47,20 +46,13 @@ func init() {
 				, login_failed_attempts integer NOT NULL DEFAULT 0
 				, login_unlock_token character varying UNIQUE
 				, login_locked_at timestamp with time zone
-				, created_by character varying REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
+				, created_by character(36) REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, created_at timestamp with time zone NOT NULL
 				, updated_at timestamp with time zone NOT NULL
-				, deactivated_by character varying REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
+				, deactivated_by character(36) REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, deactivated_at timestamp with time zone
 				, deactivation_reason character varying
 			)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
-			"CREATE INDEX ON accounts (_id)",
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -159,7 +151,7 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE admins (
-				account_id character varying NOT NULL PRIMARY KEY REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				account_id character(36) NOT NULL DEFAULT uuidv7() PRIMARY KEY REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, admin_level smallint NOT NULL
 			)`,
 		); err != nil {
@@ -169,20 +161,12 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE json_web_tokens (
-				_id bigint NOT NULL UNIQUE
-				, id character varying NOT NULL PRIMARY KEY
+				id character(36) NOT NULL DEFAULT uuidv7() PRIMARY KEY
 				, token character varying NOT NULL UNIQUE
-				, account_id character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, account_id character(36) NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
 				, expired_at timestamp with time zone NOT NULL
 			)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
-			"CREATE INDEX ON json_web_tokens (_id)",
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -208,19 +192,13 @@ func init() {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
 		}
-		accountID, accountSqID, _, err := helper.GenerateUniqueID()
-		if err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
-			return
-		}
 		confirmationToken, emailConfirmationToken, phoneConfirmationToken := helper.RandomString(32), helper.RandomString(32), helper.RandomNumber(6)
 		now := time.Now()
-		if _, err = tx.Exec(
+		var accountID string
+		if err = tx.QueryRow(
 			ctx,
 			`INSERT INTO accounts (
-				_id
-				, id
-				, account_type
+				account_type
 				, status
 				, name
 				, username
@@ -231,9 +209,8 @@ func init() {
 				, phone_confirmation_token
 				, created_at
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)`,
-			accountID,
-			accountSqID,
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
+			RETURNING id`,
 			models.AccountTypeAdmin,
 			models.StatusUnconfirmed,
 			"Roy Situmorang",
@@ -244,7 +221,7 @@ func init() {
 			"+6285233494271",
 			phoneConfirmationToken,
 			now,
-		); err != nil {
+		).Scan(&accountID); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
 		}
@@ -254,7 +231,7 @@ func init() {
 				account_id
 				, admin_level
 			) VALUES ($1, $2)`,
-			accountSqID,
+			accountID,
 			accountModel.AdminLevelSuperAdmin,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
@@ -263,22 +240,14 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE logs (
-				_id bigint NOT NULL UNIQUE
-				, id character varying NOT NULL PRIMARY KEY
+				id character(36) NOT NULL DEFAULT uuidv7() PRIMARY KEY
 				, table_name character varying NOT NULL
 				, table_id character varying NOT NULL
 				, activity character varying NOT NULL
 				, changes jsonb NOT NULL
-				, created_by character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, created_by character(36) NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
 			)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
-			`CREATE INDEX ON logs (_id)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -307,26 +276,18 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE companies (
-				_id bigint NOT NULL UNIQUE
-				, id character varying NOT NULL PRIMARY KEY
+				id character(36) NOT NULL DEFAULT uuidv7() PRIMARY KEY
 				, name character varying NOT NULL
 				, slug character varying NOT NULL UNIQUE
 				, status smallint NOT NULL
-				, created_by character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, created_by character(36) NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
-				, updated_by character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, updated_by character(36) NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, updated_at timestamp with time zone NOT NULL
-				, deactivated_by character varying REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
+				, deactivated_by character(36) REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, deactivated_at timestamp with time zone
 				, deactivation_reason character varying
 			)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
-			`CREATE INDEX ON companies (_id)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -376,8 +337,8 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE users (
-				account_id character varying NOT NULL PRIMARY KEY REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
-				, company_id character varying NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
+				account_id character(36) NOT NULL DEFAULT uuidv7() PRIMARY KEY REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, company_id character(36) NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, user_level smallint NOT NULL
 			)`,
 		); err != nil {
@@ -394,23 +355,15 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE stores (
-				_id bigint NOT NULL UNIQUE
-				, id character varying NOT NULL PRIMARY KEY
-				, company_id character varying NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
+				id character(36) NOT NULL DEFAULT uuidv7() PRIMARY KEY
+				, company_id character(36) NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, name character varying NOT NULL
 				, slug character varying NOT NULL
-				, created_by character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, created_by character(36) NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
-				, updated_by character varying NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, updated_by character(36) NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, updated_at timestamp with time zone NOT NULL
 			);`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
-			`CREATE INDEX ON stores (_id)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return

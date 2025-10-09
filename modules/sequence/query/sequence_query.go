@@ -29,25 +29,18 @@ func New(
 
 func (q *sequenceQuery) SaveSequence(ctx context.Context, name, savedBy string) (*sequenceModel.Sequence, error) {
 	ctxt := "SequenceQuery-SaveSequence"
-	sequenceID, sequenceSqID, _, err := helper.GenerateUniqueID()
-	if err != nil {
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
-		return nil, err
-	}
 	now := time.Now()
 	var response sequenceModel.Sequence
-	if err = q.dbWrite.QueryRow(
+	if err := q.dbWrite.QueryRow(
 		ctx,
 		`INSERT INTO sequences (
-			_id
-			, id
-			, name
+			name
 			, number
 			, created_by
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $5, $6)
+		) VALUES ($1, $2, $3, $4, $3, $4)
 		ON CONFLICT (name) DO UPDATE SET
 			number = sequences.number + 1
 		RETURNING id
@@ -57,8 +50,6 @@ func (q *sequenceQuery) SaveSequence(ctx context.Context, name, savedBy string) 
 			, created_at
 			, updated_by
 			, updated_at`,
-		sequenceID,
-		sequenceSqID,
 		name,
 		1,
 		savedBy,

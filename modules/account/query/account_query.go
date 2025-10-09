@@ -262,7 +262,7 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 	query = strings.ReplaceAll(
 		query,
 		"COUNT(1)",
-		`ROW_NUMBER() OVER (ORDER BY -a._id) AS row_no
+		`ROW_NUMBER() OVER (ORDER BY a.id DESC) AS row_no
 		, a.id
 		, a.account_type
 		, a.status
@@ -385,14 +385,6 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 
 func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *models.NewAccount) (*accountModel.Account, error) {
 	ctxt := "AccountQuery-CreateAccount"
-	accountID, accountSqID, _, err := helper.GenerateUniqueID()
-	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
-		return nil, err
-	}
 	confirmationToken, emailToken, phoneToken := helper.RandomString(32), helper.RandomString(32), helper.RandomNumber(6)
 	var emailConfirmationToken,
 		phoneConfirmationToken *string
@@ -404,12 +396,10 @@ func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *mo
 	}
 	now := time.Now()
 	var response accountModel.Account
-	if err = tx.QueryRow(
+	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO accounts (
-			_id
-			, id
-			, account_type
+			account_type
 			, status
 			, name
 			, username
@@ -421,7 +411,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *mo
 			, created_by
 			, created_at
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
 		RETURNING id
 			, account_type
 			, status
@@ -457,8 +447,6 @@ func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *mo
 			, deactivated_by
 			, deactivated_at
 			, deactivation_reason`,
-		accountID,
-		accountSqID,
 		request.AccountType,
 		models.StatusUnconfirmed,
 		request.Name,

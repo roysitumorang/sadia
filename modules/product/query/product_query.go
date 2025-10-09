@@ -126,7 +126,7 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 	query = strings.ReplaceAll(
 		query,
 		"COUNT(1)",
-		`ROW_NUMBER() OVER (ORDER BY -p._id) AS row_no
+		`ROW_NUMBER() OVER (ORDER BY p.id DESC) AS row_no
 		, p.id
 		, p.company_id
 		, p.category_id
@@ -217,19 +217,12 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 
 func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.Product) (*productModel.Product, error) {
 	ctxt := "ProductQuery-CreateProduct"
-	productID, productSqID, _, err := helper.GenerateUniqueID()
-	if err != nil {
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
-		return nil, err
-	}
 	now := time.Now()
 	var response productModel.Product
-	if err = q.dbWrite.QueryRow(
+	if err := q.dbWrite.QueryRow(
 		ctx,
 		`INSERT INTO products (
-			_id
-			, id
-			, company_id
+			company_id
 			, category_id
 			, name
 			, code
@@ -247,7 +240,7 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $17, $18)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $15, $16)
 		RETURNING id
 			, company_id
 			, category_id
@@ -267,8 +260,6 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 			, created_at
 			, updated_by
 			, updated_at`,
-		productID,
-		productSqID,
 		request.CompanyID,
 		request.CategoryID,
 		request.Name,
@@ -420,11 +411,7 @@ func (q *productQuery) UpdateProduct(ctx context.Context, request *productModel.
 
 func (q *productQuery) Import(ctx context.Context, products []productModel.Product, companyID, adminID string) (err error) {
 	ctxt := "ProductQuery-Import"
-	var (
-		productID   int64
-		productSqID string
-		now         time.Time
-	)
+	var now time.Time
 	tx, err := q.dbWrite.Begin(ctx)
 	if err != nil {
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrBegin")
@@ -440,20 +427,11 @@ func (q *productQuery) Import(ctx context.Context, products []productModel.Produ
 		}
 	}()
 	for _, product := range products {
-		if productID, productSqID, _, err = helper.GenerateUniqueID(); err != nil {
-			if errRollback := tx.Rollback(ctx); errRollback != nil {
-				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-			}
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
-			return
-		}
 		now = time.Now()
 		if _, err = tx.Exec(
 			ctx,
 			`INSERT INTO products (
-				_id
-				, id
-				, company_id
+				company_id
 				, category_id
 				, name
 				, code
@@ -471,9 +449,7 @@ func (q *productQuery) Import(ctx context.Context, products []productModel.Produ
 				, created_at
 				, updated_by
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $17, $18)`,
-			productID,
-			productSqID,
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $15, $16)`,
 			companyID,
 			product.CategoryID,
 			product.Name,

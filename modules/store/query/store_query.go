@@ -112,7 +112,7 @@ func (q *storeQuery) FindStores(ctx context.Context, filter *storeModel.Filter) 
 	query = strings.ReplaceAll(
 		query,
 		"COUNT(1)",
-		`ROW_NUMBER() OVER (ORDER BY -s._id) AS row_no
+		`ROW_NUMBER() OVER (ORDER BY s.id DESC) AS row_no
 		, s.id
 		, s.company_id
 		, s.name
@@ -183,26 +183,19 @@ func (q *storeQuery) FindStores(ctx context.Context, filter *storeModel.Filter) 
 
 func (q *storeQuery) CreateStore(ctx context.Context, request *storeModel.Store) (*storeModel.Store, error) {
 	ctxt := "StoreQuery-CreateStore"
-	storeID, storeSqID, _, err := helper.GenerateUniqueID()
-	if err != nil {
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
-		return nil, err
-	}
 	now := time.Now()
 	var response storeModel.Store
-	if err = q.dbWrite.QueryRow(
+	if err := q.dbWrite.QueryRow(
 		ctx,
 		`INSERT INTO stores (
-			_id
-			, id
-			, company_id
+			company_id
 			, name
 			, slug
 			, created_by
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $6, $7)
+		) VALUES ($1, $2, $3, $4, $5, $4, $5)
 		RETURNING id
 			, company_id
 			, name
@@ -212,8 +205,6 @@ func (q *storeQuery) CreateStore(ctx context.Context, request *storeModel.Store)
 			, updated_by
 			, updated_at
 			, current_session_id`,
-		storeID,
-		storeSqID,
 		request.CompanyID,
 		request.Name,
 		request.Slug,
