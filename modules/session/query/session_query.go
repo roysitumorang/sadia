@@ -350,7 +350,7 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 			, created_at
 		FROM session_take_money_line_items
 		WHERE session_id = $1
-		ORDER BY _id`,
+		ORDER BY id`,
 		response.ID,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
