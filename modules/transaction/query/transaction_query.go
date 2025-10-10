@@ -200,8 +200,7 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 	builder.Reset()
 	_, _ = builder.WriteString(
 		`SELECT
-			ROW_NUMBER() OVER (ORDER BY id DESC) AS row_no
-			, id
+			id
 			, transaction_id
 			, product_id
 			, product_name
@@ -215,8 +214,6 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 			, discount_amount
 			, quantity
 			, subtotal
-			, created_by
-			, created_at
 		FROM transaction_line_items
 		WHERE transaction_id IN (`,
 	)
@@ -245,7 +242,7 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 			return nil, 0, 0, err
 		}
 		response = append(response, &transaction)
-		mapTransactionOffsets[transaction.ID] = len(response)
+		mapTransactionOffsets[transaction.ID] = len(response) - 1
 		params = append(params, transaction.ID)
 		n := len(params)
 		if n > 1 {
