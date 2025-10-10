@@ -437,9 +437,7 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 	var builder strings.Builder
 	_, _ = builder.WriteString(
 		`INSERT INTO session_take_money_line_items (
-			_id
-			, id
-			, session_id
+			session_id
 			, description
 			, value
 			, created_by
@@ -447,24 +445,12 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 		) VALUES `,
 	)
 	for i, lineItem := range request.TakeMoneyLineItems {
-		lineItemID, lineItemSqID, _, err := helper.GenerateUniqueID()
-		if err != nil {
-			if errRollback := tx.Rollback(ctx); errRollback != nil {
-				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-			}
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
-			return err
-		}
-		params = append(params, lineItemID, lineItemSqID, lineItem.Description, lineItem.Value)
+		params = append(params, lineItem.Description, lineItem.Value)
 		n := len(params)
 		if i > 0 {
 			_, _ = builder.WriteString(",")
 		}
-		_, _ = builder.WriteString("($")
-		_, _ = builder.WriteString(strconv.Itoa(n - 3))
-		_, _ = builder.WriteString(",$")
-		_, _ = builder.WriteString(strconv.Itoa(n - 2))
-		_, _ = builder.WriteString(",$1,$")
+		_, _ = builder.WriteString("($1,$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 1))
 		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n))
@@ -478,7 +464,7 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 			, created_by
 			, created_at`,
 	)
-	rows, err := tx.Query(ctx, builder.String(), params)
+	rows, err := tx.Query(ctx, builder.String(), params...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = nil
 	}
