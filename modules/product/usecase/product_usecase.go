@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"strconv"
+	"strings"
 
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
@@ -96,12 +97,22 @@ func (q *productUseCase) Import(ctx context.Context, filename, companyID, adminI
 		if i < 2 {
 			continue
 		}
-		sellingPrice, err := strconv.ParseInt(row[5], 10, 64)
+		sellingPriceRaw := row[5]
+		if strings.Contains(sellingPriceRaw, ".") {
+			items := strings.Split(sellingPriceRaw, ".")
+			sellingPriceRaw = items[0]
+		}
+		sellingPrice, err := strconv.ParseInt(sellingPriceRaw, 10, 64)
 		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 			return err
 		}
-		purchasePrice, err := strconv.ParseInt(row[6], 10, 64)
+		purchasePriceRaw := row[6]
+		if strings.Contains(purchasePriceRaw, ".") {
+			items := strings.Split(purchasePriceRaw, ".")
+			purchasePriceRaw = items[0]
+		}
+		purchasePrice, err := strconv.ParseInt(purchasePriceRaw, 10, 64)
 		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 			return err
