@@ -3,7 +3,7 @@ module github.com/roysitumorang/sadia
 go 1.25
 
 require (
-	github.com/getsentry/sentry-go v0.35.3
+	github.com/getsentry/sentry-go v0.36.0
 	github.com/goccy/go-json v0.10.5
 	github.com/gofiber/contrib/fibersentry v1.0.8
 	github.com/gofiber/contrib/fiberzap/v2 v2.1.6
@@ -56,7 +56,7 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
 	github.com/tiendc/go-deepcopy v1.7.1 // indirect
-	github.com/twmb/franz-go/pkg/kmsg v1.11.2 // indirect
+	github.com/twmb/franz-go/pkg/kmsg v1.12.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.67.0 // indirect
 	github.com/xuri/efp v0.0.1 // indirect
