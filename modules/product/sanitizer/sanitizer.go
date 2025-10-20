@@ -15,6 +15,7 @@ import (
 
 func FindProducts(ctx context.Context, c *fiber.Ctx) (*productModel.Filter, error) {
 	ctxt := "ProductSanitizer-FindProducts"
+	limitMin, limitMax := helper.GetPaginationLimit()
 	originalURL, err := url.ParseRequestURI(c.OriginalURL())
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseRequestURI")
@@ -30,12 +31,14 @@ func FindProducts(ctx context.Context, c *fiber.Ctx) (*productModel.Filter, erro
 		urlValues.Set("q", keyword)
 		options = append(options, productModel.WithKeyword(keyword))
 	}
-	if limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64); limit > 0 {
-		urlValues.Set("limit", c.Query("limit"))
-		options = append(options, productModel.WithLimit(limit))
+	limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64)
+	if limit < limitMin || limit > limitMax {
+		limit = limitMin
 	}
+	urlValues.Set("limit", strconv.FormatInt(limit, 10))
+	options = append(options, productModel.WithLimit(limit))
 	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
-	page = max(page, 1)
+	page = max(page, 0)
 	options = append(options, productModel.WithPage(page), productModel.WithUrlValues(urlValues))
 	return productModel.NewFilter(options...), nil
 }
