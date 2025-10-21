@@ -45,6 +45,7 @@ type (
 			Previous string `json:"previous" example:"http://localhost:19000/v1/cities?limit=1&search=Tangerang"`
 			Current  string `json:"current" example:"http://localhost:19000/v1/cities?limit=1&page=2&search=Tangerang"`
 			Next     string `json:"next" example:"http://localhost:19000/v1/cities?limit=1&page=3&search=Tangerang"`
+			Last     string `json:"last" example:"http://localhost:19000/v1/cities?limit=1&page=4&search=Tangerang"`
 		} `json:"links"`
 		Info struct {
 			Limit int64 `json:"limit" example:"1"`

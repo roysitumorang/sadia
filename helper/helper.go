@@ -201,17 +201,21 @@ func GetEnv() string {
 }
 
 func SetPagination(total, pages, limit, page int64, baseURL string, urlValues url.Values) (*models.Pagination, error) {
-	var response models.Pagination
+	var (
+		response    models.Pagination
+		err         error
+		builder     strings.Builder
+		u           url.Values
+		queryString string
+	)
 	response.Info.Total = total
 	response.Info.Pages = pages
 	response.Info.Limit = limit
 	response.Links.First = baseURL
 	response.Links.Current = baseURL
-	var builder strings.Builder
 	if len(urlValues) > 0 {
-		u := maps.Clone(urlValues)
-		queryString, err := url.QueryUnescape(u.Encode())
-		if err != nil {
+		u = maps.Clone(urlValues)
+		if queryString, err = url.QueryUnescape(u.Encode()); err != nil {
 			return nil, err
 		}
 		builder.Reset()
@@ -229,11 +233,19 @@ func SetPagination(total, pages, limit, page int64, baseURL string, urlValues ur
 		_, _ = builder.WriteString(queryString)
 		response.Links.First = builder.String()
 	}
-	if page < pages {
-		u := maps.Clone(urlValues)
+	if n := pages - 1; page < n {
+		u = maps.Clone(urlValues)
+		u.Set("page", strconv.FormatInt(n, 10))
+		if queryString, err = url.QueryUnescape(u.Encode()); err != nil {
+			return nil, err
+		}
+		builder.Reset()
+		_, _ = builder.WriteString(baseURL)
+		_, _ = builder.WriteString("?")
+		_, _ = builder.WriteString(queryString)
+		response.Links.Last = builder.String()
 		u.Set("page", strconv.FormatInt(page+1, 10))
-		queryString, err := url.QueryUnescape(u.Encode())
-		if err != nil {
+		if queryString, err = url.QueryUnescape(u.Encode()); err != nil {
 			return nil, err
 		}
 		builder.Reset()
@@ -243,16 +255,7 @@ func SetPagination(total, pages, limit, page int64, baseURL string, urlValues ur
 		response.Links.Next = builder.String()
 	}
 	if page > 0 {
-		u := maps.Clone(urlValues)
-		queryString, err := url.QueryUnescape(u.Encode())
-		if err != nil {
-			return nil, err
-		}
-		builder.Reset()
-		_, _ = builder.WriteString(baseURL)
-		_, _ = builder.WriteString("?")
-		_, _ = builder.WriteString(queryString)
-		response.Links.Previous = builder.String()
+		u = maps.Clone(urlValues)
 		u.Set("page", strconv.FormatInt(page, 10))
 		if queryString, err = url.QueryUnescape(u.Encode()); err != nil {
 			return nil, err
