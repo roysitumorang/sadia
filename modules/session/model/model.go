@@ -79,8 +79,8 @@ func (q *NewSession) Validate() error {
 	if q.StoreID = strings.TrimSpace(q.StoreID); q.StoreID == "" {
 		return errors.New("store_id: is required")
 	}
-	if q.CashboxValue == 0 {
-		return errors.New("cashbox_value: requires a postive integer")
+	if q.CashboxValue < 0 {
+		return errors.New("cashbox_value: requires a positive integer")
 	}
 	return nil
 }
@@ -91,7 +91,7 @@ func (q *CloseSession) Validate() error {
 		if lineItem.Description == "" {
 			return fmt.Errorf("take_money_line_items[%d].description is required", i)
 		}
-		if lineItem.Value == 0 {
+		if lineItem.Value < 0 {
 			return fmt.Errorf("take_money_line_items[%d].value is required", i)
 		}
 		q.TakeMoneyValue += lineItem.Value
