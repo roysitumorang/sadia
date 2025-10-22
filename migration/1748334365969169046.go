@@ -61,7 +61,7 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`ALTER TABLE users
-				ADD COLUMN current_session_id character(36) REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE`,
+				ADD COLUMN current_session_id character(36) REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE SET NULL`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -76,7 +76,7 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`ALTER TABLE stores
-				ADD COLUMN current_session_id character(36) REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE`,
+				ADD COLUMN current_session_id character(36) REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE SET NULL`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
