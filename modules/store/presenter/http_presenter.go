@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -19,6 +20,7 @@ import (
 
 type (
 	storeHTTPHandler struct {
+		sessionStore   *session.Store
 		jwtUseCase     jwtUseCase.JwtUseCase
 		accountUseCase accountUseCase.AccountUseCase
 		storeUseCase   storeUseCase.StoreUseCase
@@ -26,11 +28,13 @@ type (
 )
 
 func New(
+	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	storeUseCase storeUseCase.StoreUseCase,
 ) *storeHTTPHandler {
 	return &storeHTTPHandler{
+		sessionStore:   sessionStore,
 		jwtUseCase:     jwtUseCase,
 		accountUseCase: accountUseCase,
 		storeUseCase:   storeUseCase,

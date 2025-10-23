@@ -2,6 +2,7 @@ package presenter
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
 	"github.com/roysitumorang/sadia/models"
@@ -18,6 +19,7 @@ import (
 
 type (
 	productHTTPHandler struct {
+		sessionStore           *session.Store
 		jwtUseCase             jwtUseCase.JwtUseCase
 		accountUseCase         accountUseCase.AccountUseCase
 		productCategoryUseCase productCategoryUseCase.ProductCategoryUseCase
@@ -26,12 +28,14 @@ type (
 )
 
 func New(
+	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	productCategoryUseCase productCategoryUseCase.ProductCategoryUseCase,
 	productUseCase productUseCase.ProductUseCase,
 ) *productHTTPHandler {
 	return &productHTTPHandler{
+		sessionStore:           sessionStore,
 		jwtUseCase:             jwtUseCase,
 		accountUseCase:         accountUseCase,
 		productCategoryUseCase: productCategoryUseCase,

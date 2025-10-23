@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -26,6 +27,7 @@ import (
 
 type (
 	transactionHTTPHandler struct {
+		sessionStore       *session.Store
 		jwtUseCase         jwtUseCase.JwtUseCase
 		accountUseCase     accountUseCase.AccountUseCase
 		sessionUseCase     sessionUseCase.SessionUseCase
@@ -36,6 +38,7 @@ type (
 )
 
 func New(
+	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	sessionUseCase sessionUseCase.SessionUseCase,
@@ -44,6 +47,7 @@ func New(
 	transactionUseCase transactionUseCase.TransactionUseCase,
 ) *transactionHTTPHandler {
 	return &transactionHTTPHandler{
+		sessionStore:       sessionStore,
 		jwtUseCase:         jwtUseCase,
 		accountUseCase:     accountUseCase,
 		sessionUseCase:     sessionUseCase,
