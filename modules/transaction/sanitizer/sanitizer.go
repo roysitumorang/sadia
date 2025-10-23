@@ -30,12 +30,14 @@ func FindTransactions(ctx context.Context, c *fiber.Ctx) (*transactionModel.Filt
 		urlValues.Set("q", keyword)
 		options = append(options, transactionModel.WithKeyword(keyword))
 	}
-	if limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64); limit > 0 {
-		urlValues.Set("limit", c.Query("limit"))
-		options = append(options, transactionModel.WithLimit(limit))
+	limitMin, limitMax := helper.GetPaginationLimit()
+	limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64)
+	if limit < limitMin || limit > limitMax {
+		limit = limitMin
 	}
+	urlValues.Set("limit", strconv.FormatInt(limit, 10))
 	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
-	page = max(page, 1)
+	page = max(page, 0)
 	options = append(options, transactionModel.WithPage(page), transactionModel.WithUrlValues(urlValues))
 	return transactionModel.NewFilter(options...), nil
 }

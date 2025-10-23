@@ -319,7 +319,7 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 			return nil, 0, 0, err
 		}
 		pages, _, _ = pagesDecimal.Ceil(0).Int64(0)
-		offset := (filter.Page - 1) * filter.Limit
+		offset := filter.Page * filter.Limit
 		_, _ = builder.WriteString(" LIMIT ")
 		_, _ = builder.WriteString(strconv.FormatInt(filter.Limit, 10))
 		_, _ = builder.WriteString(" OFFSET ")

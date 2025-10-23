@@ -30,12 +30,14 @@ func FindSessions(ctx context.Context, c *fiber.Ctx) (*sessionModel.Filter, erro
 		urlValues.Set("q", keyword)
 		options = append(options, sessionModel.WithKeyword(keyword))
 	}
-	if limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64); limit > 0 {
-		urlValues.Set("limit", c.Query("limit"))
-		options = append(options, sessionModel.WithLimit(limit))
+	limitMin, limitMax := helper.GetPaginationLimit()
+	limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64)
+	if limit < limitMin || limit > limitMax {
+		limit = limitMin
 	}
+	urlValues.Set("limit", strconv.FormatInt(limit, 10))
 	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
-	page = max(page, 1)
+	page = max(page, 0)
 	options = append(options, sessionModel.WithPage(page), sessionModel.WithUrlValues(urlValues))
 	return sessionModel.NewFilter(options...), nil
 }

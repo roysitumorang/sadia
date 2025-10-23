@@ -209,6 +209,7 @@ func SetPagination(total, pages, limit, page int64, baseURL string, urlValues ur
 		queryString string
 	)
 	response.Info.Total = total
+	response.Info.Page = page
 	response.Info.Pages = pages
 	response.Info.Limit = limit
 	response.Links.First = baseURL
