@@ -7,16 +7,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/roysitumorang/sadia/helper"
 	productModel "github.com/roysitumorang/sadia/modules/product/model"
 	"go.uber.org/zap"
 )
 
-func FindProducts(ctx context.Context, c *fiber.Ctx) (*productModel.Filter, error) {
+func FindProducts(ctx context.Context, c fiber.Ctx) (*productModel.Filter, error) {
 	ctxt := "ProductSanitizer-FindProducts"
 	limitMin, limitMax := helper.GetPaginationLimit()
-	originalURL, err := url.ParseRequestURI(c.OriginalURL())
+	originalURL, err := url.ParseRequestURI(helper.ByteSlice2String(c.Request().URI().FullURI()))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseRequestURI")
 		return nil, err
@@ -43,13 +43,13 @@ func FindProducts(ctx context.Context, c *fiber.Ctx) (*productModel.Filter, erro
 	return productModel.NewFilter(options...), nil
 }
 
-func ValidateProduct(ctx context.Context, c *fiber.Ctx) (*productModel.Product, int, error) {
+func ValidateProduct(ctx context.Context, c fiber.Ctx) (*productModel.Product, int, error) {
 	ctxt := "ProductSanitizer-ValidateProduct"
 	var response productModel.Product
-	err := c.BodyParser(&response)
+	err := c.Bind().Body(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {

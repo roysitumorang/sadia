@@ -7,15 +7,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/roysitumorang/sadia/helper"
 	storeModel "github.com/roysitumorang/sadia/modules/store/model"
 	"go.uber.org/zap"
 )
 
-func FindStores(ctx context.Context, c *fiber.Ctx) (*storeModel.Filter, error) {
+func FindStores(ctx context.Context, c fiber.Ctx) (*storeModel.Filter, error) {
 	ctxt := "StoreSanitizer-FindStores"
-	originalURL, err := url.ParseRequestURI(c.OriginalURL())
+	originalURL, err := url.ParseRequestURI(helper.ByteSlice2String(c.Request().URI().FullURI()))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseRequestURI")
 		return nil, err
@@ -42,13 +42,13 @@ func FindStores(ctx context.Context, c *fiber.Ctx) (*storeModel.Filter, error) {
 	return storeModel.NewFilter(options...), nil
 }
 
-func ValidateStore(ctx context.Context, c *fiber.Ctx) (*storeModel.Store, int, error) {
+func ValidateStore(ctx context.Context, c fiber.Ctx) (*storeModel.Store, int, error) {
 	ctxt := "StoreSanitizer-ValidateStore"
 	var response storeModel.Store
-	err := c.BodyParser(&response)
+	err := c.Bind().Body(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {

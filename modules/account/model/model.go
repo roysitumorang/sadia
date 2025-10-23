@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/nyaruka/phonenumbers"
 	customErrors "github.com/roysitumorang/sadia/errors"
 	"github.com/roysitumorang/sadia/helper"

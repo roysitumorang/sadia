@@ -6,13 +6,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/roysitumorang/sadia/helper"
 	jwtModel "github.com/roysitumorang/sadia/modules/jwt/model"
 )
 
-func FindJWTs(ctx context.Context, c *fiber.Ctx) (*jwtModel.Filter, error) {
-	originalURL, err := url.ParseRequestURI(c.OriginalURL())
+func FindJWTs(ctx context.Context, c fiber.Ctx) (*jwtModel.Filter, error) {
+	originalURL, err := url.ParseRequestURI(helper.ByteSlice2String(c.Request().URI().FullURI()))
 	if err != nil {
 		return nil, err
 	}

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/keyauth"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/keyauth"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/keys"
@@ -21,28 +21,26 @@ func AdminKeyAuth(
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	adminLevels ...uint8,
-) func(c *fiber.Ctx) error {
+) func(c fiber.Ctx) error {
 	var builder strings.Builder
 	_, _ = builder.WriteString("header:")
 	_, _ = builder.WriteString(fiber.HeaderAuthorization)
 	return keyauth.New(keyauth.Config{
-		SuccessHandler: func(c *fiber.Ctx) error {
+		SuccessHandler: func(c fiber.Ctx) error {
 			return c.Next()
 		},
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
+		ErrorHandler: func(c fiber.Ctx, err error) error {
 			if err == nil {
 				err = keyauth.ErrMissingOrMalformedAPIKey
 			}
 			return helper.NewResponse(fiber.StatusUnauthorized).SetMessage(err.Error()).WriteResponse(c)
 		},
-		KeyLookup:  builder.String(),
-		AuthScheme: "Bearer",
-		Validator: func(c *fiber.Ctx, token string) (bool, error) {
+		Validator: func(c fiber.Ctx, token string) (bool, error) {
 			claims, err := bearerVerify(token)
 			if err != nil {
 				return false, err
 			}
-			ctx := c.UserContext()
+			ctx := c.Context()
 			jsonWebTokens, _, err := jwtUseCase.FindJWTs(
 				ctx,
 				jwtModel.NewFilter(
@@ -68,7 +66,6 @@ func AdminKeyAuth(
 			c.Locals(models.CurrentJwt, claims)
 			return true, nil
 		},
-		ContextKey: "token",
 	})
 }
 
@@ -76,28 +73,26 @@ func UserKeyAuth(
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	userLevels ...uint8,
-) func(c *fiber.Ctx) error {
+) func(c fiber.Ctx) error {
 	var builder strings.Builder
 	_, _ = builder.WriteString("header:")
 	_, _ = builder.WriteString(fiber.HeaderAuthorization)
 	return keyauth.New(keyauth.Config{
-		SuccessHandler: func(c *fiber.Ctx) error {
+		SuccessHandler: func(c fiber.Ctx) error {
 			return c.Next()
 		},
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
+		ErrorHandler: func(c fiber.Ctx, err error) error {
 			if err == nil {
 				err = keyauth.ErrMissingOrMalformedAPIKey
 			}
 			return helper.NewResponse(fiber.StatusUnauthorized).SetMessage(err.Error()).WriteResponse(c)
 		},
-		KeyLookup:  builder.String(),
-		AuthScheme: "Bearer",
-		Validator: func(c *fiber.Ctx, token string) (bool, error) {
+		Validator: func(c fiber.Ctx, token string) (bool, error) {
 			claims, err := bearerVerify(token)
 			if err != nil {
 				return false, err
 			}
-			ctx := c.UserContext()
+			ctx := c.Context()
 			jsonWebTokens, _, err := jwtUseCase.FindJWTs(
 				ctx,
 				jwtModel.NewFilter(
@@ -123,7 +118,6 @@ func UserKeyAuth(
 			c.Locals(models.CurrentJwt, claims)
 			return true, nil
 		},
-		ContextKey: "token",
 	})
 }
 

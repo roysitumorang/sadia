@@ -7,15 +7,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/roysitumorang/sadia/helper"
 	productCategoryModel "github.com/roysitumorang/sadia/modules/product_category/model"
 	"go.uber.org/zap"
 )
 
-func FindProductCategories(ctx context.Context, c *fiber.Ctx) (*productCategoryModel.Filter, error) {
+func FindProductCategories(ctx context.Context, c fiber.Ctx) (*productCategoryModel.Filter, error) {
 	ctxt := "ProductCategorySanitizer-FindProductCategories"
-	originalURL, err := url.ParseRequestURI(c.OriginalURL())
+	originalURL, err := url.ParseRequestURI(helper.ByteSlice2String(c.Request().URI().FullURI()))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseRequestURI")
 		return nil, err
@@ -43,13 +43,13 @@ func FindProductCategories(ctx context.Context, c *fiber.Ctx) (*productCategoryM
 	return productCategoryModel.NewFilter(options...), nil
 }
 
-func ValidateProductCategory(ctx context.Context, c *fiber.Ctx) (*productCategoryModel.ProductCategory, int, error) {
+func ValidateProductCategory(ctx context.Context, c fiber.Ctx) (*productCategoryModel.ProductCategory, int, error) {
 	ctxt := "ProductCategorySanitizer-ValidateProductCategory"
 	var response productCategoryModel.ProductCategory
-	err := c.BodyParser(&response)
+	err := c.Bind().Body(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {

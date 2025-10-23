@@ -4,8 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -20,19 +19,16 @@ import (
 
 type (
 	accountHTTPHandler struct {
-		sessionStore   *session.Store
 		jwtUseCase     jwtUseCase.JwtUseCase
 		accountUseCase accountUseCase.AccountUseCase
 	}
 )
 
 func New(
-	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 ) *accountHTTPHandler {
 	return &accountHTTPHandler{
-		sessionStore:   sessionStore,
 		jwtUseCase:     jwtUseCase,
 		accountUseCase: accountUseCase,
 	}
@@ -90,8 +86,8 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Put("/phone", userKeyAuth, q.UserChangePhone)
 }
 
-func (q *accountHTTPHandler) AdminFindAdminByConfirmationToken(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminFindAdminByConfirmationToken(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminFindAdminByConfirmationToken"
 	admins, _, err := q.accountUseCase.FindAdmins(
 		ctx,
@@ -107,8 +103,8 @@ func (q *accountHTTPHandler) AdminFindAdminByConfirmationToken(c *fiber.Ctx) err
 	return helper.NewResponse(fiber.StatusOK).SetData(admins[0]).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminConfirmAccount(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminConfirmAccount(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminConfirmAccount"
 	request, statusCode, err := sanitizer.ValidateConfirmation(ctx, c)
 	if err != nil {
@@ -201,8 +197,8 @@ func (q *accountHTTPHandler) AdminConfirmAccount(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminConfirmEmail(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminConfirmEmail(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminConfirmEmail"
 	admins, _, err := q.accountUseCase.FindAdmins(
 		ctx,
@@ -248,8 +244,8 @@ func (q *accountHTTPHandler) AdminConfirmEmail(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminConfirmPhone(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminConfirmPhone(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminConfirmPhone"
 	admins, _, err := q.accountUseCase.FindAdmins(
 		ctx,
@@ -295,8 +291,8 @@ func (q *accountHTTPHandler) AdminConfirmPhone(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminUnlockAccount(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminUnlockAccount(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminUnlockAccount"
 	admins, _, err := q.accountUseCase.FindAdmins(
 		ctx,
@@ -338,8 +334,8 @@ func (q *accountHTTPHandler) AdminUnlockAccount(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminForgotPassword(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminForgotPassword(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminForgotPassword"
 	request, statusCode, err := sanitizer.ValidateForgotPassword(ctx, c)
 	if err != nil {
@@ -393,8 +389,8 @@ func (q *accountHTTPHandler) AdminForgotPassword(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminFindAdminByResetPasswordToken(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminFindAdminByResetPasswordToken(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminFindAdminByResetPasswordToken"
 	admins, _, err := q.accountUseCase.FindAdmins(
 		ctx,
@@ -410,8 +406,8 @@ func (q *accountHTTPHandler) AdminFindAdminByResetPasswordToken(c *fiber.Ctx) er
 	return helper.NewResponse(fiber.StatusOK).SetData(admins[0]).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminResetPassword(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminResetPassword(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminResetPassword"
 	request, statusCode, err := sanitizer.ValidateResetPassword(ctx, c)
 	if err != nil {
@@ -487,8 +483,8 @@ func (q *accountHTTPHandler) AdminResetPassword(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminLogin(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminLogin(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminLogin"
 	request, statusCode, err := sanitizer.ValidateLogin(ctx, c)
 	if err != nil {
@@ -586,8 +582,8 @@ func (q *accountHTTPHandler) AdminLogin(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminFindAdmins(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminFindAdmins(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminFindAdmins"
 	filter, err := sanitizer.FindAdmins(ctx, c)
 	if err != nil {
@@ -605,8 +601,8 @@ func (q *accountHTTPHandler) AdminFindAdmins(c *fiber.Ctx) error {
 	}).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminCreateAdmin(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminCreateAdmin(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminCreateAdmin"
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
 	request, statusCode, err := sanitizer.ValidateAdmin(ctx, c)
@@ -641,8 +637,8 @@ func (q *accountHTTPHandler) AdminCreateAdmin(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminFindAdminByID(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminFindAdminByID(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminFindAdminByID"
 	admins, _, err := q.accountUseCase.FindAdmins(
 		ctx,
@@ -658,8 +654,8 @@ func (q *accountHTTPHandler) AdminFindAdminByID(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(admins[0]).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminDeactivateAdmin(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminDeactivateAdmin(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminDeactivateAdmin"
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
 	request, statusCode, err := sanitizer.ValidateDeactivation(ctx, c)
@@ -719,8 +715,8 @@ func (q *accountHTTPHandler) AdminDeactivateAdmin(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(admin).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminFindUsers(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminFindUsers(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminFindUsers"
 	filter, err := sanitizer.FindUsers(ctx, c)
 	if err != nil {
@@ -738,8 +734,8 @@ func (q *accountHTTPHandler) AdminFindUsers(c *fiber.Ctx) error {
 	}).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminFindUserByID(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminFindUserByID(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminFindUserByID"
 	users, _, err := q.accountUseCase.FindUsers(
 		ctx,
@@ -755,8 +751,8 @@ func (q *accountHTTPHandler) AdminFindUserByID(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(users[0]).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminDeactivateUser(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminDeactivateUser(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminDeactivateUser"
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
 	request, statusCode, err := sanitizer.ValidateDeactivation(ctx, c)
@@ -813,13 +809,13 @@ func (q *accountHTTPHandler) AdminDeactivateUser(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(user).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminProfile(c *fiber.Ctx) error {
+func (q *accountHTTPHandler) AdminProfile(c fiber.Ctx) error {
 	response := c.Locals(models.CurrentAdmin)
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminChangePassword(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminChangePassword(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminChangePassword"
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
 	request, statusCode, err := sanitizer.ValidateChangePassword(ctx, c)
@@ -867,8 +863,8 @@ func (q *accountHTTPHandler) AdminChangePassword(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminChangeUsername(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminChangeUsername(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminChangeUsername"
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
 	request, statusCode, err := sanitizer.ValidateChangeUsername(ctx, c)
@@ -924,8 +920,8 @@ func (q *accountHTTPHandler) AdminChangeUsername(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminChangeEmail(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminChangeEmail(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminChangeEmail"
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
 	request, statusCode, err := sanitizer.ValidateChangeEmail(ctx, c)
@@ -989,8 +985,8 @@ func (q *accountHTTPHandler) AdminChangeEmail(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) AdminChangePhone(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) AdminChangePhone(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminChangePhone"
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
 	request, statusCode, err := sanitizer.ValidateChangePhone(ctx, c)
@@ -1054,8 +1050,8 @@ func (q *accountHTTPHandler) AdminChangePhone(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserFindUserByConfirmationToken(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserFindUserByConfirmationToken(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserFindUserByConfirmationToken"
 	users, _, err := q.accountUseCase.FindUsers(
 		ctx,
@@ -1071,8 +1067,8 @@ func (q *accountHTTPHandler) UserFindUserByConfirmationToken(c *fiber.Ctx) error
 	return helper.NewResponse(fiber.StatusOK).SetData(users[0]).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserConfirmAccount(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserConfirmAccount(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserConfirmAccount"
 	request, statusCode, err := sanitizer.ValidateConfirmation(ctx, c)
 	if err != nil {
@@ -1165,8 +1161,8 @@ func (q *accountHTTPHandler) UserConfirmAccount(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserConfirmEmail(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserConfirmEmail(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserConfirmEmail"
 	users, _, err := q.accountUseCase.FindUsers(
 		ctx,
@@ -1212,8 +1208,8 @@ func (q *accountHTTPHandler) UserConfirmEmail(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserConfirmPhone(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserConfirmPhone(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserConfirmPhone"
 	users, _, err := q.accountUseCase.FindUsers(
 		ctx,
@@ -1259,8 +1255,8 @@ func (q *accountHTTPHandler) UserConfirmPhone(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserUnlockAccount(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserUnlockAccount(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserUnlockAccount"
 	users, _, err := q.accountUseCase.FindUsers(
 		ctx,
@@ -1302,8 +1298,8 @@ func (q *accountHTTPHandler) UserUnlockAccount(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserForgotPassword(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserForgotPassword(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserForgotPassword"
 	request, statusCode, err := sanitizer.ValidateForgotPassword(ctx, c)
 	if err != nil {
@@ -1357,8 +1353,8 @@ func (q *accountHTTPHandler) UserForgotPassword(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserFindUserByResetPasswordToken(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserFindUserByResetPasswordToken(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserFindUserByResetPasswordToken"
 	users, _, err := q.accountUseCase.FindUsers(
 		ctx,
@@ -1374,8 +1370,8 @@ func (q *accountHTTPHandler) UserFindUserByResetPasswordToken(c *fiber.Ctx) erro
 	return helper.NewResponse(fiber.StatusOK).SetData(users[0]).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserResetPassword(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserResetPassword(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserResetPassword"
 	request, statusCode, err := sanitizer.ValidateResetPassword(ctx, c)
 	if err != nil {
@@ -1451,8 +1447,8 @@ func (q *accountHTTPHandler) UserResetPassword(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserLogin(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserLogin(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserLogin"
 	request, statusCode, err := sanitizer.ValidateLogin(ctx, c)
 	if err != nil {
@@ -1550,8 +1546,8 @@ func (q *accountHTTPHandler) UserLogin(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserFindUsers(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserFindUsers(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserFindUsers"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	filter, err := sanitizer.FindAccounts(ctx, c)
@@ -1571,8 +1567,8 @@ func (q *accountHTTPHandler) UserFindUsers(c *fiber.Ctx) error {
 	}).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserCreateUser(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserCreateUser(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserCreateUser"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	request, statusCode, err := sanitizer.ValidateUser(ctx, c)
@@ -1608,8 +1604,8 @@ func (q *accountHTTPHandler) UserCreateUser(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserFindUserByID(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserFindUserByID(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserFindUserByID"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	users, _, err := q.accountUseCase.FindUsers(ctx, accountModel.NewFilter(accountModel.WithLogin(c.Params("id")), accountModel.WithCompanyIDs(currentUser.CompanyID)))
@@ -1623,8 +1619,8 @@ func (q *accountHTTPHandler) UserFindUserByID(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(users[0]).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserDeactivateUser(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserDeactivateUser(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserDeactivateUser"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	if currentUser.ID == c.Params("id") {
@@ -1684,13 +1680,13 @@ func (q *accountHTTPHandler) UserDeactivateUser(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(user).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserProfile(c *fiber.Ctx) error {
+func (q *accountHTTPHandler) UserProfile(c fiber.Ctx) error {
 	response := c.Locals(models.CurrentUser)
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserChangePassword(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserChangePassword(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserChangePassword"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	request, statusCode, err := sanitizer.ValidateChangePassword(ctx, c)
@@ -1738,8 +1734,8 @@ func (q *accountHTTPHandler) UserChangePassword(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserChangeUsername(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserChangeUsername(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserChangeUsername"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	request, statusCode, err := sanitizer.ValidateChangeUsername(ctx, c)
@@ -1795,8 +1791,8 @@ func (q *accountHTTPHandler) UserChangeUsername(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserChangeEmail(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserChangeEmail(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserChangeEmail"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	request, statusCode, err := sanitizer.ValidateChangeEmail(ctx, c)
@@ -1860,8 +1856,8 @@ func (q *accountHTTPHandler) UserChangeEmail(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
 }
 
-func (q *accountHTTPHandler) UserChangePhone(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *accountHTTPHandler) UserChangePhone(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "AccountPresenter-UserChangePhone"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	request, statusCode, err := sanitizer.ValidateChangePhone(ctx, c)

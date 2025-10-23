@@ -3,8 +3,7 @@ package presenter
 import (
 	"errors"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -20,7 +19,6 @@ import (
 
 type (
 	storeHTTPHandler struct {
-		sessionStore   *session.Store
 		jwtUseCase     jwtUseCase.JwtUseCase
 		accountUseCase accountUseCase.AccountUseCase
 		storeUseCase   storeUseCase.StoreUseCase
@@ -28,13 +26,11 @@ type (
 )
 
 func New(
-	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	storeUseCase storeUseCase.StoreUseCase,
 ) *storeHTTPHandler {
 	return &storeHTTPHandler{
-		sessionStore:   sessionStore,
 		jwtUseCase:     jwtUseCase,
 		accountUseCase: accountUseCase,
 		storeUseCase:   storeUseCase,
@@ -50,8 +46,8 @@ func (q *storeHTTPHandler) Mount(r fiber.Router) {
 		Put("/:id", ownerKeyAuth, q.UserUpdateStore)
 }
 
-func (q *storeHTTPHandler) UserFindStores(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *storeHTTPHandler) UserFindStores(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "StorePresenter-UserFindStores"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	filter, err := sanitizer.FindStores(ctx, c)
@@ -71,8 +67,8 @@ func (q *storeHTTPHandler) UserFindStores(c *fiber.Ctx) error {
 	}).WriteResponse(c)
 }
 
-func (q *storeHTTPHandler) UserCreateStore(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *storeHTTPHandler) UserCreateStore(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "StorePresenter-UserCreateStore"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	request, statusCode, err := sanitizer.ValidateStore(ctx, c)
@@ -90,8 +86,8 @@ func (q *storeHTTPHandler) UserCreateStore(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *storeHTTPHandler) UserFindStoreByID(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *storeHTTPHandler) UserFindStoreByID(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "StorePresenter-UserFindStoreByID"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	stores, _, err := q.storeUseCase.FindStores(
@@ -111,8 +107,8 @@ func (q *storeHTTPHandler) UserFindStoreByID(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(stores[0]).WriteResponse(c)
 }
 
-func (q *storeHTTPHandler) UserUpdateStore(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *storeHTTPHandler) UserUpdateStore(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "StorePresenter-UserUpdateStore"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	request, statusCode, err := sanitizer.ValidateStore(ctx, c)

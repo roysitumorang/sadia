@@ -4,8 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -23,7 +22,6 @@ import (
 
 type (
 	sessionHTTPHandler struct {
-		sessionStore   *session.Store
 		jwtUseCase     jwtUseCase.JwtUseCase
 		accountUseCase accountUseCase.AccountUseCase
 		storeUseCase   storeUseCase.StoreUseCase
@@ -32,14 +30,12 @@ type (
 )
 
 func New(
-	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	storeUseCase storeUseCase.StoreUseCase,
 	sessionUseCase sessionUseCase.SessionUseCase,
 ) *sessionHTTPHandler {
 	return &sessionHTTPHandler{
-		sessionStore:   sessionStore,
 		jwtUseCase:     jwtUseCase,
 		accountUseCase: accountUseCase,
 		storeUseCase:   storeUseCase,
@@ -55,8 +51,8 @@ func (q *sessionHTTPHandler) Mount(r fiber.Router) {
 		Put("/mine", userKeyAuth, q.UserCloseCurrentSession)
 }
 
-func (q *sessionHTTPHandler) UserFindSessions(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *sessionHTTPHandler) UserFindSessions(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "SessionPresenter-UserFindSessions"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	filter, err := sanitizer.FindSessions(ctx, c)
@@ -76,8 +72,8 @@ func (q *sessionHTTPHandler) UserFindSessions(c *fiber.Ctx) error {
 	}).WriteResponse(c)
 }
 
-func (q *sessionHTTPHandler) UserCreateSession(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *sessionHTTPHandler) UserCreateSession(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "SessionPresenter-UserCreateSession"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	if currentUser.CurrentSessionID != nil {
@@ -143,8 +139,8 @@ func (q *sessionHTTPHandler) UserCreateSession(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *sessionHTTPHandler) UserFindCurrentSession(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *sessionHTTPHandler) UserFindCurrentSession(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "SessionPresenter-UserFindCurrentSession"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	if currentUser.CurrentSessionID == nil {
@@ -166,8 +162,8 @@ func (q *sessionHTTPHandler) UserFindCurrentSession(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(sessions[0]).WriteResponse(c)
 }
 
-func (q *sessionHTTPHandler) UserCloseCurrentSession(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *sessionHTTPHandler) UserCloseCurrentSession(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "SessionPresenter-UserCloseCurrentSession"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	if currentUser.CurrentSessionID == nil {

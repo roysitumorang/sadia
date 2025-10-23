@@ -1,8 +1,7 @@
 package presenter
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/fiber/v3"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
 	"github.com/roysitumorang/sadia/models"
@@ -17,7 +16,6 @@ import (
 
 type (
 	productCategoryHTTPHandler struct {
-		sessionStore           *session.Store
 		jwtUseCase             jwtUseCase.JwtUseCase
 		accountUseCase         accountUseCase.AccountUseCase
 		productCategoryUseCase productCategoryUseCase.ProductCategoryUseCase
@@ -25,13 +23,11 @@ type (
 )
 
 func New(
-	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	productCategoryUseCase productCategoryUseCase.ProductCategoryUseCase,
 ) *productCategoryHTTPHandler {
 	return &productCategoryHTTPHandler{
-		sessionStore:           sessionStore,
 		jwtUseCase:             jwtUseCase,
 		accountUseCase:         accountUseCase,
 		productCategoryUseCase: productCategoryUseCase,
@@ -47,8 +43,8 @@ func (q *productCategoryHTTPHandler) Mount(r fiber.Router) {
 		Put("/:id", ownerKeyAuth, q.UserUpdateProductCategory)
 }
 
-func (q *productCategoryHTTPHandler) UserFindProductCategories(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *productCategoryHTTPHandler) UserFindProductCategories(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "ProductCategoryPresenter-UserFindProductCategories"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	filter, err := sanitizer.FindProductCategories(ctx, c)
@@ -68,8 +64,8 @@ func (q *productCategoryHTTPHandler) UserFindProductCategories(c *fiber.Ctx) err
 	}).WriteResponse(c)
 }
 
-func (q *productCategoryHTTPHandler) UserCreateProductCategory(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *productCategoryHTTPHandler) UserCreateProductCategory(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "ProductCategoryPresenter-UserCreateProductCategory"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	request, statusCode, err := sanitizer.ValidateProductCategory(ctx, c)
@@ -87,8 +83,8 @@ func (q *productCategoryHTTPHandler) UserCreateProductCategory(c *fiber.Ctx) err
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *productCategoryHTTPHandler) UserFindProductCategoryByID(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *productCategoryHTTPHandler) UserFindProductCategoryByID(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "ProductCategoryPresenter-UserFindProductCategoryByID"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
@@ -108,8 +104,8 @@ func (q *productCategoryHTTPHandler) UserFindProductCategoryByID(c *fiber.Ctx) e
 	return helper.NewResponse(fiber.StatusOK).SetData(productCategories[0]).WriteResponse(c)
 }
 
-func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c fiber.Ctx) error {
+	ctx := c.Context()
 	ctxt := "ProductCategoryPresenter-UserUpdateProductCategory"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	request, statusCode, err := sanitizer.ValidateProductCategory(ctx, c)

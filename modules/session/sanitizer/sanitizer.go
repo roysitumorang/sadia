@@ -7,15 +7,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/roysitumorang/sadia/helper"
 	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
 	"go.uber.org/zap"
 )
 
-func FindSessions(ctx context.Context, c *fiber.Ctx) (*sessionModel.Filter, error) {
+func FindSessions(ctx context.Context, c fiber.Ctx) (*sessionModel.Filter, error) {
 	ctxt := "SessionSanitizer-FindSessions"
-	originalURL, err := url.ParseRequestURI(c.OriginalURL())
+	originalURL, err := url.ParseRequestURI(helper.ByteSlice2String(c.Request().URI().FullURI()))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseRequestURI")
 		return nil, err
@@ -42,13 +42,13 @@ func FindSessions(ctx context.Context, c *fiber.Ctx) (*sessionModel.Filter, erro
 	return sessionModel.NewFilter(options...), nil
 }
 
-func ValidateNewSession(ctx context.Context, c *fiber.Ctx) (*sessionModel.NewSession, int, error) {
+func ValidateNewSession(ctx context.Context, c fiber.Ctx) (*sessionModel.NewSession, int, error) {
 	ctxt := "SessionSanitizer-ValidateSession"
 	var response sessionModel.NewSession
-	err := c.BodyParser(&response)
+	err := c.Bind().Body(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {
@@ -58,13 +58,13 @@ func ValidateNewSession(ctx context.Context, c *fiber.Ctx) (*sessionModel.NewSes
 	return &response, fiber.StatusOK, nil
 }
 
-func ValidateCloseSession(ctx context.Context, c *fiber.Ctx) (*sessionModel.CloseSession, int, error) {
+func ValidateCloseSession(ctx context.Context, c fiber.Ctx) (*sessionModel.CloseSession, int, error) {
 	ctxt := "SessionSanitizer-ValidateCloseSession"
 	var response sessionModel.CloseSession
-	err := c.BodyParser(&response)
+	err := c.Bind().Body(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {
