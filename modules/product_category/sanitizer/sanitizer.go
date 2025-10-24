@@ -45,16 +45,16 @@ func FindProductCategories(ctx context.Context, c *fiber.Ctx) (*productCategoryM
 
 func ValidateProductCategory(ctx context.Context, c *fiber.Ctx) (*productCategoryModel.ProductCategory, int, error) {
 	ctxt := "ProductCategorySanitizer-ValidateProductCategory"
-	var response productCategoryModel.ProductCategory
-	err := c.BodyParser(&response)
+	response := new(productCategoryModel.ProductCategory)
+	err := c.BodyParser(response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
-		return nil, fiberErr.Code, err
+		return response, fiberErr.Code, err
 	}
-	if err = (&response).Validate(); err != nil {
+	if err = (response).Validate(); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
-		return nil, fiber.StatusBadRequest, err
+		return response, fiber.StatusBadRequest, err
 	}
-	return &response, fiber.StatusOK, nil
+	return response, fiber.StatusOK, nil
 }

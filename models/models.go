@@ -73,8 +73,8 @@ type (
 )
 
 var (
-	MapLimits        = map[int]int{1: 1, 10: 1, 25: 1, 50: 1, 100: 1}
-	Limits           = []int{1, 10, 25, 50, 100}
+	MapLimits        = map[int]int{10: 1, 25: 1, 50: 1, 100: 1}
+	Limits           = []int{10, 25, 50, 100}
 	PhoneNumberRegex = regexp.MustCompile(`^\+[1-9]\d{1,14}$`)
 	UsernameRegex    = regexp.MustCompile("[^a-z0-9]+")
 	SliceTopics      = []string{

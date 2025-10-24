@@ -1,0 +1,8 @@
+{{ include "../partials/header" }}
+
+<h2><a href="/product_category">Product Category</a> > Edit #{{ request.ID }}</h2>
+<form method="POST" action="/product_category/{{ request.ID }}" role="form" class="form-horizontal">
+    {{ include "_form" }}
+</form>
+
+{{ include "../partials/footer" }}

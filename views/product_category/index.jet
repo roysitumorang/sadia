@@ -1,0 +1,60 @@
+{{ include "../partials/header" }}
+
+<h2 class="navbar-form navbar-left">Product Category</h2>
+<form method="GET" action="/product_category" class="navbar-form navbar-right" role="search" onsubmit="('Search'==$('[name=q').val())&amp;&amp;$('[name=q]').val('')">
+    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search">
+    <button type="submit" class="btn btn-default"><i class="fa fa-search">&nbsp;</i>Search</button>
+    <a type="button" href="/product_category/new" class="btn btn-default"><i class="fa fa-user-plus">&nbsp;</i>New</a>
+</form>
+<div class="clearfix"></div>
+<table class="table table-striped table-hover table-condensed">
+    <thead>
+        <tr>
+            <th class="text-center">No</th>
+            <th class="text-center">Name</th>
+            <th class="text-center">Slug</th>
+            <th class="text-center">#</th>
+        </tr>
+    </thead>
+    <tbody>
+    {{ range _, item := rows }}
+        <tr class="text-nowrap">
+            <td>{{ item.RowNo }}</td>
+            <td>{{ item.Name }}</td>
+            <td>{{ item.Slug }}</td>
+            <td><a type="button" href="/product_category/{{ item.ID }}/edit" class="btn btn-primary"><i class="fa fa-edit">&nbsp;</i>Edit</a></td>
+        </tr>
+    {{ end }}
+    </tbody>
+</table>
+<form method="GET" action="/product_category" class="navbar-form navbar-right">
+    <input type="hidden" name="q" value="{{ q }}">
+    <i class="fa fa-sort-amount-asc">&nbsp;</i>&nbsp;Size per page&nbsp;:&nbsp;</strong>&nbsp;
+    <select class="form-control" name="limit" onchange="$(this).closest('form').submit()">
+        {{ range _, item := limits }}
+        <option value="{{ item }}"{{ if pagination.Info.Limit == item }} selected{{ end }}>{{ item }}</option>
+        {{ end }}
+    </select>
+</form>
+{{ if pagination.Info.Total > pagination.Info.Limit }}
+    <ul class="pagination">
+        {{ if pagination.Links.First }}
+            <li class="page-item"><a class="page-link" href="{{ pagination.Links.First }}">First</a></li>
+        {{ end }}
+        {{ if pagination.Links.Previous }}
+            <li class="page-item"><a class="page-link" href="{{ pagination.Links.Previous }}">Previous</a></li>
+        {{ end }}
+        {{ if pagination.Links.Current }}
+            <li class="page-item"><a class="page-link" href="{{ pagination.Links.Current }}">Current</a></li>
+        {{ end }}
+        {{ if pagination.Links.Next }}
+            <li class="page-item"><a class="page-link" href="{{ pagination.Links.Next }}">Next</a></li>
+        {{ end }}
+        {{ if pagination.Links.Last }}
+            <li class="page-item"><a class="page-link" href="{{ pagination.Links.Last }}">Last</a></li>
+        {{ end }}
+        <li class="page-item"><a class="page-link" href="#">Total: {{ rows | len }} of {{ pagination.Info.Total }} items , Page: {{ pagination.Info.Page }} of {{ pagination.Info.Pages }} pages</a></li>
+    </ul>
+{{ end }}
+
+{{ include "../partials/footer" }}
