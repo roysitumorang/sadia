@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/roysitumorang/sadia/helper"
 	companyModel "github.com/roysitumorang/sadia/modules/company/model"
 	"go.uber.org/zap"
 )
 
-func FindCompanies(ctx context.Context, c fiber.Ctx) (*companyModel.Filter, error) {
+func FindCompanies(ctx context.Context, c *fiber.Ctx) (*companyModel.Filter, error) {
 	ctxt := "CompanySanitizer-FindCompanies"
 	originalURL, err := url.ParseRequestURI(helper.ByteSlice2String(c.Request().URI().FullURI()))
 	if err != nil {
@@ -60,10 +60,10 @@ func FindCompanies(ctx context.Context, c fiber.Ctx) (*companyModel.Filter, erro
 	return companyModel.NewFilter(options...), nil
 }
 
-func ValidateCompany(ctx context.Context, c fiber.Ctx) (*companyModel.NewCompany, int, error) {
+func ValidateCompany(ctx context.Context, c *fiber.Ctx) (*companyModel.NewCompany, int, error) {
 	ctxt := "CompanySanitizer-ValidateCompany"
 	var response companyModel.NewCompany
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -76,10 +76,10 @@ func ValidateCompany(ctx context.Context, c fiber.Ctx) (*companyModel.NewCompany
 	return &response, fiber.StatusOK, nil
 }
 
-func ValidateDeactivation(ctx context.Context, c fiber.Ctx) (*companyModel.Deactivation, int, error) {
+func ValidateDeactivation(ctx context.Context, c *fiber.Ctx) (*companyModel.Deactivation, int, error) {
 	ctxt := "CompanySanitizer-ValidateDeactivation"
 	var response companyModel.Deactivation
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -92,10 +92,10 @@ func ValidateDeactivation(ctx context.Context, c fiber.Ctx) (*companyModel.Deact
 	return &response, fiber.StatusOK, nil
 }
 
-func ValidateUpdateCompany(ctx context.Context, c fiber.Ctx) (*companyModel.UpdateCompany, int, error) {
+func ValidateUpdateCompany(ctx context.Context, c *fiber.Ctx) (*companyModel.UpdateCompany, int, error) {
 	ctxt := "CompanySanitizer-ValidateUpdateCompany"
 	var response companyModel.UpdateCompany
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")

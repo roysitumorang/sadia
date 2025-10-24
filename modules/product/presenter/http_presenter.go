@@ -1,7 +1,8 @@
 package presenter
 
 import (
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
 	"github.com/roysitumorang/sadia/models"
@@ -18,6 +19,7 @@ import (
 
 type (
 	productHTTPHandler struct {
+		sessionStore           *session.Store
 		jwtUseCase             jwtUseCase.JwtUseCase
 		accountUseCase         accountUseCase.AccountUseCase
 		productCategoryUseCase productCategoryUseCase.ProductCategoryUseCase
@@ -26,12 +28,14 @@ type (
 )
 
 func New(
+	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	productCategoryUseCase productCategoryUseCase.ProductCategoryUseCase,
 	productUseCase productUseCase.ProductUseCase,
 ) *productHTTPHandler {
 	return &productHTTPHandler{
+		sessionStore:           sessionStore,
 		jwtUseCase:             jwtUseCase,
 		accountUseCase:         accountUseCase,
 		productCategoryUseCase: productCategoryUseCase,
@@ -49,7 +53,7 @@ func (q *productHTTPHandler) Mount(r fiber.Router) {
 		Put("/:id", ownerKeyAuth, q.UserUpdateProduct)
 }
 
-func (q *productHTTPHandler) UserFindProducts(c fiber.Ctx) error {
+func (q *productHTTPHandler) UserFindProducts(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "ProductPresenter-UserFindProducts"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
@@ -70,7 +74,7 @@ func (q *productHTTPHandler) UserFindProducts(c fiber.Ctx) error {
 	}).WriteResponse(c)
 }
 
-func (q *productHTTPHandler) UserCreateProduct(c fiber.Ctx) error {
+func (q *productHTTPHandler) UserCreateProduct(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "ProductPresenter-UserCreateProduct"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
@@ -105,7 +109,7 @@ func (q *productHTTPHandler) UserCreateProduct(c fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *productHTTPHandler) UserFindProductByID(c fiber.Ctx) error {
+func (q *productHTTPHandler) UserFindProductByID(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "ProductPresenter-UserFindProductByID"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
@@ -126,7 +130,7 @@ func (q *productHTTPHandler) UserFindProductByID(c fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(products[0]).WriteResponse(c)
 }
 
-func (q *productHTTPHandler) UserUpdateProduct(c fiber.Ctx) error {
+func (q *productHTTPHandler) UserUpdateProduct(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "ProductPresenter-UserUpdateProduct"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)

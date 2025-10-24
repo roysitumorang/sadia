@@ -7,14 +7,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	"go.uber.org/zap"
 )
 
-func FindAccounts(ctx context.Context, c fiber.Ctx) (*accountModel.Filter, error) {
+func FindAccounts(ctx context.Context, c *fiber.Ctx) (*accountModel.Filter, error) {
 	ctxt := "AccountSanitizer-FindAccounts"
 	originalURL, err := url.ParseRequestURI(helper.ByteSlice2String(c.Request().URI().FullURI()))
 	if err != nil {
@@ -60,10 +60,10 @@ func FindAccounts(ctx context.Context, c fiber.Ctx) (*accountModel.Filter, error
 	return accountModel.NewFilter(options...), nil
 }
 
-func ValidateAccount(ctx context.Context, c fiber.Ctx) (*models.NewAccount, int, error) {
+func ValidateAccount(ctx context.Context, c *fiber.Ctx) (*models.NewAccount, int, error) {
 	ctxt := "AccountSanitizer-ValidateAccount"
 	var response models.NewAccount
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -76,10 +76,10 @@ func ValidateAccount(ctx context.Context, c fiber.Ctx) (*models.NewAccount, int,
 	return &response, fiber.StatusOK, nil
 }
 
-func ValidateAdmin(ctx context.Context, c fiber.Ctx) (*accountModel.NewAdmin, int, error) {
+func ValidateAdmin(ctx context.Context, c *fiber.Ctx) (*accountModel.NewAdmin, int, error) {
 	ctxt := "AccountSanitizer-ValidateAdmin"
 	var response accountModel.NewAdmin
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -92,10 +92,10 @@ func ValidateAdmin(ctx context.Context, c fiber.Ctx) (*accountModel.NewAdmin, in
 	return &response, fiber.StatusOK, nil
 }
 
-func ValidateUser(ctx context.Context, c fiber.Ctx) (*accountModel.NewUser, int, error) {
+func ValidateUser(ctx context.Context, c *fiber.Ctx) (*accountModel.NewUser, int, error) {
 	ctxt := "AccountSanitizer-ValidateUser"
 	var response accountModel.NewUser
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -108,10 +108,10 @@ func ValidateUser(ctx context.Context, c fiber.Ctx) (*accountModel.NewUser, int,
 	return &response, fiber.StatusOK, nil
 }
 
-func ValidateDeactivation(ctx context.Context, c fiber.Ctx) (*accountModel.Deactivation, int, error) {
+func ValidateDeactivation(ctx context.Context, c *fiber.Ctx) (*accountModel.Deactivation, int, error) {
 	ctxt := "AccountSanitizer-ValidateDeactivation"
 	var response accountModel.Deactivation
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -124,10 +124,10 @@ func ValidateDeactivation(ctx context.Context, c fiber.Ctx) (*accountModel.Deact
 	return &response, fiber.StatusOK, nil
 }
 
-func ValidateLogin(ctx context.Context, c fiber.Ctx) (*accountModel.LoginRequest, int, error) {
+func ValidateLogin(ctx context.Context, c *fiber.Ctx) (*accountModel.LoginRequest, int, error) {
 	ctxt := "AccountSanitizer-ValidateLogin"
 	response := new(accountModel.LoginRequest)
-	err := c.Bind().Body(response)
+	err := c.BodyParser(response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -140,10 +140,10 @@ func ValidateLogin(ctx context.Context, c fiber.Ctx) (*accountModel.LoginRequest
 	return response, fiber.StatusOK, nil
 }
 
-func ValidateConfirmation(ctx context.Context, c fiber.Ctx) (*accountModel.Confirmation, int, error) {
+func ValidateConfirmation(ctx context.Context, c *fiber.Ctx) (*accountModel.Confirmation, int, error) {
 	ctxt := "AccountSanitizer-ValidateConfirmation"
 	var response accountModel.Confirmation
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -156,10 +156,10 @@ func ValidateConfirmation(ctx context.Context, c fiber.Ctx) (*accountModel.Confi
 	return &response, fiber.StatusOK, nil
 }
 
-func ValidateForgotPassword(ctx context.Context, c fiber.Ctx) (*accountModel.ForgotPassword, int, error) {
+func ValidateForgotPassword(ctx context.Context, c *fiber.Ctx) (*accountModel.ForgotPassword, int, error) {
 	ctxt := "AccountSanitizer-ValidateForgotPassword"
 	var response accountModel.ForgotPassword
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -172,10 +172,10 @@ func ValidateForgotPassword(ctx context.Context, c fiber.Ctx) (*accountModel.For
 	return &response, fiber.StatusOK, nil
 }
 
-func ValidateResetPassword(ctx context.Context, c fiber.Ctx) (*accountModel.ResetPassword, int, error) {
+func ValidateResetPassword(ctx context.Context, c *fiber.Ctx) (*accountModel.ResetPassword, int, error) {
 	ctxt := "AccountSanitizer-ValidateResetPassword"
 	var response accountModel.ResetPassword
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -188,10 +188,10 @@ func ValidateResetPassword(ctx context.Context, c fiber.Ctx) (*accountModel.Rese
 	return &response, fiber.StatusOK, nil
 }
 
-func ValidateChangePassword(ctx context.Context, c fiber.Ctx) (*accountModel.ChangePassword, int, error) {
+func ValidateChangePassword(ctx context.Context, c *fiber.Ctx) (*accountModel.ChangePassword, int, error) {
 	ctxt := "AccountSanitizer-ValidateChangePassword"
 	var response accountModel.ChangePassword
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -204,10 +204,10 @@ func ValidateChangePassword(ctx context.Context, c fiber.Ctx) (*accountModel.Cha
 	return &response, fiber.StatusOK, nil
 }
 
-func ValidateChangeUsername(ctx context.Context, c fiber.Ctx) (*accountModel.ChangeUsername, int, error) {
+func ValidateChangeUsername(ctx context.Context, c *fiber.Ctx) (*accountModel.ChangeUsername, int, error) {
 	ctxt := "AccountSanitizer-ValidateChangeUsername"
 	var response accountModel.ChangeUsername
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -220,10 +220,10 @@ func ValidateChangeUsername(ctx context.Context, c fiber.Ctx) (*accountModel.Cha
 	return &response, fiber.StatusOK, nil
 }
 
-func ValidateChangeEmail(ctx context.Context, c fiber.Ctx) (*accountModel.ChangeEmail, int, error) {
+func ValidateChangeEmail(ctx context.Context, c *fiber.Ctx) (*accountModel.ChangeEmail, int, error) {
 	ctxt := "AccountSanitizer-ValidateChangeEmail"
 	var response accountModel.ChangeEmail
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -236,10 +236,10 @@ func ValidateChangeEmail(ctx context.Context, c fiber.Ctx) (*accountModel.Change
 	return &response, fiber.StatusOK, nil
 }
 
-func ValidateChangePhone(ctx context.Context, c fiber.Ctx) (*accountModel.ChangePhone, int, error) {
+func ValidateChangePhone(ctx context.Context, c *fiber.Ctx) (*accountModel.ChangePhone, int, error) {
 	ctxt := "AccountSanitizer-ValidateChangePhone"
 	var response accountModel.ChangePhone
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -252,7 +252,7 @@ func ValidateChangePhone(ctx context.Context, c fiber.Ctx) (*accountModel.Change
 	return &response, fiber.StatusOK, nil
 }
 
-func FindAdmins(ctx context.Context, c fiber.Ctx) (*accountModel.Filter, error) {
+func FindAdmins(ctx context.Context, c *fiber.Ctx) (*accountModel.Filter, error) {
 	ctxt := "AccountSanitizer-FindAdmins"
 	originalURL, err := url.ParseRequestURI(helper.ByteSlice2String(c.Request().URI().FullURI()))
 	if err != nil {
@@ -296,7 +296,7 @@ func FindAdmins(ctx context.Context, c fiber.Ctx) (*accountModel.Filter, error) 
 	return accountModel.NewFilter(options...), nil
 }
 
-func FindUsers(ctx context.Context, c fiber.Ctx) (*accountModel.Filter, error) {
+func FindUsers(ctx context.Context, c *fiber.Ctx) (*accountModel.Filter, error) {
 	ctxt := "AccountSanitizer-FindUsers"
 	originalURL, err := url.ParseRequestURI(helper.ByteSlice2String(c.Request().URI().FullURI()))
 	if err != nil {

@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/roysitumorang/sadia/helper"
 	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
 	"go.uber.org/zap"
 )
 
-func FindSessions(ctx context.Context, c fiber.Ctx) (*sessionModel.Filter, error) {
+func FindSessions(ctx context.Context, c *fiber.Ctx) (*sessionModel.Filter, error) {
 	ctxt := "SessionSanitizer-FindSessions"
 	originalURL, err := url.ParseRequestURI(helper.ByteSlice2String(c.Request().URI().FullURI()))
 	if err != nil {
@@ -42,10 +42,10 @@ func FindSessions(ctx context.Context, c fiber.Ctx) (*sessionModel.Filter, error
 	return sessionModel.NewFilter(options...), nil
 }
 
-func ValidateNewSession(ctx context.Context, c fiber.Ctx) (*sessionModel.NewSession, int, error) {
+func ValidateNewSession(ctx context.Context, c *fiber.Ctx) (*sessionModel.NewSession, int, error) {
 	ctxt := "SessionSanitizer-ValidateSession"
 	var response sessionModel.NewSession
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
@@ -58,10 +58,10 @@ func ValidateNewSession(ctx context.Context, c fiber.Ctx) (*sessionModel.NewSess
 	return &response, fiber.StatusOK, nil
 }
 
-func ValidateCloseSession(ctx context.Context, c fiber.Ctx) (*sessionModel.CloseSession, int, error) {
+func ValidateCloseSession(ctx context.Context, c *fiber.Ctx) (*sessionModel.CloseSession, int, error) {
 	ctxt := "SessionSanitizer-ValidateCloseSession"
 	var response sessionModel.CloseSession
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")

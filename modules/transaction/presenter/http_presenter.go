@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -26,6 +27,7 @@ import (
 
 type (
 	transactionHTTPHandler struct {
+		sessionStore       *session.Store
 		jwtUseCase         jwtUseCase.JwtUseCase
 		accountUseCase     accountUseCase.AccountUseCase
 		sessionUseCase     sessionUseCase.SessionUseCase
@@ -36,6 +38,7 @@ type (
 )
 
 func New(
+	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	sessionUseCase sessionUseCase.SessionUseCase,
@@ -44,6 +47,7 @@ func New(
 	transactionUseCase transactionUseCase.TransactionUseCase,
 ) *transactionHTTPHandler {
 	return &transactionHTTPHandler{
+		sessionStore:       sessionStore,
 		jwtUseCase:         jwtUseCase,
 		accountUseCase:     accountUseCase,
 		sessionUseCase:     sessionUseCase,
@@ -61,7 +65,7 @@ func (q *transactionHTTPHandler) Mount(r fiber.Router) {
 		Get("/:id", userKeyAuth, q.UserFindTransaction)
 }
 
-func (q *transactionHTTPHandler) UserFindTransactions(c fiber.Ctx) error {
+func (q *transactionHTTPHandler) UserFindTransactions(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-UserFindTransactions"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
@@ -85,7 +89,7 @@ func (q *transactionHTTPHandler) UserFindTransactions(c fiber.Ctx) error {
 	}).WriteResponse(c)
 }
 
-func (q *transactionHTTPHandler) UserCreateTransaction(c fiber.Ctx) error {
+func (q *transactionHTTPHandler) UserCreateTransaction(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-UserCreateTransaction"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
@@ -179,7 +183,7 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *transactionHTTPHandler) UserFindTransaction(c fiber.Ctx) error {
+func (q *transactionHTTPHandler) UserFindTransaction(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-UserFindTransaction"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)

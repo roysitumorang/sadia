@@ -1,4 +1,4 @@
-{{> "partials/header" }}
+{{ include "../partials/header" }}
 
 <form action="/account/login" method="POST" role="form" class="form-horizontal">
     <fieldset>
@@ -24,4 +24,4 @@
     </fieldset>
 </form>
 
-{{> "partials/footer" }}
+{{ include "../partials/footer" }}

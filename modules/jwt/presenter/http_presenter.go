@@ -3,7 +3,8 @@ package presenter
 import (
 	"errors"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
@@ -18,16 +19,19 @@ import (
 
 type (
 	jwtHTTPHandler struct {
+		sessionStore   *session.Store
 		jwtUseCase     jwtUseCase.JwtUseCase
 		accountUseCase accountUseCase.AccountUseCase
 	}
 )
 
 func New(
+	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 ) *jwtHTTPHandler {
 	return &jwtHTTPHandler{
+		sessionStore:   sessionStore,
 		jwtUseCase:     jwtUseCase,
 		accountUseCase: accountUseCase,
 	}
@@ -40,7 +44,7 @@ func (q *jwtHTTPHandler) Mount(r fiber.Router) {
 		Delete("/:id", q.AdminDeleteJWT)
 }
 
-func (q *jwtHTTPHandler) AdminFindJWTs(c fiber.Ctx) error {
+func (q *jwtHTTPHandler) AdminFindJWTs(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "JwtPresenter-AdminFindJWTs"
 	filter, err := sanitizer.FindJWTs(ctx, c)
@@ -59,7 +63,7 @@ func (q *jwtHTTPHandler) AdminFindJWTs(c fiber.Ctx) error {
 	}).WriteResponse(c)
 }
 
-func (q *jwtHTTPHandler) AdminDeleteJWT(c fiber.Ctx) error {
+func (q *jwtHTTPHandler) AdminDeleteJWT(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "JwtPresenter-AdminDeleteJWT"
 	currentJwt, _ := c.Locals(models.CurrentJwt).(*jwt.RegisteredClaims)

@@ -22,12 +22,12 @@
             <nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
                 <ul class="nav navbar-nav">
                     <li><a href="/"><i class="fa fa-home">&nbsp;</i>&nbsp;Home</a></li>
-                    {{#if authenticated }}
+                    {{ if authenticated }}
                     <li><a href="/product_category"><i class="fa fa-group">&nbsp;</i>&nbsp;Product Category</a></li>
                     <li><a href="/product"><i class="fa fa-dollar">&nbsp;</i>&nbsp;Product</a></li>
-                    {{/if}}
+                    {{ end }}
                 </ul>
-                {{#if authenticated }}
+                {{ if authenticated }}
                 <ul class="nav navbar-nav navbar-right">
                     <li class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#"><i class="fa fa-user">&nbsp;</i>&nbsp;Welcome {{ currentUser.Email }}&nbsp;<b class="caret">&nbsp;</b></a>
@@ -37,14 +37,14 @@
                         </ul>
                     </li>
                 </ul>
-                {{/if}}
+                {{ end }}
             </nav>
         </div>
     </div>
     <div id="main" class="container">
         <h1>&nbsp;</h1>
-        {{#if message }}
+        {{ if message }}
             <div class="alert alert-danger">
-                <a class="close" href="#" data-dismiss="alert">x</a>{{ message}}
+                <a class="close" href="#" data-dismiss="alert">x</a>{{ message }}
             </div>
-        {{/if}}
+        {{ end }}

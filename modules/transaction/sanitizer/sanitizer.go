@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/roysitumorang/sadia/helper"
 	transactionModel "github.com/roysitumorang/sadia/modules/transaction/model"
 	"go.uber.org/zap"
 )
 
-func FindTransactions(ctx context.Context, c fiber.Ctx) (*transactionModel.Filter, error) {
+func FindTransactions(ctx context.Context, c *fiber.Ctx) (*transactionModel.Filter, error) {
 	ctxt := "TransactionSanitizer-FindTransactions"
 	originalURL, err := url.ParseRequestURI(helper.ByteSlice2String(c.Request().URI().FullURI()))
 	if err != nil {
@@ -42,10 +42,10 @@ func FindTransactions(ctx context.Context, c fiber.Ctx) (*transactionModel.Filte
 	return transactionModel.NewFilter(options...), nil
 }
 
-func ValidateTransaction(ctx context.Context, c fiber.Ctx) (*transactionModel.Transaction, int, error) {
+func ValidateTransaction(ctx context.Context, c *fiber.Ctx) (*transactionModel.Transaction, int, error) {
 	ctxt := "TransactionSanitizer-ValidateTransaction"
 	var response transactionModel.Transaction
-	err := c.Bind().Body(&response)
+	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
