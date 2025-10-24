@@ -37,7 +37,8 @@ func New(
 func (q *accountHTTPHandler) Mount(r fiber.Router) {
 	adminKeyAuth := middleware.AdminKeyAuth(q.jwtUseCase, q.accountUseCase)
 	superAdminKeyAuth := middleware.AdminKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.AdminLevelSuperAdmin)
-	admin := r.Group("/admin")
+	v1 := r.Group("/v1")
+	admin := v1.Group("/admin")
 	admin.Get("/confirmation/:token", q.AdminFindAdminByConfirmationToken).
 		Put("/confirmation/:token", q.AdminConfirmAccount).
 		Get("/email/confirm/:token", q.AdminConfirmEmail).
@@ -64,7 +65,7 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Put("/phone", adminKeyAuth, q.AdminChangePhone)
 	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase)
 	ownerKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.UserLevelOwner)
-	r.Get("/confirmation/:token", q.UserFindUserByConfirmationToken).
+	v1.Get("/confirmation/:token", q.UserFindUserByConfirmationToken).
 		Put("/confirmation/:token", q.UserConfirmAccount).
 		Get("/email/confirm/:token", q.UserConfirmEmail).
 		Get("/phone/confirm/:token", q.UserConfirmPhone).
@@ -73,12 +74,12 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Get("/password/reset/:token", q.UserFindUserByResetPasswordToken).
 		Put("/password/reset/:token", q.UserResetPassword).
 		Post("/login", q.UserLogin)
-	users := r.Group("/users")
+	users := v1.Group("/users")
 	users.Get("", ownerKeyAuth, q.UserFindUsers).
 		Post("", ownerKeyAuth, q.UserCreateUser).
 		Get("/:id", ownerKeyAuth, q.UserFindUserByID).
 		Delete("/:id", ownerKeyAuth, q.UserDeactivateUser)
-	me := r.Group("/me")
+	me := v1.Group("/me")
 	me.Get("/about", userKeyAuth, q.UserProfile).
 		Put("/password", userKeyAuth, q.UserChangePassword).
 		Put("/username", userKeyAuth, q.UserChangeUsername).

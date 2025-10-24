@@ -55,7 +55,8 @@ func New(
 
 func (q *transactionHTTPHandler) Mount(r fiber.Router) {
 	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase)
-	r.Get("", userKeyAuth, q.UserFindTransactions).
+	v1 := r.Group("/v1")
+	v1.Get("", userKeyAuth, q.UserFindTransactions).
 		Post("", userKeyAuth, q.UserCreateTransaction).
 		Get("/:id", userKeyAuth, q.UserFindTransaction)
 }

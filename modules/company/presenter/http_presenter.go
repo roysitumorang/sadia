@@ -42,14 +42,15 @@ func New(
 func (q *companyHTTPHandler) Mount(r fiber.Router) {
 	adminKeyAuth := middleware.AdminKeyAuth(q.jwtUseCase, q.accountUseCase)
 	superAdminKeyAuth := middleware.AdminKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.AdminLevelSuperAdmin)
-	admin := r.Group("/admin")
+	v1 := r.Group("/v1")
+	admin := v1.Group("/admin")
 	admin.Get("", adminKeyAuth, q.AdminFindCompanies).
 		Post("", superAdminKeyAuth, q.AdminCreateCompany).
 		Get("/:id", adminKeyAuth, q.AdminFindCompanyByID).
 		Delete("/:id", superAdminKeyAuth, q.AdminDeactivateCompany)
 	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase)
 	ownerKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.UserLevelOwner)
-	r.Group("/mine").
+	v1.Group("/mine").
 		Get("", userKeyAuth, q.UserFindMyCompany).
 		Put("", ownerKeyAuth, q.UserUpdateMyCompany)
 }

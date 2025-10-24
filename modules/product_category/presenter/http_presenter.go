@@ -37,7 +37,8 @@ func New(
 func (q *productCategoryHTTPHandler) Mount(r fiber.Router) {
 	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase)
 	ownerKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.UserLevelOwner)
-	r.Get("", userKeyAuth, q.UserFindProductCategories).
+	v1 := r.Group("/v1")
+	v1.Get("", userKeyAuth, q.UserFindProductCategories).
 		Post("", ownerKeyAuth, q.UserCreateProductCategory).
 		Get("/:id", userKeyAuth, q.UserFindProductCategoryByID).
 		Put("/:id", ownerKeyAuth, q.UserUpdateProductCategory)

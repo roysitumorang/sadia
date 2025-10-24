@@ -45,7 +45,8 @@ func New(
 
 func (q *sessionHTTPHandler) Mount(r fiber.Router) {
 	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase)
-	r.Get("", userKeyAuth, q.UserFindSessions).
+	v1 := r.Group("/v1")
+	v1.Get("", userKeyAuth, q.UserFindSessions).
 		Post("", userKeyAuth, q.UserCreateSession).
 		Get("/mine", userKeyAuth, q.UserFindCurrentSession).
 		Put("/mine", userKeyAuth, q.UserCloseCurrentSession)

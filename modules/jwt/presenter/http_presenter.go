@@ -34,7 +34,8 @@ func New(
 }
 
 func (q *jwtHTTPHandler) Mount(r fiber.Router) {
-	r.Group("/admin", middleware.AdminKeyAuth(q.jwtUseCase, q.accountUseCase)).
+	v1 := r.Group("/v1")
+	v1.Group("/admin", middleware.AdminKeyAuth(q.jwtUseCase, q.accountUseCase)).
 		Get("", q.AdminFindJWTs).
 		Delete("/:id", q.AdminDeleteJWT)
 }
