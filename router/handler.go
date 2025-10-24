@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gofiber/storage/valkey"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/config"
 	"github.com/roysitumorang/sadia/helper"
@@ -40,6 +41,7 @@ type (
 		DbWrite                *pgxpool.Pool
 		Migration              *migration.Migration
 		KafkaService           *kafka.KafkaService
+		Storage                *valkey.Storage
 		AccountUseCase         accountUseCase.AccountUseCase
 		JwtUseCase             jwtUseCase.JwtUseCase
 		CompanyUseCase         companyUseCase.CompanyUseCase
@@ -82,6 +84,9 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		}
 	}
 	_ = kafkaService.Publish(ctx, topics...)
+	storage := valkey.New(valkey.Config{
+		URL: os.Getenv("REDIS_URL"),
+	})
 	accountQuery := accountQuery.New(dbRead, dbWrite)
 	jwtQuery := jwtQuery.New(dbRead, dbWrite)
 	companyQuery := companyQuery.New(dbRead, dbWrite)
@@ -104,6 +109,7 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		DbWrite:                dbWrite,
 		Migration:              migration,
 		KafkaService:           kafkaService,
+		Storage:                storage,
 		AccountUseCase:         accountUseCase,
 		JwtUseCase:             jwtUseCase,
 		CompanyUseCase:         companyUseCase,

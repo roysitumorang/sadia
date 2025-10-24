@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"math"
@@ -23,7 +24,6 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/requestid"
 	"github.com/gofiber/fiber/v3/middleware/rewrite"
 	"github.com/gofiber/fiber/v3/middleware/session"
-	"github.com/gofiber/storage/valkey"
 	"github.com/gofiber/template/jet/v2"
 	"github.com/joho/godotenv"
 	"github.com/roysitumorang/sadia/config"
@@ -50,12 +50,10 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	ctxt := "Router-HTTPServerMain"
 	// Create a new engine
 	engine := jet.New("./views", ".jet")
-	storage := valkey.New(valkey.Config{
-		URL: os.Getenv("REDIS_URL"),
-	})
 	sessionStore := session.New(session.Config{
-		Storage: storage,
+		Storage: q.Storage,
 	})
+	gob.Register(map[string]any{})
 	app := fiber.New(fiber.Config{
 		JSONEncoder: json.Marshal,
 		JSONDecoder: json.Unmarshal,
