@@ -13,12 +13,12 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/goccy/go-json"
 	"github.com/gofiber/contrib/fibersentry"
-	"github.com/gofiber/contrib/fiberzap/v2"
 	"github.com/gofiber/contrib/monitor"
 	"github.com/gofiber/fiber/v2/utils"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/compress"
 	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
 	"github.com/gofiber/fiber/v3/middleware/rewrite"
@@ -73,8 +73,9 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		recover.New(recover.Config{
 			EnableStackTrace: true,
 		}),
-		fiberzap.New(fiberzap.Config{
-			Logger: helper.GetLogger(),
+		logger.New(logger.Config{
+			Format:     logger.JSONFormat,
+			TimeFormat: time.RFC3339,
 		}),
 		requestid.New(requestid.Config{
 			Next:      nil,
