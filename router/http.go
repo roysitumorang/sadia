@@ -24,12 +24,13 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/requestid"
 	"github.com/gofiber/fiber/v3/middleware/rewrite"
 	"github.com/gofiber/fiber/v3/middleware/session"
-	"github.com/gofiber/template/jet/v2"
+	"github.com/gofiber/template/handlebars/v2"
 	"github.com/joho/godotenv"
 	"github.com/roysitumorang/sadia/config"
 	_ "github.com/roysitumorang/sadia/docs"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
+	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	accountPresenter "github.com/roysitumorang/sadia/modules/account/presenter"
 	companyPresenter "github.com/roysitumorang/sadia/modules/company/presenter"
 	jwtPresenter "github.com/roysitumorang/sadia/modules/jwt/presenter"
@@ -49,11 +50,11 @@ const (
 func (q *Service) HTTPServerMain(ctx context.Context) error {
 	ctxt := "Router-HTTPServerMain"
 	// Create a new engine
-	engine := jet.New("./views", ".jet")
+	engine := handlebars.New("./views", ".hbs")
 	sessionStore := session.New(session.Config{
 		Storage: q.Storage,
 	})
-	gob.Register(map[string]any{})
+	gob.Register(&accountModel.User{})
 	app := fiber.New(fiber.Config{
 		JSONEncoder: json.Marshal,
 		JSONDecoder: json.Unmarshal,
@@ -89,6 +90,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 				"/v1/admin/jwt/*":     "/v1/jwt/admin/$1",
 				"/v1/admin/company":   "/v1/company/admin",
 				"/v1/admin/company/*": "/v1/company/admin/$1",
+				"/":                   "/account/me",
 			},
 		}),
 		cors.New(),

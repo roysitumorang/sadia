@@ -1,0 +1,27 @@
+{{> "partials/header" }}
+
+<form action="/account/login" method="POST" role="form" class="form-horizontal">
+    <fieldset>
+        <legend class="text-center"><i class="fa fa-sign-in">&nbsp;</i>Login</legend>
+        <div class="form-group">
+            <label for="login" class="col-xs-6 col-md-4 control-label"><i class="fa fa-user">&nbsp;</i>&nbsp;Login</label>
+            <div class="col-xs-6 col-md-4"><input id="login" name="login" type="text" value="{{ request.Login }}" size="30" maxlength="30" class="form-control" placeholder="Login"></div>
+        </div>
+        <div class="form-group">
+            <label for="raw_password" class="col-xs-6 col-md-4 control-label"><i class="fa fa-key">&nbsp;</i>&nbsp;Password</label>
+            <div class="col-xs-6 col-md-4">
+                <input type="password" id="raw_password" size="30" maxlength="30" class="form-control" placeholder="Password" onchange="document.getElementById('password').value=btoa(this.value)">
+                <input type="hidden" name="password" value="" id="password">
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-xs-6 col-md-4">&nbsp;</div>
+            <div class="col-xs-6 col-md-4">
+                <button type="submit" class="btn btn-primary"><i class="fa fa-sign-in">&nbsp;</i>Login</button>
+                <button type="reset" class="btn btn-secondary">Reset</button>
+            </div>
+        </div>
+    </fieldset>
+</form>
+
+{{> "partials/footer" }}

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -85,6 +86,11 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Put("/username", userKeyAuth, q.UserChangeUsername).
 		Put("/email", userKeyAuth, q.UserChangeEmail).
 		Put("/phone", userKeyAuth, q.UserChangePhone)
+	userSessionAuth := middleware.UserSessionAuth()
+	r.Get("/login", q.userNewLogin).
+		Post("/login", q.userLogin).
+		Get("/logout", q.userLogout).
+		Get("/me", q.userProfile, userSessionAuth)
 }
 
 func (q *accountHTTPHandler) AdminFindAdminByConfirmationToken(c fiber.Ctx) error {
@@ -1920,4 +1926,209 @@ func (q *accountHTTPHandler) UserChangePhone(c fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	return helper.NewResponse(fiber.StatusNoContent).WriteResponse(c)
+}
+
+func (q *accountHTTPHandler) userNewLogin(c fiber.Ctx) error {
+	sess := session.FromContext(c)
+	authenticated, ok := sess.Get(models.Authenticated).(bool)
+	if ok && authenticated {
+		return c.Redirect().To("/account/me")
+	}
+	var request accountModel.LoginRequest
+	return c.Render("account/login", fiber.Map{
+		"authenticated": authenticated,
+		"message":       "",
+		"request":       request,
+	})
+}
+
+func (q *accountHTTPHandler) userLogin(c fiber.Ctx) error {
+	ctx := c.Context()
+	ctxt := "AccountPresenter-userLogin"
+	sess := session.FromContext(c)
+	authenticated, ok := sess.Get(models.Authenticated).(bool)
+	if ok && authenticated {
+		return c.Redirect().To("/account/me")
+	}
+	request, statusCode, err := sanitizer.ValidateLogin(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateLogin")
+		c.Response().SetStatusCode(statusCode)
+		return c.Render("account/login", fiber.Map{
+			"authenticated": authenticated,
+			"message":       err.Error(),
+			"request":       request,
+		})
+	}
+	users, _, err := q.accountUseCase.FindUsers(
+		ctx,
+		accountModel.NewFilter(accountModel.WithLogin(request.Login)),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("account/login", fiber.Map{
+			"authenticated": authenticated,
+			"message":       err.Error(),
+			"request":       request,
+		})
+	}
+	if len(users) == 0 ||
+		users[0].Status != models.StatusConfirmed ||
+		users[0].EncryptedPassword == nil {
+		c.Response().SetStatusCode(fiber.StatusBadRequest)
+		return c.Render("account/login", fiber.Map{
+			"authenticated": authenticated,
+			"message":       "login failed",
+			"request":       request,
+		})
+	}
+	user := users[0]
+	if user.LoginLockedAt != nil {
+		c.Response().SetStatusCode(fiber.StatusBadRequest)
+		return c.Render("account/login", fiber.Map{
+			"authenticated": authenticated,
+			"message":       "login locked out, max. failed attempts exceeded",
+			"request":       request,
+		})
+	}
+	encryptedPassword := helper.String2ByteSlice(*user.EncryptedPassword)
+	now := time.Now()
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("account/login", fiber.Map{
+			"authenticated": authenticated,
+			"message":       err.Error(),
+			"request":       request,
+		})
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
+		if user.LoginFailedAttempts++; user.LoginFailedAttempts >= helper.GetLoginMaxFailedAttempts() {
+			loginLockoutToken := helper.RandomString(32)
+			user.LoginLockedAt = &now
+			user.LoginUnlockToken = &loginLockoutToken
+		}
+		if err = q.accountUseCase.UpdateUser(ctx, tx, user); err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
+			c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+			return c.Render("account/login", fiber.Map{
+				"authenticated": authenticated,
+				"message":       err.Error(),
+				"request":       request,
+			})
+		}
+		if user.LoginLockedAt != nil {
+			if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithDeleteAccountID(user.ID))); err != nil {
+				helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
+				c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+				return c.Render("account/login", fiber.Map{
+					"authenticated": authenticated,
+					"message":       err.Error(),
+					"request":       request,
+				})
+			}
+		}
+		if err = tx.Commit(ctx); err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+			c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+			return c.Render("account/login", fiber.Map{
+				"authenticated": authenticated,
+				"message":       err.Error(),
+				"request":       request,
+			})
+		}
+		if user.LoginLockedAt != nil {
+			c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+			return c.Render("account/login", fiber.Map{
+				"authenticated": authenticated,
+				"message":       "login locked out, max. failed attempts exceeded",
+				"request":       request,
+			})
+		}
+		c.Response().SetStatusCode(fiber.StatusBadRequest)
+		return c.Render("account/login", fiber.Map{
+			"authenticated": authenticated,
+			"message":       "login failed",
+			"request":       request,
+		})
+	}
+	ipAddress := c.IP()
+	user.LoginCount++
+	user.LastLoginAt = user.CurrentLoginAt
+	user.LastLoginIP = user.CurrentLoginIP
+	user.CurrentLoginAt = &now
+	user.CurrentLoginIP = &ipAddress
+	user.LoginFailedAttempts = 0
+	if err = q.accountUseCase.UpdateUser(ctx, tx, user); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("account/login", fiber.Map{
+			"authenticated": authenticated,
+			"message":       err.Error(),
+			"request":       request,
+		})
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("account/login", fiber.Map{
+			"authenticated": authenticated,
+			"message":       err.Error(),
+			"request":       request,
+		})
+	}
+	if err = sess.Regenerate(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrRegenerate")
+	}
+	sess.Set(models.Authenticated, true)
+	sess.Set(models.UserID, user.ID)
+	// sess.Set(models.CurrentUser, user)
+	c.Response().SetStatusCode(fiber.StatusCreated)
+	return c.Redirect().To("/account/me")
+}
+
+func (q *accountHTTPHandler) userLogout(c fiber.Ctx) error {
+	ctx := c.Context()
+	ctxt := "AccountPresenter-userLogout"
+	sess := session.FromContext(c)
+	if err := sess.Reset(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrReset")
+	}
+	return c.Redirect().To("/account/login")
+}
+
+func (q *accountHTTPHandler) userProfile(c fiber.Ctx) error {
+	ctx := c.Context()
+	ctxt := "AccountPresenter-userProfile"
+	sess := session.FromContext(c)
+	userID, _ := sess.Get(models.UserID).(string)
+	users, _, err := q.accountUseCase.FindUsers(
+		ctx,
+		accountModel.NewFilter(
+			accountModel.WithAccountIDs(userID),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
+	}
+	if len(users) == 0 {
+		return c.Redirect().To("/account/login")
+	}
+	currentUser := users[0]
+	return c.Render("account/me", fiber.Map{
+		"authenticated": true,
+		"message":       "",
+		"currentUser":   currentUser,
+	})
 }

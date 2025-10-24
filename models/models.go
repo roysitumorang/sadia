@@ -11,9 +11,11 @@ import (
 )
 
 const (
-	CurrentAdmin = "current_admin"
-	CurrentUser  = "current_user"
-	CurrentJwt   = "current_jwt"
+	Authenticated = "authenticated"
+	CurrentAdmin  = "current_admin"
+	CurrentUser   = "current_user"
+	CurrentJwt    = "current_jwt"
+	UserID        = "user_id"
 )
 
 const (

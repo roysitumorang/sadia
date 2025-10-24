@@ -118,9 +118,9 @@ type (
 	}
 
 	LoginRequest struct {
-		Login          string `json:"login"`
-		Base64Password string `json:"password"`
-		Password       string `json:"-"`
+		Login          string `json:"login" form:"login"`
+		Base64Password string `json:"password" form:"password"`
+		Password       string `json:"-" form:"-"`
 	}
 
 	LoginResponse struct {

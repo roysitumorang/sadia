@@ -126,18 +126,18 @@ func ValidateDeactivation(ctx context.Context, c fiber.Ctx) (*accountModel.Deact
 
 func ValidateLogin(ctx context.Context, c fiber.Ctx) (*accountModel.LoginRequest, int, error) {
 	ctxt := "AccountSanitizer-ValidateLogin"
-	var response accountModel.LoginRequest
-	err := c.Bind().Body(&response)
+	response := new(accountModel.LoginRequest)
+	err := c.Bind().Body(response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
-		return nil, fiberErr.Code, err
+		return response, fiberErr.Code, err
 	}
-	if err = (&response).Validate(); err != nil {
+	if err = (response).Validate(); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
-		return nil, fiber.StatusBadRequest, err
+		return response, fiber.StatusBadRequest, err
 	}
-	return &response, fiber.StatusOK, nil
+	return response, fiber.StatusOK, nil
 }
 
 func ValidateConfirmation(ctx context.Context, c fiber.Ctx) (*accountModel.Confirmation, int, error) {
