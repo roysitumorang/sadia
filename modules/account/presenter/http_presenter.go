@@ -86,11 +86,11 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Put("/username", userKeyAuth, q.UserChangeUsername).
 		Put("/email", userKeyAuth, q.UserChangeEmail).
 		Put("/phone", userKeyAuth, q.UserChangePhone)
-	userSessionAuth := middleware.UserSessionAuth()
+	userSessionAuth := middleware.UserSessionAuth(q.accountUseCase)
 	r.Get("/login", q.userNewLogin).
 		Post("/login", q.userLogin).
 		Get("/logout", q.userLogout).
-		Get("/me", q.userProfile, userSessionAuth)
+		Get("/me", userSessionAuth, q.userProfile)
 }
 
 func (q *accountHTTPHandler) AdminFindAdminByConfirmationToken(c fiber.Ctx) error {
@@ -2093,7 +2093,6 @@ func (q *accountHTTPHandler) userLogin(c fiber.Ctx) error {
 	}
 	sess.Set(models.Authenticated, true)
 	sess.Set(models.UserID, user.ID)
-	// sess.Set(models.CurrentUser, user)
 	c.Response().SetStatusCode(fiber.StatusCreated)
 	return c.Redirect().To("/account/me")
 }
@@ -2109,23 +2108,8 @@ func (q *accountHTTPHandler) userLogout(c fiber.Ctx) error {
 }
 
 func (q *accountHTTPHandler) userProfile(c fiber.Ctx) error {
-	ctx := c.Context()
-	ctxt := "AccountPresenter-userProfile"
 	sess := session.FromContext(c)
-	userID, _ := sess.Get(models.UserID).(string)
-	users, _, err := q.accountUseCase.FindUsers(
-		ctx,
-		accountModel.NewFilter(
-			accountModel.WithAccountIDs(userID),
-		),
-	)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
-	}
-	if len(users) == 0 {
-		return c.Redirect().To("/account/login")
-	}
-	currentUser := users[0]
+	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	return c.Render("account/me", fiber.Map{
 		"authenticated": true,
 		"message":       "",
