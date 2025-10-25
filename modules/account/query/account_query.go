@@ -862,7 +862,7 @@ func (q *accountQuery) FindUsers(ctx context.Context, filter *accountModel.Filte
 			user := response[offset]
 			user.CompanyID = companyID
 			user.UserLevel = userLevel
-			user.CurrentSessionID = currentSessionID
+			user.SessionID = currentSessionID
 			response[offset] = user
 		}
 	}
@@ -894,7 +894,7 @@ func (q *accountQuery) CreateUser(ctx context.Context, tx pgx.Tx, request *accou
 	).Scan(
 		&response.CompanyID,
 		&response.UserLevel,
-		&response.CurrentSessionID,
+		&response.SessionID,
 	); err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
@@ -921,12 +921,12 @@ func (q *accountQuery) UpdateUser(ctx context.Context, tx pgx.Tx, request *accou
 			, user_level
 			, current_session_id`,
 		request.UserLevel,
-		request.CurrentSessionID,
+		request.SessionID,
 		request.ID,
 	).Scan(
 		&request.CompanyID,
 		&request.UserLevel,
-		&request.CurrentSessionID,
+		&request.SessionID,
 	); err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")

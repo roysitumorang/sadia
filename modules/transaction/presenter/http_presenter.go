@@ -69,7 +69,7 @@ func (q *transactionHTTPHandler) UserFindTransactions(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-UserFindTransactions"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
-	if currentUser.CurrentSessionID == nil {
+	if currentUser.SessionID == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active session").WriteResponse(c)
 	}
 	filter, err := sanitizer.FindTransactions(ctx, c)
@@ -77,7 +77,7 @@ func (q *transactionHTTPHandler) UserFindTransactions(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindTransactions")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	filter.SessionIDs = []string{*currentUser.CurrentSessionID}
+	filter.SessionIDs = []string{*currentUser.SessionID}
 	rows, pagination, err := q.transactionUseCase.FindTransactions(ctx, filter)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindTransactions")
@@ -93,13 +93,13 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-UserCreateTransaction"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
-	if currentUser.CurrentSessionID == nil {
+	if currentUser.SessionID == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active session").WriteResponse(c)
 	}
 	sessions, _, err := q.sessionUseCase.FindSessions(
 		ctx,
 		sessionModel.NewFilter(
-			sessionModel.WithSessionIDs(*currentUser.CurrentSessionID),
+			sessionModel.WithSessionIDs(*currentUser.SessionID),
 		),
 	)
 	if err != nil {
@@ -187,13 +187,13 @@ func (q *transactionHTTPHandler) UserFindTransaction(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-UserFindTransaction"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
-	if currentUser.CurrentSessionID == nil {
+	if currentUser.SessionID == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active session").WriteResponse(c)
 	}
 	transactions, _, err := q.transactionUseCase.FindTransactions(
 		ctx,
 		transactionModel.NewFilter(
-			transactionModel.WithSessionIDs(*currentUser.CurrentSessionID),
+			transactionModel.WithSessionIDs(*currentUser.SessionID),
 			transactionModel.WithTransactionIDs(c.Params("id")),
 		),
 	)

@@ -81,7 +81,7 @@ func (q *sessionHTTPHandler) UserCreateSession(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "SessionPresenter-UserCreateSession"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
-	if currentUser.CurrentSessionID != nil {
+	if currentUser.SessionID != nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("close user current session before starting new session").WriteResponse(c)
 	}
 	request, statusCode, err := sanitizer.ValidateNewSession(ctx, c)
@@ -126,7 +126,7 @@ func (q *sessionHTTPHandler) UserCreateSession(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateCompany")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	currentUser.CurrentSessionID = &response.ID
+	currentUser.SessionID = &response.ID
 	if err = q.accountUseCase.UpdateUser(ctx, tx, currentUser); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
@@ -142,13 +142,13 @@ func (q *sessionHTTPHandler) UserFindCurrentSession(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "SessionPresenter-UserFindCurrentSession"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
-	if currentUser.CurrentSessionID == nil {
+	if currentUser.SessionID == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active session").WriteResponse(c)
 	}
 	sessions, _, err := q.sessionUseCase.FindSessions(
 		ctx,
 		sessionModel.NewFilter(
-			sessionModel.WithSessionIDs(*currentUser.CurrentSessionID),
+			sessionModel.WithSessionIDs(*currentUser.SessionID),
 		),
 	)
 	if err != nil {
@@ -165,7 +165,7 @@ func (q *sessionHTTPHandler) UserCloseCurrentSession(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "SessionPresenter-UserCloseCurrentSession"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
-	if currentUser.CurrentSessionID == nil {
+	if currentUser.SessionID == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active session").WriteResponse(c)
 	}
 	request, statusCode, err := sanitizer.ValidateCloseSession(ctx, c)
@@ -176,7 +176,7 @@ func (q *sessionHTTPHandler) UserCloseCurrentSession(c *fiber.Ctx) error {
 	sessions, _, err := q.sessionUseCase.FindSessions(
 		ctx,
 		sessionModel.NewFilter(
-			sessionModel.WithSessionIDs(*currentUser.CurrentSessionID),
+			sessionModel.WithSessionIDs(*currentUser.SessionID),
 		),
 	)
 	if err != nil {
@@ -230,7 +230,7 @@ func (q *sessionHTTPHandler) UserCloseCurrentSession(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateCompany")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	currentUser.CurrentSessionID = nil
+	currentUser.SessionID = nil
 	if err = q.accountUseCase.UpdateUser(ctx, tx, currentUser); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
