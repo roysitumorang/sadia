@@ -43,8 +43,8 @@
     </div>
     <div id="main" class="container">
         <h1>&nbsp;</h1>
-        {{ if message }}
-            <div class="alert alert-danger">
+        {{ range type, message := flash.Data }}
+            <div class="alert alert-{{ type }}">
                 <a class="close" href="#" data-dismiss="alert">x</a>{{ message }}
             </div>
         {{ end }}

@@ -11,15 +11,15 @@ import (
 
 type (
 	ProductCategory struct {
-		RowNo     uint64    `json:"row_no,omitempty"`
-		ID        string    `json:"id"`
-		CompanyID string    `json:"-"`
-		Name      string    `json:"name"`
-		Slug      string    `json:"slug"`
-		CreatedBy string    `json:"-"`
-		CreatedAt time.Time `json:"-"`
-		UpdatedBy string    `json:"-"`
-		UpdatedAt time.Time `json:"-"`
+		RowNo     uint64    `json:"row_no,omitempty" form:"-"`
+		ID        string    `json:"id" form:"-"`
+		CompanyID string    `json:"-" form:"-"`
+		Name      string    `json:"name" form:"name"`
+		Slug      string    `json:"slug" form:"slug"`
+		CreatedBy string    `json:"-" form:"-"`
+		CreatedAt time.Time `json:"-" form:"-"`
+		UpdatedBy string    `json:"-" form:"-"`
+		UpdatedAt time.Time `json:"-" form:"-"`
 	}
 
 	Filter struct {

@@ -5,12 +5,12 @@
         <legend class="text-center"><i class="fa fa-sign-in">&nbsp;</i>Login</legend>
         <div class="form-group">
             <label for="login" class="col-xs-6 col-md-4 control-label"><i class="fa fa-user">&nbsp;</i>&nbsp;Login</label>
-            <div class="col-xs-6 col-md-4"><input id="login" name="login" type="text" value="{{ request.Login }}" size="30" maxlength="30" class="form-control" placeholder="Login"></div>
+            <div class="col-xs-6 col-md-4"><input id="login" name="login" type="text" value="{{ request.Login }}" class="form-control" placeholder="Login" required></div>
         </div>
         <div class="form-group">
             <label for="raw_password" class="col-xs-6 col-md-4 control-label"><i class="fa fa-key">&nbsp;</i>&nbsp;Password</label>
             <div class="col-xs-6 col-md-4">
-                <input type="password" id="raw_password" size="30" maxlength="30" class="form-control" placeholder="Password" onchange="document.getElementById('password').value=btoa(this.value)">
+                <input type="password" id="raw_password" class="form-control" placeholder="Password" onchange="document.getElementById('password').value=btoa(this.value)" required>
                 <input type="hidden" name="password" value="" id="password">
             </div>
         </div>

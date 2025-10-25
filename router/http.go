@@ -2,7 +2,6 @@ package router
 
 import (
 	"context"
-	"encoding/gob"
 	"errors"
 	"fmt"
 	"math"
@@ -56,7 +55,8 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	sessionStore := session.New(session.Config{
 		Storage: q.Storage,
 	})
-	gob.Register(&accountModel.User{})
+	sessionStore.RegisterType(&accountModel.User{})
+	sessionStore.RegisterType(&helper.FlashMessage{})
 	app := fiber.New(fiber.Config{
 		JSONEncoder: json.Marshal,
 		JSONDecoder: json.Unmarshal,

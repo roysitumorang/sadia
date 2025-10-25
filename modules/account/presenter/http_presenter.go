@@ -1940,7 +1940,7 @@ func (q *accountHTTPHandler) userNewLogin(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
 		return c.Render("account/login", fiber.Map{
 			"authenticated": false,
-			"message":       err.Error(),
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
 			"request":       request,
 		})
 	}
@@ -1950,7 +1950,7 @@ func (q *accountHTTPHandler) userNewLogin(c *fiber.Ctx) error {
 	}
 	return c.Render("account/login", fiber.Map{
 		"authenticated": authenticated,
-		"message":       "",
+		"flash":         helper.NewFlashMessage(),
 		"request":       request,
 	})
 }
@@ -1963,7 +1963,7 @@ func (q *accountHTTPHandler) userLogin(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
 		return c.Render("account/login", fiber.Map{
 			"authenticated": false,
-			"message":       err.Error(),
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
 			"request":       accountModel.LoginRequest{},
 		})
 	}
@@ -1977,7 +1977,7 @@ func (q *accountHTTPHandler) userLogin(c *fiber.Ctx) error {
 		c.Response().SetStatusCode(statusCode)
 		return c.Render("account/login", fiber.Map{
 			"authenticated": authenticated,
-			"message":       err.Error(),
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
 			"request":       request,
 		})
 	}
@@ -1990,7 +1990,7 @@ func (q *accountHTTPHandler) userLogin(c *fiber.Ctx) error {
 		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
 		return c.Render("account/login", fiber.Map{
 			"authenticated": authenticated,
-			"message":       err.Error(),
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
 			"request":       request,
 		})
 	}
@@ -2000,7 +2000,7 @@ func (q *accountHTTPHandler) userLogin(c *fiber.Ctx) error {
 		c.Response().SetStatusCode(fiber.StatusBadRequest)
 		return c.Render("account/login", fiber.Map{
 			"authenticated": authenticated,
-			"message":       "login failed",
+			"flash":         helper.NewFlashMessage().Danger("login failed"),
 			"request":       request,
 		})
 	}
@@ -2009,7 +2009,7 @@ func (q *accountHTTPHandler) userLogin(c *fiber.Ctx) error {
 		c.Response().SetStatusCode(fiber.StatusBadRequest)
 		return c.Render("account/login", fiber.Map{
 			"authenticated": authenticated,
-			"message":       "login locked out, max. failed attempts exceeded",
+			"flash":         helper.NewFlashMessage().Danger("login locked out, max. failed attempts exceeded"),
 			"request":       request,
 		})
 	}
@@ -2021,7 +2021,7 @@ func (q *accountHTTPHandler) userLogin(c *fiber.Ctx) error {
 		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
 		return c.Render("account/login", fiber.Map{
 			"authenticated": authenticated,
-			"message":       err.Error(),
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
 			"request":       request,
 		})
 	}
@@ -2045,7 +2045,7 @@ func (q *accountHTTPHandler) userLogin(c *fiber.Ctx) error {
 			c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
 			return c.Render("account/login", fiber.Map{
 				"authenticated": authenticated,
-				"message":       err.Error(),
+				"flash":         helper.NewFlashMessage().Danger(err.Error()),
 				"request":       request,
 			})
 		}
@@ -2055,7 +2055,7 @@ func (q *accountHTTPHandler) userLogin(c *fiber.Ctx) error {
 				c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
 				return c.Render("account/login", fiber.Map{
 					"authenticated": authenticated,
-					"message":       err.Error(),
+					"flash":         helper.NewFlashMessage().Danger(err.Error()),
 					"request":       request,
 				})
 			}
@@ -2065,7 +2065,7 @@ func (q *accountHTTPHandler) userLogin(c *fiber.Ctx) error {
 			c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
 			return c.Render("account/login", fiber.Map{
 				"authenticated": authenticated,
-				"message":       err.Error(),
+				"flash":         helper.NewFlashMessage().Danger(err.Error()),
 				"request":       request,
 			})
 		}
@@ -2073,14 +2073,14 @@ func (q *accountHTTPHandler) userLogin(c *fiber.Ctx) error {
 			c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
 			return c.Render("account/login", fiber.Map{
 				"authenticated": authenticated,
-				"message":       "login locked out, max. failed attempts exceeded",
+				"flash":         helper.NewFlashMessage().Danger("login locked out, max. failed attempts exceeded"),
 				"request":       request,
 			})
 		}
 		c.Response().SetStatusCode(fiber.StatusBadRequest)
 		return c.Render("account/login", fiber.Map{
 			"authenticated": authenticated,
-			"message":       "login failed",
+			"flash":         helper.NewFlashMessage().Danger("login failed"),
 			"request":       request,
 		})
 	}
@@ -2096,7 +2096,7 @@ func (q *accountHTTPHandler) userLogin(c *fiber.Ctx) error {
 		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
 		return c.Render("account/login", fiber.Map{
 			"authenticated": authenticated,
-			"message":       err.Error(),
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
 			"request":       request,
 		})
 	}
@@ -2105,7 +2105,7 @@ func (q *accountHTTPHandler) userLogin(c *fiber.Ctx) error {
 		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
 		return c.Render("account/login", fiber.Map{
 			"authenticated": authenticated,
-			"message":       err.Error(),
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
 			"request":       request,
 		})
 	}
@@ -2129,7 +2129,7 @@ func (q *accountHTTPHandler) userLogout(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
 		return c.Render("account/login", fiber.Map{
 			"authenticated": false,
-			"message":       err.Error(),
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
 			"request":       accountModel.LoginRequest{},
 		})
 	}
@@ -2147,14 +2147,14 @@ func (q *accountHTTPHandler) userProfile(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
 		return c.Render("account/login", fiber.Map{
 			"authenticated": false,
-			"message":       err.Error(),
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
 			"request":       accountModel.LoginRequest{},
 		})
 	}
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	return c.Render("account/me", fiber.Map{
 		"authenticated": true,
-		"message":       "",
+		"flash":         helper.NewFlashMessage(),
 		"currentUser":   currentUser,
 	})
 }
