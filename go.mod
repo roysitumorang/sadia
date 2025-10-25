@@ -24,7 +24,7 @@ require (
 	github.com/sqids/sqids-go v0.4.1
 	github.com/swaggo/fiber-swagger v1.3.0
 	github.com/swaggo/swag v1.16.6
-	github.com/twmb/franz-go v1.20.1
+	github.com/twmb/franz-go v1.20.2
 	github.com/xuri/excelize/v2 v2.10.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.43.0
