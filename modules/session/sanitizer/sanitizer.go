@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/roysitumorang/sadia/helper"
+	"github.com/roysitumorang/sadia/models"
 	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
 	"go.uber.org/zap"
 )
@@ -30,10 +31,9 @@ func FindSessions(ctx context.Context, c *fiber.Ctx) (*sessionModel.Filter, erro
 		urlValues.Set("q", keyword)
 		options = append(options, sessionModel.WithKeyword(keyword))
 	}
-	limitMin, limitMax := helper.GetPaginationLimit()
 	limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64)
-	if limit < limitMin || limit > limitMax {
-		limit = limitMin
+	if _, ok := models.MapLimits[limit]; !ok {
+		limit = models.Limits[0]
 	}
 	urlValues.Set("limit", strconv.FormatInt(limit, 10))
 	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)

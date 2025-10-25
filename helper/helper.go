@@ -49,8 +49,6 @@ var (
 	dbWrite    *pgxpool.Pool
 	taxRate    float64
 	privateKey *rsa.PrivateKey
-	paginationLimitMin,
-	paginationLimitMax int64
 	InitHelper = sync.OnceValue(func() (err error) {
 		location, ok := os.LookupEnv("TIME_ZONE")
 		if !ok || location == "" {
@@ -115,23 +113,7 @@ var (
 		if accessTokenAge, err = time.ParseDuration(envAccesTokenAge); err != nil {
 			return
 		}
-		if privateKey, err = keys.InitPrivateKey(); err != nil {
-			return
-		}
-		envPaginationLimitMin, ok := os.LookupEnv("PAGINATION_LIMIT_MIN")
-		if !ok || envPaginationLimitMin == "" {
-			return errors.New("env PAGINATION_LIMIT_MIN is required")
-		}
-		if paginationLimitMin, err = strconv.ParseInt(envPaginationLimitMin, 10, 64); err != nil || paginationLimitMin < 1 {
-			return errors.New("env PAGINATION_LIMIT_MIN requires a positive integer")
-		}
-		envPaginationLimitMax, ok := os.LookupEnv("PAGINATION_LIMIT_MAX")
-		if !ok || envPaginationLimitMax == "" {
-			return errors.New("env PAGINATION_LIMIT_MAX is required")
-		}
-		if paginationLimitMax, err = strconv.ParseInt(envPaginationLimitMax, 10, 64); err != nil || paginationLimitMax < 1 {
-			return errors.New("env PAGINATION_LIMIT_MAX requires a positive integer")
-		}
+		privateKey, err = keys.InitPrivateKey()
 		return
 	})
 )
@@ -397,8 +379,4 @@ func GetTaxRate() float64 {
 
 func GetAccessTokenAge() time.Duration {
 	return accessTokenAge
-}
-
-func GetPaginationLimit() (int64, int64) {
-	return paginationLimitMin, paginationLimitMax
 }

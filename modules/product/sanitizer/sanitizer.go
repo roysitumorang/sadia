@@ -9,13 +9,13 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/roysitumorang/sadia/helper"
+	"github.com/roysitumorang/sadia/models"
 	productModel "github.com/roysitumorang/sadia/modules/product/model"
 	"go.uber.org/zap"
 )
 
 func FindProducts(ctx context.Context, c *fiber.Ctx) (*productModel.Filter, error) {
 	ctxt := "ProductSanitizer-FindProducts"
-	limitMin, limitMax := helper.GetPaginationLimit()
 	originalURL, err := url.ParseRequestURI(helper.ByteSlice2String(c.Request().URI().FullURI()))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseRequestURI")
@@ -32,8 +32,8 @@ func FindProducts(ctx context.Context, c *fiber.Ctx) (*productModel.Filter, erro
 		options = append(options, productModel.WithKeyword(keyword))
 	}
 	limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64)
-	if limit < limitMin || limit > limitMax {
-		limit = limitMin
+	if _, ok := models.MapLimits[limit]; !ok {
+		limit = models.Limits[0]
 	}
 	urlValues.Set("limit", strconv.FormatInt(limit, 10))
 	options = append(options, productModel.WithLimit(limit))

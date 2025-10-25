@@ -10,6 +10,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/roysitumorang/sadia/helper"
+	"github.com/roysitumorang/sadia/models"
 	companyModel "github.com/roysitumorang/sadia/modules/company/model"
 	"go.uber.org/zap"
 )
@@ -48,10 +49,9 @@ func FindCompanies(ctx context.Context, c *fiber.Ctx) (*companyModel.Filter, err
 		}
 		options = append(options, companyModel.WithStatusList(statusList...))
 	}
-	limitMin, limitMax := helper.GetPaginationLimit()
 	limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64)
-	if limit < limitMin || limit > limitMax {
-		limit = limitMin
+	if _, ok := models.MapLimits[limit]; !ok {
+		limit = models.Limits[0]
 	}
 	urlValues.Set("limit", strconv.FormatInt(limit, 10))
 	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/roysitumorang/sadia/helper"
+	"github.com/roysitumorang/sadia/models"
 	jwtModel "github.com/roysitumorang/sadia/modules/jwt/model"
 )
 
@@ -35,10 +36,9 @@ func FindJWTs(ctx context.Context, c *fiber.Ctx) (*jwtModel.Filter, error) {
 		}
 		options = append(options, jwtModel.WithAccountIDs(accountIDs...))
 	}
-	limitMin, limitMax := helper.GetPaginationLimit()
 	limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64)
-	if limit < limitMin || limit > limitMax {
-		limit = limitMin
+	if _, ok := models.MapLimits[limit]; !ok {
+		limit = models.Limits[0]
 	}
 	urlValues.Set("limit", strconv.FormatInt(limit, 10))
 	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)

@@ -48,10 +48,9 @@ func FindAccounts(ctx context.Context, c *fiber.Ctx) (*accountModel.Filter, erro
 		}
 		options = append(options, accountModel.WithStatusList(statusList...))
 	}
-	limitMin, limitMax := helper.GetPaginationLimit()
 	limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64)
-	if limit < limitMin || limit > limitMax {
-		limit = limitMin
+	if _, ok := models.MapLimits[limit]; !ok {
+		limit = models.Limits[0]
 	}
 	urlValues.Set("limit", strconv.FormatInt(limit, 10))
 	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
