@@ -51,6 +51,12 @@ func (q *productHTTPHandler) Mount(r fiber.Router) {
 		Post("", ownerKeyAuth, q.UserCreateProduct).
 		Get("/:id", userKeyAuth, q.UserFindProductByID).
 		Put("/:id", ownerKeyAuth, q.UserUpdateProduct)
+	userSessionAuth := middleware.UserSessionAuth(q.sessionStore, q.accountUseCase)
+	r.Get("", userSessionAuth, q.userIndex).
+		Get("/new", userSessionAuth, q.userNew).
+		Post("", userSessionAuth, q.userCreate).
+		Get("/:id/edit", userSessionAuth, q.userEdit).
+		Post("/:id", userSessionAuth, q.userUpdate)
 }
 
 func (q *productHTTPHandler) UserFindProducts(c *fiber.Ctx) error {
@@ -189,4 +195,374 @@ func (q *productHTTPHandler) UserUpdateProduct(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(product).WriteResponse(c)
+}
+
+func (q *productHTTPHandler) userIndex(c *fiber.Ctx) error {
+	ctxt := "ProductPresenter-userIndex"
+	ctx := c.Context()
+	sess, err := q.sessionStore.Get(c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
+		return c.Render("account/login", fiber.Map{
+			"authenticated": false,
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
+			"request":       accountModel.LoginRequest{},
+		})
+	}
+	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
+	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
+	if !ok {
+		flash = helper.NewFlashMessage()
+	}
+	pagination := new(models.Pagination)
+	var rows []*productModel.Product
+	filter, err := sanitizer.FindProducts(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProducts")
+		c.Response().SetStatusCode(fiber.StatusBadRequest)
+		return c.Render("product_category/index", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash.Danger(err.Error()),
+			"q":             c.Query("q"),
+			"rows":          rows,
+			"pagination":    pagination,
+			"limits":        models.Limits,
+		})
+	}
+	filter.CompanyIDs = []string{currentUser.CompanyID}
+	if rows, pagination, err = q.productUseCase.FindProducts(ctx, filter); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProducts")
+		c.Response().SetStatusCode(fiber.StatusBadRequest)
+		return c.Render("product/index", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash.Danger(err.Error()),
+			"q":             c.Query("q"),
+			"rows":          rows,
+			"pagination":    pagination,
+			"limits":        models.Limits,
+		})
+	}
+	defer flash.Clear(c, sess)
+	return c.Render("product/index", fiber.Map{
+		"authenticated": true,
+		"currentUser":   currentUser,
+		"flash":         flash,
+		"q":             c.Query("q"),
+		"rows":          rows,
+		"pagination":    pagination,
+		"limits":        models.Limits,
+	})
+}
+
+func (q *productHTTPHandler) userNew(c *fiber.Ctx) error {
+	ctxt := "ProductPresenter-userNew"
+	ctx := c.Context()
+	sess, err := q.sessionStore.Get(c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
+		return c.Render("account/login", fiber.Map{
+			"authenticated": false,
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
+			"request":       accountModel.LoginRequest{},
+		})
+	}
+	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
+	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
+	if !ok {
+		flash = helper.NewFlashMessage()
+	}
+	request := new(productModel.Product)
+	var categoryID string
+	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
+		ctx,
+		productCategoryModel.NewFilter(
+			productCategoryModel.WithCompanyIDs(currentUser.CompanyID),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProductCategories")
+		c.Response().SetStatusCode(fiber.StatusBadRequest)
+		return c.Render("product/new", fiber.Map{
+			"authenticated":     true,
+			"currentUser":       currentUser,
+			"flash":             flash.Danger(err.Error()),
+			"productCategories": productCategories,
+			"request":           request,
+			"categoryID":        categoryID,
+		})
+	}
+	defer flash.Clear(c, sess)
+	return c.Render("product/new", fiber.Map{
+		"authenticated":     true,
+		"currentUser":       currentUser,
+		"flash":             flash,
+		"productCategories": productCategories,
+		"request":           request,
+		"categoryID":        categoryID,
+	})
+}
+
+func (q *productHTTPHandler) userCreate(c *fiber.Ctx) error {
+	ctxt := "ProductPresenter-userCreate"
+	ctx := c.Context()
+	sess, err := q.sessionStore.Get(c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
+		return c.Render("account/login", fiber.Map{
+			"authenticated": false,
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
+			"request":       accountModel.LoginRequest{},
+		})
+	}
+	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
+	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
+	if !ok {
+		flash = helper.NewFlashMessage()
+	}
+	var categoryID string
+	request, statusCode, errValidation := sanitizer.ValidateProduct(ctx, c)
+	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
+		ctx,
+		productCategoryModel.NewFilter(
+			productCategoryModel.WithCompanyIDs(currentUser.CompanyID),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateProduct")
+		c.Response().SetStatusCode(fiber.StatusBadRequest)
+		return c.Render("product/new", fiber.Map{
+			"authenticated":     true,
+			"currentUser":       currentUser,
+			"flash":             flash.Danger(err.Error()),
+			"productCategories": productCategories,
+			"request":           request,
+			"categoryID":        categoryID,
+		})
+	}
+	if errValidation != nil {
+		helper.Log(ctx, zap.ErrorLevel, errValidation.Error(), ctxt, "ErrValidateProduct")
+		c.Response().SetStatusCode(statusCode)
+		return c.Render("product/new", fiber.Map{
+			"authenticated":     true,
+			"currentUser":       currentUser,
+			"flash":             flash.Danger(errValidation.Error()),
+			"productCategories": productCategories,
+			"request":           request,
+			"categoryID":        categoryID,
+		})
+	}
+	if request.CategoryID != nil {
+		var found bool
+		for _, category := range productCategories {
+			if found = category.ID == *request.CategoryID; found {
+				break
+			}
+		}
+		if !found {
+			c.Response().SetStatusCode(fiber.StatusNotFound)
+			return c.Render("product/new", fiber.Map{
+				"authenticated":     true,
+				"currentUser":       currentUser,
+				"flash":             flash.Danger("category_id: not found"),
+				"productCategories": productCategories,
+				"request":           request,
+			})
+		}
+		categoryID = *request.CategoryID
+	}
+	request.CompanyID = currentUser.CompanyID
+	request.CreatedBy = currentUser.ID
+	if _, err = q.productUseCase.CreateProduct(ctx, request); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateProduct")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("product/new", fiber.Map{
+			"authenticated":     true,
+			"currentUser":       currentUser,
+			"flash":             flash.Danger(err.Error()),
+			"productCategories": productCategories,
+			"request":           request,
+			"categoryID":        categoryID,
+		})
+	}
+	return flash.Success("product created successfully").Redirect(c, sess, "/product")
+}
+
+func (q *productHTTPHandler) userEdit(c *fiber.Ctx) error {
+	ctxt := "ProductPresenter-userEdit"
+	ctx := c.Context()
+	sess, err := q.sessionStore.Get(c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
+		return c.Render("account/login", fiber.Map{
+			"authenticated": false,
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
+			"request":       accountModel.LoginRequest{},
+		})
+	}
+	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
+	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
+	if !ok {
+		flash = helper.NewFlashMessage()
+	}
+	var categoryID string
+	products, _, err := q.productUseCase.FindProducts(
+		ctx,
+		productModel.NewFilter(
+			productModel.WithProductIDs(c.Params("id")),
+			productModel.WithCompanyIDs(currentUser.CompanyID),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProducts")
+	}
+	if len(products) == 0 {
+		return flash.Danger("product not found").Redirect(c, sess, "/product")
+	}
+	request := products[0]
+	if request.CategoryID != nil {
+		categoryID = *request.CategoryID
+	}
+	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
+		ctx,
+		productCategoryModel.NewFilter(
+			productCategoryModel.WithCompanyIDs(currentUser.CompanyID),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProductCategories")
+		c.Response().SetStatusCode(fiber.StatusBadRequest)
+		return c.Render("product/edit", fiber.Map{
+			"authenticated":     true,
+			"currentUser":       currentUser,
+			"flash":             flash.Danger(err.Error()),
+			"productCategories": productCategories,
+			"request":           request,
+			"categoryID":        categoryID,
+		})
+	}
+	defer flash.Clear(c, sess)
+	return c.Render("product/edit", fiber.Map{
+		"authenticated":     true,
+		"currentUser":       currentUser,
+		"flash":             flash,
+		"productCategories": productCategories,
+		"request":           request,
+		"categoryID":        categoryID,
+	})
+}
+
+func (q *productHTTPHandler) userUpdate(c *fiber.Ctx) error {
+	ctxt := "ProductPresenter-userUpdate"
+	ctx := c.Context()
+	sess, err := q.sessionStore.Get(c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
+		return c.Render("account/login", fiber.Map{
+			"authenticated": false,
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
+			"request":       accountModel.LoginRequest{},
+		})
+	}
+	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
+	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
+	if !ok {
+		flash = helper.NewFlashMessage()
+	}
+	var categoryID string
+	products, _, err := q.productUseCase.FindProducts(
+		ctx,
+		productModel.NewFilter(
+			productModel.WithProductIDs(c.Params("id")),
+			productModel.WithCompanyIDs(currentUser.CompanyID),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProducts")
+	}
+	if len(products) == 0 {
+		return flash.Danger("product not found").Redirect(c, sess, "/product")
+	}
+	request, statusCode, errValidation := sanitizer.ValidateProduct(ctx, c)
+	if request.CategoryID != nil {
+		categoryID = *request.CategoryID
+	}
+	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
+		ctx,
+		productCategoryModel.NewFilter(
+			productCategoryModel.WithCompanyIDs(currentUser.CompanyID),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateProduct")
+		c.Response().SetStatusCode(fiber.StatusBadRequest)
+		return c.Render("product/edit", fiber.Map{
+			"authenticated":     true,
+			"currentUser":       currentUser,
+			"flash":             flash.Danger(err.Error()),
+			"productCategories": productCategories,
+			"request":           request,
+			"categoryID":        categoryID,
+		})
+	}
+	if errValidation != nil {
+		helper.Log(ctx, zap.ErrorLevel, errValidation.Error(), ctxt, "ErrValidateProduct")
+		c.Response().SetStatusCode(statusCode)
+		return c.Render("product/edit", fiber.Map{
+			"authenticated":     true,
+			"currentUser":       currentUser,
+			"flash":             flash.Danger(errValidation.Error()),
+			"productCategories": productCategories,
+			"request":           request,
+			"categoryID":        categoryID,
+		})
+	}
+	if request.CategoryID != nil {
+		var found bool
+		for _, category := range productCategories {
+			if found = category.ID == *request.CategoryID; found {
+				break
+			}
+		}
+		if !found {
+			c.Response().SetStatusCode(fiber.StatusNotFound)
+			return c.Render("product/edit", fiber.Map{
+				"authenticated":     true,
+				"currentUser":       currentUser,
+				"flash":             flash.Danger("category_id: not found"),
+				"productCategories": productCategories,
+				"request":           request,
+			})
+		}
+		categoryID = *request.CategoryID
+	}
+	product := products[0]
+	product.CategoryID = request.CategoryID
+	product.Name = request.Name
+	product.Code = request.Code
+	product.UOM = request.UOM
+	product.StockType = request.StockType
+	product.MinimumStock = request.MinimumStock
+	product.Stock = request.Stock
+	product.PurchasePrice = request.PurchasePrice
+	product.SellingPrice = request.SellingPrice
+	product.Weight = request.Weight
+	product.DiscountType = request.DiscountType
+	product.DiscountValue = request.DiscountValue
+	product.RackPosition = request.RackPosition
+	product.UpdatedBy = currentUser.ID
+	if err = q.productUseCase.UpdateProduct(ctx, product); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateProduct")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("product/edit", fiber.Map{
+			"authenticated":     true,
+			"currentUser":       currentUser,
+			"flash":             flash.Danger("category_id: not found"),
+			"productCategories": productCategories,
+			"request":           request,
+			"categoryID":        categoryID,
+		})
+	}
+	return flash.Success("product updated successfully").Redirect(c, sess, "/product")
 }

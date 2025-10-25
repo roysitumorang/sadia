@@ -101,7 +101,8 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 	builder.Reset()
 	_, _ = builder.WriteString(
 		`SELECT COUNT(1)
-		FROM products p`,
+		FROM products p
+		LEFT JOIN product_categories c ON p.category_id = c.id`,
 	)
 	if len(conditions) > 0 {
 		_, _ = builder.WriteString(" WHERE")
@@ -130,6 +131,7 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 		, p.id
 		, p.company_id
 		, p.category_id
+		, c.name
 		, p.name
 		, p.code
 		, p.uom
@@ -190,6 +192,7 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 			&product.ID,
 			&product.CompanyID,
 			&product.CategoryID,
+			&product.CategoryName,
 			&product.Name,
 			&product.Code,
 			&product.UOM,

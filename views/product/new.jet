@@ -1,0 +1,14 @@
+{{ include "../partials/header" }}
+
+<h2><a href="/product">Product</a> > New</h2>
+<form method="POST" action="/product" role="form" class="form-horizontal">
+    <div class="form-group">
+        <label for="code" class="col-xs-6 col-md-4 control-label">Code</label>
+        <div class="col-xs-6 col-md-4">
+            <input id="code" name="code" type="text" value="{{ request.Code }}" class="form-control" placeholder="Code" required>
+        </div>
+    </div>
+    {{ include "_form" }}
+</form>
+
+{{ include "../partials/footer" }}

@@ -45,16 +45,17 @@ func FindProducts(ctx context.Context, c *fiber.Ctx) (*productModel.Filter, erro
 
 func ValidateProduct(ctx context.Context, c *fiber.Ctx) (*productModel.Product, int, error) {
 	ctxt := "ProductSanitizer-ValidateProduct"
-	var response productModel.Product
-	err := c.BodyParser(&response)
+	response := new(productModel.Product)
+	response.ID = c.Params("id")
+	err := c.BodyParser(response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
-		return nil, fiberErr.Code, err
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		return response, fiberErr.Code, err
 	}
-	if err = (&response).Validate(); err != nil {
+	if err = response.Validate(); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
-		return nil, fiber.StatusBadRequest, err
+		return response, fiber.StatusBadRequest, err
 	}
-	return &response, fiber.StatusOK, nil
+	return response, fiber.StatusOK, nil
 }

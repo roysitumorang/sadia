@@ -19,26 +19,27 @@ const (
 
 type (
 	Product struct {
-		RowNo         uint64    `json:"row_no,omitempty"`
-		ID            string    `json:"id"`
-		CompanyID     string    `json:"-"`
-		CategoryID    *string   `json:"category_id"`
-		Name          string    `json:"name"`
-		Code          string    `json:"code"`
-		UOM           string    `json:"uom"`
-		StockType     int       `json:"stock_type"`
-		MinimumStock  int64     `json:"minimum_stock"`
-		Stock         int64     `json:"stock"`
-		PurchasePrice int64     `json:"purchase_price"`
-		SellingPrice  int64     `json:"selling_price"`
-		Weight        int64     `json:"weight"`
-		DiscountType  int       `json:"discount_type"`
-		DiscountValue int64     `json:"discount_value"`
-		RackPosition  string    `json:"rack_position"`
-		CreatedBy     string    `json:"-"`
-		CreatedAt     time.Time `json:"-"`
-		UpdatedBy     string    `json:"-"`
-		UpdatedAt     time.Time `json:"-"`
+		RowNo         uint64    `json:"row_no,omitempty" form:"-"`
+		ID            string    `json:"id" form:"-"`
+		CompanyID     string    `json:"-" form:"-"`
+		CategoryID    *string   `json:"category_id" form:"category_id"`
+		CategoryName  *string   `json:"category_name" form:"-"`
+		Name          string    `json:"name" form:"name"`
+		Code          string    `json:"code" form:"code"`
+		UOM           string    `json:"uom" form:"uom"`
+		StockType     int       `json:"stock_type" form:"stock_type"`
+		MinimumStock  int64     `json:"minimum_stock" form:"minimum_stock"`
+		Stock         int64     `json:"stock" form:"stock"`
+		PurchasePrice int64     `json:"purchase_price" form:"purchase_price"`
+		SellingPrice  int64     `json:"selling_price" form:"selling_price"`
+		Weight        int64     `json:"weight" form:"weight"`
+		DiscountType  int       `json:"discount_type" form:"discount_type"`
+		DiscountValue int64     `json:"discount_value" form:"discount_value"`
+		RackPosition  string    `json:"rack_position" form:"rack_position"`
+		CreatedBy     string    `json:"-" form:"-"`
+		CreatedAt     time.Time `json:"-" form:"-"`
+		UpdatedBy     string    `json:"-" form:"-"`
+		UpdatedAt     time.Time `json:"-" form:"-"`
 	}
 
 	Filter struct {
@@ -61,6 +62,9 @@ var (
 )
 
 func (q *Product) Validate() error {
+	if q.CategoryID != nil && *q.CategoryID == "" {
+		q.CategoryID = nil
+	}
 	if q.Name = strings.TrimSpace(q.Name); q.Name == "" {
 		return errors.New("name: is required")
 	}

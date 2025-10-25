@@ -1,33 +1,48 @@
 {{ include "../partials/header" }}
 
-<h2 class="navbar-form navbar-left">Product Category</h2>
-<form method="GET" action="/product_category" class="navbar-form navbar-right" role="search" onsubmit="('Search'==$('[name=q').val())&amp;&amp;$('[name=q]').val('')">
+<h2 class="navbar-form navbar-left">Product</h2>
+<form method="GET" action="/product" class="navbar-form navbar-right" role="search" onsubmit="('Search'==$('[name=q').val())&amp;&amp;$('[name=q]').val('')">
     <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search">
     <button type="submit" class="btn btn-default"><i class="fa fa-search">&nbsp;</i>Search</button>
-    <a type="button" href="/product_category/new" class="btn btn-default"><i class="fa fa-user-plus">&nbsp;</i>New</a>
+    <a type="button" href="/product/new" class="btn btn-default"><i class="fa fa-user-plus">&nbsp;</i>New</a>
 </form>
-<div class="clearfix"></div>
 <table class="table table-striped table-hover table-condensed">
     <thead>
         <tr>
-            <th class="text-center">No</th>
-            <th class="text-center">Name</th>
-            <th class="text-center">Slug</th>
-            <th class="text-center">#</th>
+            <th scope="col">No</th>
+            <th scope="col">Code</th>
+            <th scope="col">Name</th>
+            <th scope="col">Category</th>
+            <th scope="col">UOM</th>
+            <th scope="col">Stock Type</th>
+            <th scope="col">Minimum / Current Stock</th>
+            <th scope="col">Purchase / Selling Price</th>
+            <th scope="col">Weight</th>
+            <th scope="col">Discount</th>
+            <th scope="col">Rack Position</th>
+            <th scope="col">#</th>
         </tr>
     </thead>
     <tbody>
-    {{ range _, item := rows }}
-        <tr class="text-nowrap">
+        {{ range _, item := rows }}
+        <tr>
             <td>{{ item.RowNo }}</td>
+            <td>{{ item.Code }}</td>
             <td>{{ item.Name }}</td>
-            <td>{{ item.Slug }}</td>
-            <td><a type="button" href="/product_category/{{ item.ID }}/edit" class="btn btn-primary"><i class="fa fa-edit">&nbsp;</i>Edit</a></td>
+            <td>{{ if item.CategoryName }}{{ item.CategoryName }}{{ else }}-{{ end }}</td>
+            <td>{{ item.UOM }}</td>
+            <td>{{ if item.StockType == 0 }}Limited{{ else }}Unlimited{{ end }}</td>
+            <td>{{ item.MinimumStock }} / {{ item.Stock }}</td>
+            <td>{{ item.PurchasePrice }} / {{ item.SellingPrice }}</td>
+            <td>{{ item.Weight }} gram</td>
+            <td>{{ item.DiscountValue }}{{ if item.DiscountType == 0 }} %{{ end }}</td>
+            <td>{{ if item.RackPosition }}{{ item.RackPosition }}{{ else }}-{{ end }}</td>
+            <td><a type="button" href="/product/{{ item.ID }}/edit" class="btn btn-primary"><i class="fa fa-edit">&nbsp;</i>Edit</a></td>
         </tr>
-    {{ end }}
+        {{ end }}
     </tbody>
 </table>
-<form method="GET" action="/product_category" class="navbar-form navbar-right">
+<form method="GET" action="/product" class="navbar-form navbar-right">
     <input type="hidden" name="q" value="{{ q }}">
     <i class="fa fa-sort-amount-asc">&nbsp;</i>&nbsp;Size per page&nbsp;:&nbsp;</strong>&nbsp;
     <select class="form-control" name="limit" onchange="$(this).closest('form').submit()">

@@ -50,10 +50,10 @@ func ValidateProductCategory(ctx context.Context, c *fiber.Ctx) (*productCategor
 	err := c.BodyParser(response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return response, fiberErr.Code, err
 	}
-	if err = (response).Validate(); err != nil {
+	if err = response.Validate(); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
 		return response, fiber.StatusBadRequest, err
 	}
