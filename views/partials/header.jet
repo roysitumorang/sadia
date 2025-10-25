@@ -30,7 +30,7 @@
                 {{ if authenticated }}
                 <ul class="nav navbar-nav navbar-right">
                     <li class="dropdown">
-                        <a class="dropdown-toggle" data-toggle="dropdown" href="#"><i class="fa fa-user">&nbsp;</i>&nbsp;Welcome {{ currentUser.Email }}&nbsp;<b class="caret">&nbsp;</b></a>
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#"><i class="fa fa-user">&nbsp;</i>&nbsp;Welcome {{ currentUser.Name }}&nbsp;<b class="caret">&nbsp;</b></a>
                         <ul class="dropdown-menu">
                             <li><a href="/account/me"><i class="fa fa-info">&nbsp;</i>&nbsp;About Me</a></li>
                             <li><a href="/account/logout"><i class="fa fa-sign-out">&nbsp;</i>&nbsp;Logout</a></li>

@@ -821,7 +821,7 @@ func (q *accountQuery) FindUsers(ctx context.Context, filter *accountModel.Filte
 			account_id
 			, company_id
 			, user_level
-			, current_session_id
+			, session_id
 		FROM users
 		WHERE account_id IN (`,
 	)
@@ -887,7 +887,7 @@ func (q *accountQuery) CreateUser(ctx context.Context, tx pgx.Tx, request *accou
 		) VALUES ($1, $2, $3)
 		RETURNING company_id
 			, user_level
-			, current_session_id`,
+			, session_id`,
 		account.ID,
 		request.CompanyID,
 		request.UserLevel,
@@ -915,11 +915,11 @@ func (q *accountQuery) UpdateUser(ctx context.Context, tx pgx.Tx, request *accou
 		ctx,
 		`UPDATE users SET
 			user_level = $1
-			, current_session_id = $2
+			, session_id = $2
 		WHERE account_id = $3
 		RETURNING company_id
 			, user_level
-			, current_session_id`,
+			, session_id`,
 		request.UserLevel,
 		request.SessionID,
 		request.ID,
