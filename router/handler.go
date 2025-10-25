@@ -28,8 +28,6 @@ import (
 	sequenceUseCase "github.com/roysitumorang/sadia/modules/sequence/usecase"
 	sessionQuery "github.com/roysitumorang/sadia/modules/session/query"
 	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
-	storeQuery "github.com/roysitumorang/sadia/modules/store/query"
-	storeUseCase "github.com/roysitumorang/sadia/modules/store/usecase"
 	transactionQuery "github.com/roysitumorang/sadia/modules/transaction/query"
 	transactionUseCase "github.com/roysitumorang/sadia/modules/transaction/usecase"
 	"github.com/roysitumorang/sadia/services/kafka"
@@ -47,7 +45,6 @@ type (
 		CompanyUseCase         companyUseCase.CompanyUseCase
 		ProductCategoryUseCase productCategoryUseCase.ProductCategoryUseCase
 		ProductUseCase         productUseCase.ProductUseCase
-		StoreUseCase           storeUseCase.StoreUseCase
 		SessionUseCase         sessionUseCase.SessionUseCase
 		SequenceUseCase        sequenceUseCase.SequenceUseCase
 		TransactionUseCase     transactionUseCase.TransactionUseCase
@@ -92,7 +89,6 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 	companyQuery := companyQuery.New(dbRead, dbWrite)
 	productCategoryQuery := productCategoryQuery.New(dbRead, dbWrite)
 	productQuery := productQuery.New(dbRead, dbWrite)
-	storeQuery := storeQuery.New(dbRead, dbWrite)
 	sessionQuery := sessionQuery.New(dbRead, dbWrite)
 	sequenceQuery := sequenceQuery.New(dbRead, dbWrite)
 	transactionQuery := transactionQuery.New(dbRead, dbWrite)
@@ -101,7 +97,6 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 	companyUseCase := companyUseCase.New(companyQuery)
 	productCategoryUseCase := productCategoryUseCase.New(productCategoryQuery)
 	productUseCase := productUseCase.New(productQuery)
-	storeUseCase := storeUseCase.New(storeQuery)
 	sessionUseCase := sessionUseCase.New(sessionQuery)
 	sequenceUseCase := sequenceUseCase.New(sequenceQuery)
 	transactionUseCase := transactionUseCase.New(transactionQuery)
@@ -115,7 +110,6 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		CompanyUseCase:         companyUseCase,
 		ProductCategoryUseCase: productCategoryUseCase,
 		ProductUseCase:         productUseCase,
-		StoreUseCase:           storeUseCase,
 		SessionUseCase:         sessionUseCase,
 		SequenceUseCase:        sequenceUseCase,
 		TransactionUseCase:     transactionUseCase,
@@ -167,9 +161,6 @@ func (q *Service) Consume(ctx context.Context) error {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
 			}
 			if err := q.SessionUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
-				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
-			}
-			if err := q.StoreUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
 			}
 			if err := q.TransactionUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {

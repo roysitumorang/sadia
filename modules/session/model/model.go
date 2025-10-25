@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strings"
 	"time"
 )
 
@@ -15,33 +14,31 @@ const (
 
 type (
 	Session struct {
-		RowNo              uint64               `json:"row_no,omitempty"`
-		ID                 string               `json:"id"`
-		StoreID            string               `json:"store_id"`
-		Date               string               `json:"date"`
-		Status             uint8                `json:"status"`
-		CashboxValue       int64                `json:"cashbox_value"`
-		CashboxNote        string               `json:"cashbox_note"`
-		TransactionValue   int64                `json:"transaction_value"`
-		TakeMoneyValue     int64                `json:"take_money_value"`
-		TakeMoneyLineItems []*TakeMoneyLineItem `json:"take_money_line_items"`
-		CreatedBy          string               `json:"created_by"`
-		CreatedAt          time.Time            `json:"created_at"`
-		ClosedAt           *time.Time           `json:"closed_at"`
+		RowNo             uint64              `json:"row_no,omitempty"`
+		ID                string              `json:"id"`
+		CompanyID         string              `json:"company_id"`
+		Date              string              `json:"date"`
+		Status            uint8               `json:"status"`
+		CashboxValue      int64               `json:"cashbox_value"`
+		CashboxNote       string              `json:"cashbox_note"`
+		TransactionValue  int64               `json:"transaction_value"`
+		SpendingValue     int64               `json:"spending_value"`
+		SpendingLineItems []*SpendingLineItem `json:"spending_line_items"`
+		CreatedBy         string              `json:"created_by"`
+		CreatedAt         time.Time           `json:"created_at"`
+		ClosedAt          *time.Time          `json:"closed_at"`
 	}
 
-	TakeMoneyLineItem struct {
+	SpendingLineItem struct {
 		ID          string    `json:"id"`
 		SessionID   string    `json:"-"`
 		Description string    `json:"description"`
 		Value       int64     `json:"value"`
-		CreatedBy   string    `json:"-"`
 		CreatedAt   time.Time `json:"-"`
 	}
 
 	Filter struct {
 		SessionIDs,
-		StoreIDs,
 		CompanyIDs []string
 		Date,
 		Keyword,
@@ -54,18 +51,18 @@ type (
 	FilterOption func(q *Filter)
 
 	NewSession struct {
-		StoreID      string `json:"store_id"`
+		CompanyID    string `json:"-"`
 		CashboxValue int64  `json:"cashbox_value"`
 		CashboxNote  string `json:"cashbox_note"`
 		CreatedBy    string `json:"-"`
 	}
 
 	CloseSession struct {
-		TakeMoneyValue     int64                           `json:"-"`
-		TakeMoneyLineItems []CloseSessionTakeMoneyLineItem `json:"take_money_line_items"`
+		SpendingValue     int64                          `json:"-"`
+		SpendingLineItems []CloseSessionSpendingLineItem `json:"spending_line_items"`
 	}
 
-	CloseSessionTakeMoneyLineItem struct {
+	CloseSessionSpendingLineItem struct {
 		Description string `json:"description"`
 		Value       int64  `json:"value"`
 	}
@@ -76,9 +73,6 @@ var (
 )
 
 func (q *NewSession) Validate() error {
-	if q.StoreID = strings.TrimSpace(q.StoreID); q.StoreID == "" {
-		return errors.New("store_id: is required")
-	}
 	if q.CashboxValue < 0 {
 		return errors.New("cashbox_value: requires a positive integer")
 	}
@@ -86,15 +80,15 @@ func (q *NewSession) Validate() error {
 }
 
 func (q *CloseSession) Validate() error {
-	q.TakeMoneyValue = 0
-	for i, lineItem := range q.TakeMoneyLineItems {
+	q.SpendingValue = 0
+	for i, lineItem := range q.SpendingLineItems {
 		if lineItem.Description == "" {
-			return fmt.Errorf("take_money_line_items[%d].description is required", i)
+			return fmt.Errorf("spending_line_items[%d].description is required", i)
 		}
 		if lineItem.Value < 0 {
-			return fmt.Errorf("take_money_line_items[%d].value is required", i)
+			return fmt.Errorf("spending_line_items[%d].value is required", i)
 		}
-		q.TakeMoneyValue += lineItem.Value
+		q.SpendingValue += lineItem.Value
 	}
 	return nil
 }
@@ -110,12 +104,6 @@ func NewFilter(options ...FilterOption) *Filter {
 func WithSessionIDs(sessionIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.SessionIDs = sessionIDs
-	}
-}
-
-func WithStoreIDs(storeIDs ...string) FilterOption {
-	return func(q *Filter) {
-		q.StoreIDs = storeIDs
 	}
 }
 

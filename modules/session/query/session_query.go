@@ -55,28 +55,10 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
 	}
-	if len(filter.StoreIDs) > 0 {
-		builder.Reset()
-		_, _ = builder.WriteString("s.store_id IN (")
-		for i, storeID := range filter.StoreIDs {
-			params = append(params, storeID)
-			if i > 0 {
-				_, _ = builder.WriteString(",")
-			}
-			_, _ = builder.WriteString("$")
-			_, _ = builder.WriteString(strconv.Itoa(len(params)))
-		}
-		_, _ = builder.WriteString(")")
-		conditions = append(conditions, builder.String())
-	}
 	if len(filter.CompanyIDs) > 0 {
 		builder.Reset()
 		_, _ = builder.WriteString(
-			`EXISTS(
-				SELECT 1
-				FROM stores st
-				WHERE st.id = s.store_id
-					AND st.company_id IN (`,
+			`s.company_id IN (`,
 		)
 		for i, companyID := range filter.CompanyIDs {
 			params = append(params, companyID)
@@ -86,7 +68,7 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 			_, _ = builder.WriteString("$")
 			_, _ = builder.WriteString(strconv.Itoa(len(params)))
 		}
-		_, _ = builder.WriteString("))")
+		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
 	}
 	if filter.Date != "" {
@@ -102,21 +84,15 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 		_, _ = builder.WriteString(strings.ToLower(filter.Keyword))
 		_, _ = builder.WriteString("%%")
 		params = append(params, builder.String())
-		_, _ = builder.WriteString(
-			`EXISTS(
-				SELECT 1
-				FROM stores st
-				WHERE st.id = s.store_id
-					AND LOWER(st.name) LIKE $`,
-		)
+		_, _ = builder.WriteString("LOWER(c.name) LIKE $")
 		_, _ = builder.WriteString(strconv.Itoa(len(params)))
-		_, _ = builder.WriteString("))")
 		conditions = append(conditions, builder.String())
 	}
 	builder.Reset()
 	_, _ = builder.WriteString(
 		`SELECT COUNT(1)
-		FROM sessions s`,
+		FROM sessions s
+		JOIN companies c ON s.company_id = c.id`,
 	)
 	if len(conditions) > 0 {
 		_, _ = builder.WriteString(" WHERE")
@@ -143,7 +119,7 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 		"COUNT(1)",
 		`ROW_NUMBER() OVER (ORDER BY s.id DESC) AS row_no
 		, s.id
-		, s.store_id
+		, s.company_id
 		, s.date::text
 		, s.status
 		, s.cashbox_value
@@ -196,9 +172,8 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 			, session_id
 			, description
 			, value
-			, created_by
 			, created_at
-		FROM session_take_money_line_items
+		FROM session_spending_line_items
 		WHERE session_id IN (`,
 	)
 	params = make([]any, 0)
@@ -206,18 +181,18 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 	mapSessionOffsets := map[string]int{}
 	for rows.Next() {
 		session := sessionModel.Session{
-			TakeMoneyLineItems: []*sessionModel.TakeMoneyLineItem{},
+			SpendingLineItems: []*sessionModel.SpendingLineItem{},
 		}
 		if err = rows.Scan(
 			&session.RowNo,
 			&session.ID,
-			&session.StoreID,
+			&session.CompanyID,
 			&session.Date,
 			&session.Status,
 			&session.CashboxValue,
 			&session.CashboxNote,
 			&session.TransactionValue,
-			&session.TakeMoneyValue,
+			&session.SpendingValue,
 			&session.CreatedBy,
 			&session.CreatedAt,
 			&session.ClosedAt,
@@ -249,22 +224,21 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var takeMoneyLineItem sessionModel.TakeMoneyLineItem
+		var spendingLineItem sessionModel.SpendingLineItem
 		if err = rows.Scan(
-			&takeMoneyLineItem.ID,
-			&takeMoneyLineItem.SessionID,
-			&takeMoneyLineItem.Description,
-			&takeMoneyLineItem.Value,
-			&takeMoneyLineItem.CreatedBy,
-			&takeMoneyLineItem.CreatedAt,
+			&spendingLineItem.ID,
+			&spendingLineItem.SessionID,
+			&spendingLineItem.Description,
+			&spendingLineItem.Value,
+			&spendingLineItem.CreatedAt,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return nil, 0, 0, err
 		}
-		if offset, ok := mapSessionOffsets[takeMoneyLineItem.SessionID]; ok {
-			response[offset].TakeMoneyLineItems = append(
-				response[offset].TakeMoneyLineItems,
-				&takeMoneyLineItem,
+		if offset, ok := mapSessionOffsets[spendingLineItem.SessionID]; ok {
+			response[offset].SpendingLineItems = append(
+				response[offset].SpendingLineItems,
+				&spendingLineItem,
 			)
 		}
 	}
@@ -275,18 +249,18 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 	ctxt := "SessionQuery-CreateSession"
 	now := time.Now()
 	response := sessionModel.Session{
-		TakeMoneyLineItems: []*sessionModel.TakeMoneyLineItem{},
+		SpendingLineItems: []*sessionModel.SpendingLineItem{},
 	}
 	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO sessions (
-			store_id
+			company_id
 			, date
 			, status
 			, cashbox_value
 			, cashbox_note
 			, transaction_value
-			, take_money_value
+			, spending_value
 			, created_by
 			, created_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -294,7 +268,7 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 			date = EXCLUDED.date
 			, created_by = EXCLUDED.created_by
 		RETURNING id
-			, store_id
+			, company_id
 			, date::text
 			, status
 			, cashbox_value
@@ -304,7 +278,7 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 			, created_by
 			, created_at
 			, closed_at`,
-		request.StoreID,
+		request.CompanyID,
 		now.In(helper.LoadTimeZone()).Format(time.DateOnly),
 		sessionModel.StatusOnGoing,
 		request.CashboxValue,
@@ -315,13 +289,13 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 		now,
 	).Scan(
 		&response.ID,
-		&response.StoreID,
+		&response.CompanyID,
 		&response.Date,
 		&response.Status,
 		&response.CashboxValue,
 		&response.CashboxNote,
 		&response.TransactionValue,
-		&response.TakeMoneyValue,
+		&response.SpendingValue,
 		&response.CreatedBy,
 		&response.CreatedAt,
 		&response.ClosedAt,
@@ -346,9 +320,8 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 			, session_id
 			, description
 			, value
-			, created_by
 			, created_at
-		FROM session_take_money_line_items
+		FROM session_spending_line_items
 		WHERE session_id = $1
 		ORDER BY id`,
 		response.ID,
@@ -364,14 +337,13 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 		return nil, err
 	}
 	for rows.Next() {
-		var takeMoneyLineItem sessionModel.TakeMoneyLineItem
+		var spendingLineItem sessionModel.SpendingLineItem
 		if err = rows.Scan(
-			&takeMoneyLineItem.ID,
-			&takeMoneyLineItem.SessionID,
-			&takeMoneyLineItem.Description,
-			&takeMoneyLineItem.Value,
-			&takeMoneyLineItem.CreatedBy,
-			&takeMoneyLineItem.CreatedAt,
+			&spendingLineItem.ID,
+			&spendingLineItem.SessionID,
+			&spendingLineItem.Description,
+			&spendingLineItem.Value,
+			&spendingLineItem.CreatedAt,
 		); err != nil {
 			if errRollback := tx.Rollback(ctx); errRollback != nil {
 				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
@@ -379,7 +351,7 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return nil, err
 		}
-		response.TakeMoneyLineItems = append(response.TakeMoneyLineItems, &takeMoneyLineItem)
+		response.SpendingLineItems = append(response.SpendingLineItems, &spendingLineItem)
 	}
 	return &response, nil
 }
@@ -392,34 +364,34 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 		`UPDATE sessions SET
 			status = $1
 			, transaction_value = $2
-			, take_money_value = $3
+			, spending_value = $3
 			, closed_at = $4
 		WHERE id = $5
 		RETURNING id
-			, store_id
+			, company_id
 			, date::text
 			, status
 			, cashbox_value
 			, cashbox_note
 			, transaction_value
-			, take_money_value
+			, spending_value
 			, created_by
 			, created_at
 			, closed_at`,
 		request.Status,
 		request.TransactionValue,
-		request.TakeMoneyValue,
+		request.SpendingValue,
 		request.ClosedAt,
 		request.ID,
 	).Scan(
 		&request.ID,
-		&request.StoreID,
+		&request.CompanyID,
 		&request.Date,
 		&request.Status,
 		&request.CashboxValue,
 		&request.CashboxNote,
 		&request.TransactionValue,
-		&request.TakeMoneyValue,
+		&request.SpendingValue,
 		&request.CreatedBy,
 		&request.CreatedAt,
 		&request.ClosedAt,
@@ -430,21 +402,20 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		return err
 	}
-	if len(request.TakeMoneyLineItems) == 0 {
+	if len(request.SpendingLineItems) == 0 {
 		return nil
 	}
-	params := []any{request.ID, request.CreatedBy, now}
+	params := []any{request.ID, now}
 	var builder strings.Builder
 	_, _ = builder.WriteString(
-		`INSERT INTO session_take_money_line_items (
+		`INSERT INTO session_spending_line_items (
 			session_id
 			, description
 			, value
-			, created_by
 			, created_at
 		) VALUES `,
 	)
-	for i, lineItem := range request.TakeMoneyLineItems {
+	for i, lineItem := range request.SpendingLineItems {
 		params = append(params, lineItem.Description, lineItem.Value)
 		n := len(params)
 		if i > 0 {
@@ -454,14 +425,13 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 		_, _ = builder.WriteString(strconv.Itoa(n - 1))
 		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n))
-		_, _ = builder.WriteString(",$2,$3)")
+		_, _ = builder.WriteString(",$2)")
 	}
 	_, _ = builder.WriteString(
 		` RETURNING id
 			, session_id
 			, description
 			, value
-			, created_by
 			, created_at`,
 	)
 	rows, err := tx.Query(ctx, builder.String(), params...)
@@ -475,16 +445,15 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrQuery")
 		return err
 	}
-	request.TakeMoneyLineItems = []*sessionModel.TakeMoneyLineItem{}
+	request.SpendingLineItems = []*sessionModel.SpendingLineItem{}
 	for rows.Next() {
-		var takeMoneyLineItem sessionModel.TakeMoneyLineItem
+		var spendingLineItem sessionModel.SpendingLineItem
 		if err = rows.Scan(
-			&takeMoneyLineItem.ID,
-			&takeMoneyLineItem.SessionID,
-			&takeMoneyLineItem.Description,
-			&takeMoneyLineItem.Value,
-			&takeMoneyLineItem.CreatedBy,
-			&takeMoneyLineItem.CreatedAt,
+			&spendingLineItem.ID,
+			&spendingLineItem.SessionID,
+			&spendingLineItem.Description,
+			&spendingLineItem.Value,
+			&spendingLineItem.CreatedAt,
 		); err != nil {
 			if errRollback := tx.Rollback(ctx); errRollback != nil {
 				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
@@ -492,7 +461,7 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return err
 		}
-		request.TakeMoneyLineItems = append(request.TakeMoneyLineItems, &takeMoneyLineItem)
+		request.SpendingLineItems = append(request.SpendingLineItems, &spendingLineItem)
 	}
 	return nil
 }

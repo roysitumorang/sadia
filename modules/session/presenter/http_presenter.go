@@ -12,12 +12,12 @@ import (
 	"github.com/roysitumorang/sadia/models"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
+	companyModel "github.com/roysitumorang/sadia/modules/company/model"
+	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
 	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
 	"github.com/roysitumorang/sadia/modules/session/sanitizer"
 	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
-	storeModel "github.com/roysitumorang/sadia/modules/store/model"
-	storeUseCase "github.com/roysitumorang/sadia/modules/store/usecase"
 	"go.uber.org/zap"
 )
 
@@ -26,7 +26,7 @@ type (
 		sessionStore   *session.Store
 		jwtUseCase     jwtUseCase.JwtUseCase
 		accountUseCase accountUseCase.AccountUseCase
-		storeUseCase   storeUseCase.StoreUseCase
+		companyUseCase companyUseCase.CompanyUseCase
 		sessionUseCase sessionUseCase.SessionUseCase
 	}
 )
@@ -35,14 +35,14 @@ func New(
 	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
-	storeUseCase storeUseCase.StoreUseCase,
+	companyUseCase companyUseCase.CompanyUseCase,
 	sessionUseCase sessionUseCase.SessionUseCase,
 ) *sessionHTTPHandler {
 	return &sessionHTTPHandler{
 		sessionStore:   sessionStore,
 		jwtUseCase:     jwtUseCase,
 		accountUseCase: accountUseCase,
-		storeUseCase:   storeUseCase,
+		companyUseCase: companyUseCase,
 		sessionUseCase: sessionUseCase,
 	}
 }
@@ -89,23 +89,17 @@ func (q *sessionHTTPHandler) UserCreateSession(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateNewSession")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
-	stores, _, err := q.storeUseCase.FindStores(
-		ctx,
-		storeModel.NewFilter(
-			storeModel.WithCompanyIDs(currentUser.CompanyID),
-			storeModel.WithStoreIDs(request.StoreID),
-		),
-	)
+	companies, _, err := q.companyUseCase.FindCompanies(ctx, companyModel.NewFilter(companyModel.WithCompanyIDs(currentUser.CompanyID)))
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindStores")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindCompanies")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if len(stores) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("store not found").WriteResponse(c)
+	if len(companies) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("company not found").WriteResponse(c)
 	}
-	store := stores[0]
-	if store.CurrentSessionID != nil {
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("close store current session before starting new session").WriteResponse(c)
+	company := companies[0]
+	if company.SessionID != nil {
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("close company current session before starting new session").WriteResponse(c)
 	}
 	request.CreatedBy = currentUser.ID
 	tx, err := helper.BeginTx(ctx)
@@ -127,9 +121,9 @@ func (q *sessionHTTPHandler) UserCreateSession(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateSession")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	store.CurrentSessionID = &response.ID
-	if err = q.storeUseCase.UpdateStore(ctx, tx, store); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateStore")
+	company.SessionID = &response.ID
+	if err = q.companyUseCase.UpdateCompany(ctx, tx, company); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateCompany")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	currentUser.CurrentSessionID = &response.ID
@@ -193,27 +187,22 @@ func (q *sessionHTTPHandler) UserCloseCurrentSession(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("session not found").WriteResponse(c)
 	}
 	session := sessions[0]
-	stores, _, err := q.storeUseCase.FindStores(
-		ctx,
-		storeModel.NewFilter(
-			storeModel.WithStoreIDs(session.StoreID),
-		),
-	)
+	companies, _, err := q.companyUseCase.FindCompanies(ctx, companyModel.NewFilter(companyModel.WithCompanyIDs(currentUser.CompanyID)))
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindStores")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindCompanies")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if len(stores) == 0 {
-		return helper.NewResponse(fiber.StatusNotFound).SetMessage("store not found").WriteResponse(c)
+	if len(companies) == 0 {
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("company not found").WriteResponse(c)
 	}
-	store := stores[0]
+	company := companies[0]
 	now := time.Now()
 	session.Status = sessionModel.StatusClosed
-	session.TakeMoneyValue = request.TakeMoneyValue
+	session.SpendingValue = request.SpendingValue
 	session.ClosedAt = &now
-	session.TakeMoneyLineItems = make([]*sessionModel.TakeMoneyLineItem, len(request.TakeMoneyLineItems))
-	for i, lineItem := range request.TakeMoneyLineItems {
-		session.TakeMoneyLineItems[i] = &sessionModel.TakeMoneyLineItem{
+	session.SpendingLineItems = make([]*sessionModel.SpendingLineItem, len(request.SpendingLineItems))
+	for i, lineItem := range request.SpendingLineItems {
+		session.SpendingLineItems[i] = &sessionModel.SpendingLineItem{
 			Description: lineItem.Description,
 			Value:       lineItem.Value,
 		}
@@ -236,9 +225,9 @@ func (q *sessionHTTPHandler) UserCloseCurrentSession(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateSession")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	store.CurrentSessionID = nil
-	if err = q.storeUseCase.UpdateStore(ctx, tx, store); err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateStore")
+	company.SessionID = nil
+	if err = q.companyUseCase.UpdateCompany(ctx, tx, company); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateCompany")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	currentUser.CurrentSessionID = nil

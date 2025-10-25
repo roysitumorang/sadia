@@ -36,7 +36,6 @@ import (
 	productPresenter "github.com/roysitumorang/sadia/modules/product/presenter"
 	productCategoryPresenter "github.com/roysitumorang/sadia/modules/product_category/presenter"
 	sessionPresenter "github.com/roysitumorang/sadia/modules/session/presenter"
-	storePresenter "github.com/roysitumorang/sadia/modules/store/presenter"
 	transactionPresenter "github.com/roysitumorang/sadia/modules/transaction/presenter"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 	"go.uber.org/zap"
@@ -142,8 +141,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	companyPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase).Mount(app.Group("/company"))
 	productCategoryPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.ProductCategoryUseCase).Mount(app.Group("/product_category"))
 	productPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.ProductCategoryUseCase, q.ProductUseCase).Mount(app.Group("/product"))
-	storePresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.StoreUseCase).Mount(app.Group("/store"))
-	sessionPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.StoreUseCase, q.SessionUseCase).Mount(app.Group("/session"))
+	sessionPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/session"))
 	transactionPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.SessionUseCase, q.ProductUseCase, q.SequenceUseCase, q.TransactionUseCase).Mount(app.Group("/transaction"))
 	app.Use(func(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).WriteResponse(c)

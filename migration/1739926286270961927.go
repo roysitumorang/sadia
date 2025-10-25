@@ -194,7 +194,7 @@ func init() {
 		}
 		confirmationToken, emailConfirmationToken, phoneConfirmationToken := helper.RandomString(32), helper.RandomString(32), helper.RandomNumber(6)
 		now := time.Now()
-		var accountID string
+		var adminID string
 		if err = tx.QueryRow(
 			ctx,
 			`INSERT INTO accounts (
@@ -221,7 +221,7 @@ func init() {
 			"+6285233494271",
 			phoneConfirmationToken,
 			now,
-		).Scan(&accountID); err != nil {
+		).Scan(&adminID); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
 		}
@@ -231,7 +231,7 @@ func init() {
 				account_id
 				, admin_level
 			) VALUES ($1, $2)`,
-			accountID,
+			adminID,
 			accountModel.AdminLevelSuperAdmin,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
@@ -352,53 +352,70 @@ func init() {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
 		}
-		if _, err = tx.Exec(
+		var companyID string
+		if err = tx.QueryRow(
 			ctx,
-			`CREATE TABLE stores (
-				id character(36) NOT NULL DEFAULT uuidv7() PRIMARY KEY
-				, company_id character(36) NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
-				, name character varying NOT NULL
-				, slug character varying NOT NULL
-				, created_by character(36) NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
-				, created_at timestamp with time zone NOT NULL
-				, updated_by character(36) NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
-				, updated_at timestamp with time zone NOT NULL
-			);`,
-		); err != nil {
+			`INSERT INTO companies (
+				name
+				, slug
+				, status
+				, created_by
+				, created_at
+				, updated_by
+				, updated_at
+			) VALUES ($1, $2, $3, $4, $5, $4, $5)
+			RETURNING id`,
+			"Apotik Lestari",
+			"apotik-lestari",
+			models.StatusUnconfirmed,
+			adminID,
+			now,
+		).Scan(&companyID); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		confirmationToken, emailConfirmationToken, phoneConfirmationToken = helper.RandomString(32), helper.RandomString(32), helper.RandomNumber(6)
+		var userID string
+		if err = tx.QueryRow(
+			ctx,
+			`INSERT INTO accounts (
+				account_type
+				, status
+				, name
+				, username
+				, confirmation_token
+				, unconfirmed_email
+				, email_confirmation_token
+				, unconfirmed_phone
+				, phone_confirmation_token
+				, created_at
+				, updated_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
+			RETURNING id`,
+			models.AccountTypeUser,
+			models.StatusUnconfirmed,
+			"Yuli Ervanita Pasaribu",
+			"yuli",
+			confirmationToken,
+			"yuli.ervanita@gmail.com",
+			emailConfirmationToken,
+			"+6281376110586",
+			phoneConfirmationToken,
+			now,
+		).Scan(&userID); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE INDEX ON stores (company_id)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
-			`CREATE UNIQUE INDEX ON stores (LOWER(name), company_id)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
-			`CREATE UNIQUE INDEX ON stores (slug, company_id)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
-			`CREATE INDEX ON stores (created_by)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
-			`CREATE INDEX ON stores (updated_by)`,
+			`INSERT INTO users (
+				account_id
+				, company_id
+				, user_level
+			) VALUES ($1, $2, $3)`,
+			userID,
+			companyID,
+			accountModel.UserLevelOwner,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 		}

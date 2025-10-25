@@ -124,7 +124,8 @@ func (q *companyQuery) FindCompanies(ctx context.Context, filter *companyModel.F
 		, c.updated_at
 		, c.deactivated_by
 		, c.deactivated_at
-		, c.deactivation_reason`,
+		, c.deactivation_reason
+		, c.session_id`,
 	)
 	builder.Reset()
 	_, _ = builder.WriteString(query)
@@ -177,6 +178,7 @@ func (q *companyQuery) FindCompanies(ctx context.Context, filter *companyModel.F
 			&company.DeactivatedBy,
 			&company.DeactivatedAt,
 			&company.DeactivationReason,
+			&company.SessionID,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return nil, 0, 0, err
@@ -219,7 +221,8 @@ func (q *companyQuery) CreateCompany(ctx context.Context, tx pgx.Tx, request *co
 			, updated_at
 			, deactivated_by
 			, deactivated_at
-			, deactivation_reason`,
+			, deactivation_reason
+			, session_id`,
 		request.Name,
 		companySqID,
 		models.StatusUnconfirmed,
@@ -237,6 +240,7 @@ func (q *companyQuery) CreateCompany(ctx context.Context, tx pgx.Tx, request *co
 		&response.DeactivatedBy,
 		&response.DeactivatedAt,
 		&response.DeactivationReason,
+		&response.SessionID,
 	); err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
@@ -264,7 +268,8 @@ func (q *companyQuery) UpdateCompany(ctx context.Context, tx pgx.Tx, request *co
 			, status = $3
 			, updated_by = $4
 			, updated_at = $5
-		WHERE id = $6
+			, session_id = $6
+		WHERE id = $7
 		RETURNING id
 			, name
 			, slug
@@ -275,12 +280,14 @@ func (q *companyQuery) UpdateCompany(ctx context.Context, tx pgx.Tx, request *co
 			, updated_at
 			, deactivated_by
 			, deactivated_at
-			, deactivation_reason`,
+			, deactivation_reason
+			, session_id`,
 		request.Name,
 		request.Slug,
 		request.Status,
 		request.UpdatedBy,
 		request.UpdatedAt,
+		request.SessionID,
 		request.ID,
 	).Scan(
 		&request.ID,
@@ -294,6 +301,7 @@ func (q *companyQuery) UpdateCompany(ctx context.Context, tx pgx.Tx, request *co
 		&request.DeactivatedBy,
 		&request.DeactivatedAt,
 		&request.DeactivationReason,
+		&request.SessionID,
 	)
 	if err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {

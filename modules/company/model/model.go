@@ -24,6 +24,7 @@ type (
 		DeactivatedBy      *string    `json:"-"`
 		DeactivatedAt      *time.Time `json:"-"`
 		DeactivationReason *string    `json:"-"`
+		SessionID          *string    `json:"session_id"`
 	}
 
 	Filter struct {
