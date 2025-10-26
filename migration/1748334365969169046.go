@@ -60,21 +60,6 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`ALTER TABLE users
-				ADD COLUMN session_id character(36) REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE SET NULL`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
-			`CREATE INDEX ON users (session_id)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
 			`ALTER TABLE companies
 				ADD COLUMN session_id character(36) REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE SET NULL`,
 		); err != nil {
