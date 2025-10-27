@@ -2,8 +2,8 @@ package model
 
 import (
 	"errors"
-	"fmt"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -14,27 +14,29 @@ const (
 
 type (
 	Session struct {
-		RowNo             uint64              `json:"row_no,omitempty"`
-		ID                string              `json:"id"`
-		CompanyID         string              `json:"company_id"`
-		Date              string              `json:"date"`
-		Status            uint8               `json:"status"`
-		CashboxValue      int64               `json:"cashbox_value"`
-		CashboxNote       string              `json:"cashbox_note"`
-		TransactionValue  int64               `json:"transaction_value"`
-		SpendingValue     int64               `json:"spending_value"`
-		SpendingLineItems []*SpendingLineItem `json:"spending_line_items"`
-		CreatedBy         string              `json:"created_by"`
-		CreatedAt         time.Time           `json:"created_at"`
-		ClosedAt          *time.Time          `json:"closed_at"`
+		RowNo            uint64      `json:"row_no,omitempty" form:"-"`
+		ID               string      `json:"id" form:"-"`
+		CompanyID        string      `json:"company_id" form:"-"`
+		Date             string      `json:"date" form:"date"`
+		Status           uint8       `json:"status" form:"-"`
+		CashboxValue     int64       `json:"cashbox_value" form:"cashbox_value"`
+		CashboxNote      string      `json:"cashbox_note" form:"cashbox_note"`
+		TransactionValue int64       `json:"transaction_value" form:"-"`
+		SpendingValue    int64       `json:"spending_value" form:"-"`
+		Spendings        []*Spending `json:"spendings" form:"-"`
+		CreatedBy        string      `json:"created_by" form:"-"`
+		CreatedAt        time.Time   `json:"created_at" form:"-"`
+		ClosedBy         *string     `json:"closed_by" form:"-"`
+		ClosedAt         *time.Time  `json:"closed_at" form:"-"`
 	}
 
-	SpendingLineItem struct {
-		ID          string    `json:"id"`
-		SessionID   string    `json:"-"`
-		Description string    `json:"description"`
-		Value       int64     `json:"value"`
-		CreatedAt   time.Time `json:"-"`
+	Spending struct {
+		ID          string    `json:"id" form:"-"`
+		SessionID   string    `json:"-" form:"-"`
+		Description string    `json:"description" form:"description"`
+		Value       int64     `json:"value" form:"value"`
+		CreatedBy   string    `json:"created_by"`
+		CreatedAt   time.Time `json:"-" form:"-"`
 	}
 
 	Filter struct {
@@ -49,46 +51,38 @@ type (
 	}
 
 	FilterOption func(q *Filter)
-
-	NewSession struct {
-		CompanyID    string `json:"-"`
-		CashboxValue int64  `json:"cashbox_value"`
-		CashboxNote  string `json:"cashbox_note"`
-		CreatedBy    string `json:"-"`
-	}
-
-	CloseSession struct {
-		SpendingValue     int64                          `json:"-"`
-		SpendingLineItems []CloseSessionSpendingLineItem `json:"spending_line_items"`
-	}
-
-	CloseSessionSpendingLineItem struct {
-		Description string `json:"description"`
-		Value       int64  `json:"value"`
-	}
 )
 
 var (
 	ErrUniqueDateViolation = errors.New("date: already exists")
 )
 
-func (q *NewSession) Validate() error {
+func (q *Session) Validate() error {
+	if q.Date == "" {
+		return errors.New("date: is required")
+	}
+	if _, err := time.Parse(time.DateOnly, q.Date); err != nil {
+		return err
+	}
 	if q.CashboxValue < 0 {
 		return errors.New("cashbox_value: requires a positive integer")
 	}
 	return nil
 }
 
-func (q *CloseSession) Validate() error {
+func (q *Session) CalculateTotalSpendings() {
 	q.SpendingValue = 0
-	for i, lineItem := range q.SpendingLineItems {
-		if lineItem.Description == "" {
-			return fmt.Errorf("spending_line_items[%d].description is required", i)
-		}
-		if lineItem.Value < 0 {
-			return fmt.Errorf("spending_line_items[%d].value is required", i)
-		}
+	for _, lineItem := range q.Spendings {
 		q.SpendingValue += lineItem.Value
+	}
+}
+
+func (q *Spending) Validate() error {
+	if q.Description = strings.TrimSpace(q.Description); q.Description == "" {
+		return errors.New("description: is required")
+	}
+	if q.Value < 0 {
+		return errors.New("value: requires a positive integer")
 	}
 	return nil
 }

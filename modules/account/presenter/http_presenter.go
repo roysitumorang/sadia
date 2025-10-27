@@ -13,8 +13,10 @@ import (
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	"github.com/roysitumorang/sadia/modules/account/sanitizer"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
+	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
 	jwtModel "github.com/roysitumorang/sadia/modules/jwt/model"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
+	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
 	"go.uber.org/zap"
 )
 
@@ -23,6 +25,8 @@ type (
 		sessionStore   *session.Store
 		jwtUseCase     jwtUseCase.JwtUseCase
 		accountUseCase accountUseCase.AccountUseCase
+		companyUseCase companyUseCase.CompanyUseCase
+		sessionUseCase sessionUseCase.SessionUseCase
 	}
 )
 
@@ -30,11 +34,15 @@ func New(
 	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
+	companyUseCase companyUseCase.CompanyUseCase,
+	sessionUseCase sessionUseCase.SessionUseCase,
 ) *accountHTTPHandler {
 	return &accountHTTPHandler{
 		sessionStore:   sessionStore,
 		jwtUseCase:     jwtUseCase,
 		accountUseCase: accountUseCase,
+		companyUseCase: companyUseCase,
+		sessionUseCase: sessionUseCase,
 	}
 }
 
@@ -67,8 +75,8 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Put("/username", adminKeyAuth, q.AdminChangeUsername).
 		Put("/email", adminKeyAuth, q.AdminChangeEmail).
 		Put("/phone", adminKeyAuth, q.AdminChangePhone)
-	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase)
-	ownerKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.UserLevelOwner)
+	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, q.companyUseCase, q.sessionUseCase)
+	ownerKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, q.companyUseCase, q.sessionUseCase, accountModel.UserLevelOwner)
 	v1.Get("/confirmation/:token", q.UserFindUserByConfirmationToken).
 		Put("/confirmation/:token", q.UserConfirmAccount).
 		Get("/email/confirm/:token", q.UserConfirmEmail).
@@ -89,7 +97,7 @@ func (q *accountHTTPHandler) Mount(r fiber.Router) {
 		Put("/username", userKeyAuth, q.UserChangeUsername).
 		Put("/email", userKeyAuth, q.UserChangeEmail).
 		Put("/phone", userKeyAuth, q.UserChangePhone)
-	userSessionAuth := middleware.UserSessionAuth(q.sessionStore, q.accountUseCase)
+	userSessionAuth := middleware.UserSessionAuth(q.sessionStore, q.accountUseCase, q.companyUseCase, q.sessionUseCase)
 	r.Get("/login", q.userNewLogin).
 		Post("/login", q.userLogin).
 		Get("/logout", q.userLogout).

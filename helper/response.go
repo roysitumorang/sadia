@@ -55,7 +55,6 @@ func (r *Response) WriteResponse(c *fiber.Ctx) error {
 	var builder strings.Builder
 	_, _ = builder.WriteString(c.Method())
 	_, _ = builder.WriteString(" ")
-	_, _ = builder.WriteString(c.BaseURL())
 	_, _ = builder.WriteString(ByteSlice2String(c.Request().URI().FullURI()))
 	r.RequestURL = builder.String()
 	r.RequestID = ByteSlice2String(c.Response().Header.Peek(fiber.HeaderXRequestID))

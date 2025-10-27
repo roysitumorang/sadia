@@ -821,7 +821,6 @@ func (q *accountQuery) FindUsers(ctx context.Context, filter *accountModel.Filte
 			account_id
 			, company_id
 			, user_level
-			, session_id
 		FROM users
 		WHERE account_id IN (`,
 	)
@@ -851,10 +850,9 @@ func (q *accountQuery) FindUsers(ctx context.Context, filter *accountModel.Filte
 		var (
 			accountID,
 			companyID string
-			userLevel        uint8
-			currentSessionID *string
+			userLevel uint8
 		)
-		if err = rows.Scan(&accountID, &companyID, &userLevel, &currentSessionID); err != nil {
+		if err = rows.Scan(&accountID, &companyID, &userLevel); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return nil, 0, 0, err
 		}
@@ -862,7 +860,6 @@ func (q *accountQuery) FindUsers(ctx context.Context, filter *accountModel.Filte
 			user := response[offset]
 			user.CompanyID = companyID
 			user.UserLevel = userLevel
-			user.SessionID = currentSessionID
 			response[offset] = user
 		}
 	}
@@ -886,15 +883,13 @@ func (q *accountQuery) CreateUser(ctx context.Context, tx pgx.Tx, request *accou
 			, user_level
 		) VALUES ($1, $2, $3)
 		RETURNING company_id
-			, user_level
-			, session_id`,
+			, user_level`,
 		account.ID,
 		request.CompanyID,
 		request.UserLevel,
 	).Scan(
 		&response.CompanyID,
 		&response.UserLevel,
-		&response.SessionID,
 	); err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
@@ -915,18 +910,14 @@ func (q *accountQuery) UpdateUser(ctx context.Context, tx pgx.Tx, request *accou
 		ctx,
 		`UPDATE users SET
 			user_level = $1
-			, session_id = $2
-		WHERE account_id = $3
+		WHERE account_id = $2
 		RETURNING company_id
-			, user_level
-			, session_id`,
+			, user_level`,
 		request.UserLevel,
-		request.SessionID,
 		request.ID,
 	).Scan(
 		&request.CompanyID,
 		&request.UserLevel,
-		&request.SessionID,
 	); err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")

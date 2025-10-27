@@ -36,40 +36,41 @@ func FindSessions(ctx context.Context, c *fiber.Ctx) (*sessionModel.Filter, erro
 		limit = models.Limits[0]
 	}
 	urlValues.Set("limit", strconv.FormatInt(limit, 10))
+	options = append(options, sessionModel.WithLimit(limit))
 	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
 	page = max(page, 0)
 	options = append(options, sessionModel.WithPage(page), sessionModel.WithUrlValues(urlValues))
 	return sessionModel.NewFilter(options...), nil
 }
 
-func ValidateNewSession(ctx context.Context, c *fiber.Ctx) (*sessionModel.NewSession, int, error) {
+func ValidateSession(ctx context.Context, c *fiber.Ctx) (*sessionModel.Session, int, error) {
 	ctxt := "SessionSanitizer-ValidateSession"
-	var response sessionModel.NewSession
-	err := c.BodyParser(&response)
+	response := new(sessionModel.Session)
+	err := c.BodyParser(response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
-		return nil, fiberErr.Code, err
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		return response, fiberErr.Code, err
 	}
-	if err = (&response).Validate(); err != nil {
+	if err = response.Validate(); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
-		return nil, fiber.StatusBadRequest, err
+		return response, fiber.StatusBadRequest, err
 	}
-	return &response, fiber.StatusOK, nil
+	return response, fiber.StatusOK, nil
 }
 
-func ValidateCloseSession(ctx context.Context, c *fiber.Ctx) (*sessionModel.CloseSession, int, error) {
-	ctxt := "SessionSanitizer-ValidateCloseSession"
-	var response sessionModel.CloseSession
-	err := c.BodyParser(&response)
+func ValidateSpending(ctx context.Context, c *fiber.Ctx) (*sessionModel.Spending, int, error) {
+	ctxt := "SessionSanitizer-ValidateSpending"
+	response := new(sessionModel.Spending)
+	err := c.BodyParser(response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
-		return nil, fiberErr.Code, err
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		return response, fiberErr.Code, err
 	}
-	if err = (&response).Validate(); err != nil {
+	if err = response.Validate(); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
-		return nil, fiber.StatusBadRequest, err
+		return response, fiber.StatusBadRequest, err
 	}
-	return &response, fiber.StatusOK, nil
+	return response, fiber.StatusOK, nil
 }

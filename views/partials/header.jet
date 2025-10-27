@@ -25,6 +25,7 @@
                     {{ if authenticated }}
                     <li><a href="/product_category"><i class="fa fa-group">&nbsp;</i>&nbsp;Product Category</a></li>
                     <li><a href="/product"><i class="fa fa-dollar">&nbsp;</i>&nbsp;Product</a></li>
+                    <li><a href="/session/mine"><i class="fa fa-key">&nbsp;</i>&nbsp;Session</a></li>
                     {{ end }}
                 </ul>
                 {{ if authenticated }}

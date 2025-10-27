@@ -24,6 +24,7 @@ func init() {
 				, spending_value bigint NOT NULL DEFAULT 0
 				, created_by character(36) NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
+				, closed_by character(36) REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, closed_at timestamp with time zone
 			)`,
 		); err != nil {
@@ -39,7 +40,7 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE UNIQUE INDEX ON sessions (date, created_by)`,
+			`CREATE UNIQUE INDEX ON sessions (date, company_id)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -54,6 +55,13 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE INDEX ON sessions (created_by)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON sessions (closed_by)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -75,11 +83,12 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE TABLE session_spendings (
+			`CREATE TABLE spendings (
 				id character(36) NOT NULL DEFAULT uuidv7() PRIMARY KEY
 				, session_id character(36) NOT NULL REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, description character varying NOT NULL
 				, value bigint NOT NULL
+				, created_by character(36) NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
 			)`,
 		); err != nil {
@@ -88,7 +97,14 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE INDEX ON session_spendings (session_id)`,
+			`CREATE INDEX ON spendings (session_id)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON spendings (created_by)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return

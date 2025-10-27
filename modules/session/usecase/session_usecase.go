@@ -45,7 +45,7 @@ func (q *sessionUseCase) FindSessions(ctx context.Context, filter *sessionModel.
 	return rows, pagination, nil
 }
 
-func (q *sessionUseCase) CreateSession(ctx context.Context, tx pgx.Tx, request *sessionModel.NewSession) (*sessionModel.Session, error) {
+func (q *sessionUseCase) CreateSession(ctx context.Context, tx pgx.Tx, request *sessionModel.Session) (*sessionModel.Session, error) {
 	ctxt := "SessionUseCase-CreateSession"
 	response, err := q.sessionQuery.CreateSession(ctx, tx, request)
 	if err != nil {
@@ -59,6 +59,15 @@ func (q *sessionUseCase) UpdateSession(ctx context.Context, tx pgx.Tx, request *
 	err := q.sessionQuery.UpdateSession(ctx, tx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateSession")
+	}
+	return err
+}
+
+func (q *sessionUseCase) CreateSpending(ctx context.Context, tx pgx.Tx, request *sessionModel.Spending) error {
+	ctxt := "SessionUseCase-CreateSpending"
+	err := q.sessionQuery.CreateSpending(ctx, tx, request)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateSpending")
 	}
 	return err
 }

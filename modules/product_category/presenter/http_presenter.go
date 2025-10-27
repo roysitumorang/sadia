@@ -8,10 +8,12 @@ import (
 	"github.com/roysitumorang/sadia/models"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
+	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
 	productCategoryModel "github.com/roysitumorang/sadia/modules/product_category/model"
 	"github.com/roysitumorang/sadia/modules/product_category/sanitizer"
 	productCategoryUseCase "github.com/roysitumorang/sadia/modules/product_category/usecase"
+	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
 	"go.uber.org/zap"
 )
 
@@ -20,6 +22,8 @@ type (
 		sessionStore           *session.Store
 		jwtUseCase             jwtUseCase.JwtUseCase
 		accountUseCase         accountUseCase.AccountUseCase
+		companyUseCase         companyUseCase.CompanyUseCase
+		sessionUseCase         sessionUseCase.SessionUseCase
 		productCategoryUseCase productCategoryUseCase.ProductCategoryUseCase
 	}
 )
@@ -28,25 +32,29 @@ func New(
 	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
+	companyUseCase companyUseCase.CompanyUseCase,
+	sessionUseCase sessionUseCase.SessionUseCase,
 	productCategoryUseCase productCategoryUseCase.ProductCategoryUseCase,
 ) *productCategoryHTTPHandler {
 	return &productCategoryHTTPHandler{
 		sessionStore:           sessionStore,
 		jwtUseCase:             jwtUseCase,
 		accountUseCase:         accountUseCase,
+		companyUseCase:         companyUseCase,
+		sessionUseCase:         sessionUseCase,
 		productCategoryUseCase: productCategoryUseCase,
 	}
 }
 
 func (q *productCategoryHTTPHandler) Mount(r fiber.Router) {
-	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase)
-	ownerKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.UserLevelOwner)
+	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, q.companyUseCase, q.sessionUseCase)
+	ownerKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, q.companyUseCase, q.sessionUseCase, accountModel.UserLevelOwner)
 	v1 := r.Group("/v1")
 	v1.Get("", userKeyAuth, q.UserFindProductCategories).
 		Post("", ownerKeyAuth, q.UserCreateProductCategory).
 		Get("/:id", userKeyAuth, q.UserFindProductCategoryByID).
 		Put("/:id", ownerKeyAuth, q.UserUpdateProductCategory)
-	userSessionAuth := middleware.UserSessionAuth(q.sessionStore, q.accountUseCase)
+	userSessionAuth := middleware.UserSessionAuth(q.sessionStore, q.accountUseCase, q.companyUseCase, q.sessionUseCase)
 	r.Get("", userSessionAuth, q.userIndex).
 		Get("/new", userSessionAuth, q.userNew).
 		Post("", userSessionAuth, q.userCreate).

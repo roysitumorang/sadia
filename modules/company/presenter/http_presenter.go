@@ -17,6 +17,7 @@ import (
 	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
 	jwtModel "github.com/roysitumorang/sadia/modules/jwt/model"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
+	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
 	"go.uber.org/zap"
 )
 
@@ -26,6 +27,7 @@ type (
 		jwtUseCase     jwtUseCase.JwtUseCase
 		accountUseCase accountUseCase.AccountUseCase
 		companyUseCase companyUseCase.CompanyUseCase
+		sessionUseCase sessionUseCase.SessionUseCase
 	}
 )
 
@@ -34,12 +36,14 @@ func New(
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	companyUseCase companyUseCase.CompanyUseCase,
+	sessionUseCase sessionUseCase.SessionUseCase,
 ) *companyHTTPHandler {
 	return &companyHTTPHandler{
 		sessionStore:   sessionStore,
 		jwtUseCase:     jwtUseCase,
 		accountUseCase: accountUseCase,
 		companyUseCase: companyUseCase,
+		sessionUseCase: sessionUseCase,
 	}
 }
 
@@ -52,8 +56,8 @@ func (q *companyHTTPHandler) Mount(r fiber.Router) {
 		Post("", superAdminKeyAuth, q.AdminCreateCompany).
 		Get("/:id", adminKeyAuth, q.AdminFindCompanyByID).
 		Delete("/:id", superAdminKeyAuth, q.AdminDeactivateCompany)
-	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase)
-	ownerKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, accountModel.UserLevelOwner)
+	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, q.companyUseCase, q.sessionUseCase)
+	ownerKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, q.companyUseCase, q.sessionUseCase, accountModel.UserLevelOwner)
 	v1.Group("/mine").
 		Get("", userKeyAuth, q.UserFindMyCompany).
 		Put("", ownerKeyAuth, q.UserUpdateMyCompany)

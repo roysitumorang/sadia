@@ -13,6 +13,8 @@ import (
 	"github.com/roysitumorang/sadia/models"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
+	companyModel "github.com/roysitumorang/sadia/modules/company/model"
+	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
 	productModel "github.com/roysitumorang/sadia/modules/product/model"
 	productUseCase "github.com/roysitumorang/sadia/modules/product/usecase"
@@ -30,6 +32,7 @@ type (
 		sessionStore       *session.Store
 		jwtUseCase         jwtUseCase.JwtUseCase
 		accountUseCase     accountUseCase.AccountUseCase
+		companyUseCase     companyUseCase.CompanyUseCase
 		sessionUseCase     sessionUseCase.SessionUseCase
 		productUseCase     productUseCase.ProductUseCase
 		sequenceUseCase    sequenceUseCase.SequenceUseCase
@@ -41,6 +44,7 @@ func New(
 	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
+	companyUseCase companyUseCase.CompanyUseCase,
 	sessionUseCase sessionUseCase.SessionUseCase,
 	productUseCase productUseCase.ProductUseCase,
 	sequenceUseCase sequenceUseCase.SequenceUseCase,
@@ -50,6 +54,7 @@ func New(
 		sessionStore:       sessionStore,
 		jwtUseCase:         jwtUseCase,
 		accountUseCase:     accountUseCase,
+		companyUseCase:     companyUseCase,
 		sessionUseCase:     sessionUseCase,
 		productUseCase:     productUseCase,
 		sequenceUseCase:    sequenceUseCase,
@@ -58,7 +63,7 @@ func New(
 }
 
 func (q *transactionHTTPHandler) Mount(r fiber.Router) {
-	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase)
+	userKeyAuth := middleware.UserKeyAuth(q.jwtUseCase, q.accountUseCase, q.companyUseCase, q.sessionUseCase)
 	v1 := r.Group("/v1")
 	v1.Get("", userKeyAuth, q.UserFindTransactions).
 		Post("", userKeyAuth, q.UserCreateTransaction).
@@ -68,8 +73,8 @@ func (q *transactionHTTPHandler) Mount(r fiber.Router) {
 func (q *transactionHTTPHandler) UserFindTransactions(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-UserFindTransactions"
-	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
-	if currentUser.SessionID == nil {
+	currentCompany := c.Locals(models.CurrentCompany).(*companyModel.Company)
+	if currentCompany.SessionID == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active session").WriteResponse(c)
 	}
 	filter, err := sanitizer.FindTransactions(ctx, c)
@@ -77,7 +82,7 @@ func (q *transactionHTTPHandler) UserFindTransactions(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindTransactions")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	filter.SessionIDs = []string{*currentUser.SessionID}
+	filter.SessionIDs = []string{*currentCompany.SessionID}
 	rows, pagination, err := q.transactionUseCase.FindTransactions(ctx, filter)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindTransactions")
@@ -92,14 +97,15 @@ func (q *transactionHTTPHandler) UserFindTransactions(c *fiber.Ctx) error {
 func (q *transactionHTTPHandler) UserCreateTransaction(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-UserCreateTransaction"
-	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
-	if currentUser.SessionID == nil {
+	currentUser := c.Locals(models.CurrentUser).(*accountModel.User)
+	currentCompany := c.Locals(models.CurrentCompany).(*companyModel.Company)
+	if currentCompany.SessionID == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active session").WriteResponse(c)
 	}
 	sessions, _, err := q.sessionUseCase.FindSessions(
 		ctx,
 		sessionModel.NewFilter(
-			sessionModel.WithSessionIDs(*currentUser.SessionID),
+			sessionModel.WithSessionIDs(*currentCompany.SessionID),
 		),
 	)
 	if err != nil {
@@ -122,7 +128,7 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c *fiber.Ctx) error {
 	products, _, err := q.productUseCase.FindProducts(
 		ctx,
 		productModel.NewFilter(
-			productModel.WithCompanyIDs(currentUser.CompanyID),
+			productModel.WithCompanyIDs(currentCompany.ID),
 			productModel.WithProductIDs(productIDs...),
 		),
 	)
@@ -186,14 +192,14 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c *fiber.Ctx) error {
 func (q *transactionHTTPHandler) UserFindTransaction(c *fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-UserFindTransaction"
-	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
-	if currentUser.SessionID == nil {
+	currentCompany := c.Locals(models.CurrentCompany).(*companyModel.Company)
+	if currentCompany.SessionID == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active session").WriteResponse(c)
 	}
 	transactions, _, err := q.transactionUseCase.FindTransactions(
 		ctx,
 		transactionModel.NewFilter(
-			transactionModel.WithSessionIDs(*currentUser.SessionID),
+			transactionModel.WithSessionIDs(*currentCompany.SessionID),
 			transactionModel.WithTransactionIDs(c.Params("id")),
 		),
 	)

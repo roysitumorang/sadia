@@ -13,8 +13,12 @@ import (
 	"github.com/roysitumorang/sadia/models"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
+	companyModel "github.com/roysitumorang/sadia/modules/company/model"
+	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
 	jwtModel "github.com/roysitumorang/sadia/modules/jwt/model"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
+	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
+	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
 )
 
 func AdminKeyAuth(
@@ -72,6 +76,8 @@ func AdminKeyAuth(
 func UserKeyAuth(
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
+	companyUseCase companyUseCase.CompanyUseCase,
+	sessionUseCase sessionUseCase.SessionUseCase,
 	userLevels ...uint8,
 ) fiber.Handler {
 	var builder strings.Builder
@@ -113,9 +119,32 @@ func UserKeyAuth(
 			if err != nil || len(users) == 0 {
 				return false, err
 			}
-			user := users[0]
-			c.Locals(models.CurrentUser, user)
+			currentUser := users[0]
+			companies, _, err := companyUseCase.FindCompanies(
+				ctx,
+				companyModel.NewFilter(
+					companyModel.WithCompanyIDs(currentUser.CompanyID),
+				),
+			)
+			if err != nil || len(companies) == 0 {
+				return false, err
+			}
+			currentCompany := companies[0]
+			if currentCompany.SessionID != nil {
+				sessions, _, err := sessionUseCase.FindSessions(
+					ctx,
+					sessionModel.NewFilter(
+						sessionModel.WithSessionIDs(*currentCompany.SessionID),
+					),
+				)
+				if err != nil || len(sessions) == 0 {
+					return false, err
+				}
+				c.Locals(models.CurrentSession, sessions[0])
+			}
 			c.Locals(models.CurrentJwt, claims)
+			c.Locals(models.CurrentUser, currentUser)
+			c.Locals(models.CurrentCompany, currentCompany)
 			return true, nil
 		},
 	})

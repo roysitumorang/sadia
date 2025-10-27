@@ -31,10 +31,12 @@ import (
 	"github.com/roysitumorang/sadia/middleware"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	accountPresenter "github.com/roysitumorang/sadia/modules/account/presenter"
+	companyModel "github.com/roysitumorang/sadia/modules/company/model"
 	companyPresenter "github.com/roysitumorang/sadia/modules/company/presenter"
 	jwtPresenter "github.com/roysitumorang/sadia/modules/jwt/presenter"
 	productPresenter "github.com/roysitumorang/sadia/modules/product/presenter"
 	productCategoryPresenter "github.com/roysitumorang/sadia/modules/product_category/presenter"
+	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
 	sessionPresenter "github.com/roysitumorang/sadia/modules/session/presenter"
 	transactionPresenter "github.com/roysitumorang/sadia/modules/transaction/presenter"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
@@ -55,6 +57,8 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		Storage: q.Storage,
 	})
 	sessionStore.RegisterType(&accountModel.User{})
+	sessionStore.RegisterType(&companyModel.Company{})
+	sessionStore.RegisterType(&sessionModel.Session{})
 	sessionStore.RegisterType(&helper.FlashMessage{})
 	app := fiber.New(fiber.Config{
 		JSONEncoder: json.Marshal,
@@ -137,12 +141,12 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 			return helper.NewResponse(fiber.StatusOK).SetData(envMap).WriteResponse(c)
 		})
 	jwtPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase).Mount(app.Group("/jwt"))
-	accountPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase).Mount(app.Group("/account"))
-	companyPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase).Mount(app.Group("/company"))
-	productCategoryPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.ProductCategoryUseCase).Mount(app.Group("/product_category"))
-	productPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.ProductCategoryUseCase, q.ProductUseCase).Mount(app.Group("/product"))
+	accountPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/account"))
+	companyPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/company"))
+	productCategoryPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductCategoryUseCase).Mount(app.Group("/product_category"))
+	productPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductCategoryUseCase, q.ProductUseCase).Mount(app.Group("/product"))
 	sessionPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/session"))
-	transactionPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.SessionUseCase, q.ProductUseCase, q.SequenceUseCase, q.TransactionUseCase).Mount(app.Group("/transaction"))
+	transactionPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductUseCase, q.SequenceUseCase, q.TransactionUseCase).Mount(app.Group("/transaction"))
 	app.Use(func(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).WriteResponse(c)
 	})
