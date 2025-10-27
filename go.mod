@@ -70,7 +70,7 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
 	github.com/tiendc/go-deepcopy v1.7.1 // indirect
-	github.com/tinylib/msgp v1.4.0 // indirect
+	github.com/tinylib/msgp v1.5.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.12.0 // indirect
 	github.com/valkey-io/valkey-go v1.0.67 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
