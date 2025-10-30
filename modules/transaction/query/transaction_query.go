@@ -69,35 +69,14 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
 	}
-	if len(filter.StoreIDs) > 0 {
-		builder.Reset()
-		_, _ = builder.WriteString(
-			`EXISTS(
-				SELECT 1
-				FROM sessions s
-				WHERE s.id = t.session_id
-					AND s.store_id IN (`,
-		)
-		for i, storeID := range filter.StoreIDs {
-			params = append(params, storeID)
-			if i > 0 {
-				_, _ = builder.WriteString(",")
-			}
-			_, _ = builder.WriteString("$")
-			_, _ = builder.WriteString(strconv.Itoa(len(params)))
-		}
-		_, _ = builder.WriteString("))")
-		conditions = append(conditions, builder.String())
-	}
 	if len(filter.CompanyIDs) > 0 {
 		builder.Reset()
 		_, _ = builder.WriteString(
 			`EXISTS(
 				SELECT 1
 				FROM sessions s
-				JOIN stores st ON s.store_id = st.id
 				WHERE s.id = t.session_id
-					AND st.company_id IN (`,
+					AND s.company_id IN (`,
 		)
 		for i, companyID := range filter.CompanyIDs {
 			params = append(params, companyID)
@@ -155,8 +134,6 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 		, t.reference_no
 		, t.subtotal
 		, t.discount
-		, t.tax_rate
-		, t.tax
 		, t.total
 		, t.payment_method
 		, t.created_by
@@ -206,12 +183,9 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 			, product_name
 			, product_code
 			, product_uom
-			, purchase_price
+			, base_price
 			, selling_price
 			, weight
-			, discount_type
-			, discount_value
-			, discount_amount
 			, quantity
 			, subtotal
 		FROM transaction_line_items
@@ -231,8 +205,6 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 			&transaction.ReferenceNo,
 			&transaction.Subtotal,
 			&transaction.Discount,
-			&transaction.TaxRate,
-			&transaction.Tax,
 			&transaction.Total,
 			&transaction.PaymentMethod,
 			&transaction.CreatedBy,
@@ -273,12 +245,9 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 			&lineItem.ProductName,
 			&lineItem.ProductCode,
 			&lineItem.ProductUOM,
-			&lineItem.PurchasePrice,
+			&lineItem.BasePrice,
 			&lineItem.SellingPrice,
 			&lineItem.Weight,
-			&lineItem.DiscountType,
-			&lineItem.DiscountValue,
-			&lineItem.DiscountAmount,
 			&lineItem.Quantity,
 			&lineItem.Subtotal,
 		); err != nil {
@@ -308,20 +277,16 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			, reference_no
 			, subtotal
 			, discount
-			, tax_rate
-			, tax
 			, total
 			, payment_method
 			, created_by
 			, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id
 			, session_id
 			, reference_no
 			, subtotal
 			, discount
-			, tax_rate
-			, tax
 			, total
 			, payment_method
 			, created_by
@@ -330,8 +295,6 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 		request.ReferenceNo,
 		request.Subtotal,
 		request.Discount,
-		request.TaxRate,
-		request.Tax,
 		request.Total,
 		request.PaymentMethod,
 		request.CreatedBy,
@@ -342,8 +305,6 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 		&response.ReferenceNo,
 		&response.Subtotal,
 		&response.Discount,
-		&response.TaxRate,
-		&response.Tax,
 		&response.Total,
 		&response.PaymentMethod,
 		&response.CreatedBy,
@@ -377,9 +338,6 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			, purchase_price
 			, selling_price
 			, weight
-			, discount_type
-			, discount_value
-			, discount_amount
 			, quantity
 			, subtotal
 		) VALUES `,
@@ -406,12 +364,9 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			lineItem.ProductName,
 			lineItem.ProductCode,
 			lineItem.ProductUOM,
-			lineItem.PurchasePrice,
+			lineItem.BasePrice,
 			lineItem.SellingPrice,
 			lineItem.Weight,
-			lineItem.DiscountType,
-			lineItem.DiscountValue,
-			lineItem.DiscountAmount,
 			lineItem.Quantity,
 			lineItem.Subtotal,
 		)
@@ -420,12 +375,6 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			_, _ = builder.WriteString(",")
 		}
 		_, _ = builder.WriteString("($")
-		_, _ = builder.WriteString(strconv.Itoa(n - 12))
-		_, _ = builder.WriteString(",$")
-		_, _ = builder.WriteString(strconv.Itoa(n - 11))
-		_, _ = builder.WriteString(",$")
-		_, _ = builder.WriteString(strconv.Itoa(n - 10))
-		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 9))
 		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 8))
@@ -454,12 +403,9 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			, product_name
 			, product_code
 			, product_uom
-			, purchase_price
+			, base_price
 			, selling_price
 			, weight
-			, discount_type
-			, discount_value
-			, discount_amount
 			, quantity
 			, subtotal`,
 	)
@@ -483,12 +429,9 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			&lineItem.ProductName,
 			&lineItem.ProductCode,
 			&lineItem.ProductUOM,
-			&lineItem.PurchasePrice,
+			&lineItem.BasePrice,
 			&lineItem.SellingPrice,
 			&lineItem.Weight,
-			&lineItem.DiscountType,
-			&lineItem.DiscountValue,
-			&lineItem.DiscountAmount,
 			&lineItem.Quantity,
 			&lineItem.Subtotal,
 		); err != nil {

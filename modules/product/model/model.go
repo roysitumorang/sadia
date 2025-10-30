@@ -7,39 +7,26 @@ import (
 	"time"
 )
 
-const (
-	StockTypeLimited int = iota
-	StockTypeUnlimited
-)
-
-const (
-	DiscountTypePercentage int = iota
-	DiscountTypeAmount
-)
-
 type (
 	Product struct {
-		RowNo         uint64    `json:"row_no,omitempty" form:"-"`
-		ID            string    `json:"id" form:"-"`
-		CompanyID     string    `json:"-" form:"-"`
-		CategoryID    *string   `json:"category_id" form:"category_id"`
-		CategoryName  *string   `json:"category_name" form:"-"`
-		Name          string    `json:"name" form:"name"`
-		Code          string    `json:"code" form:"code"`
-		UOM           string    `json:"uom" form:"uom"`
-		StockType     int       `json:"stock_type" form:"stock_type"`
-		MinimumStock  int64     `json:"minimum_stock" form:"minimum_stock"`
-		Stock         int64     `json:"stock" form:"stock"`
-		PurchasePrice int64     `json:"purchase_price" form:"purchase_price"`
-		SellingPrice  int64     `json:"selling_price" form:"selling_price"`
-		Weight        int64     `json:"weight" form:"weight"`
-		DiscountType  int       `json:"discount_type" form:"discount_type"`
-		DiscountValue int64     `json:"discount_value" form:"discount_value"`
-		RackPosition  string    `json:"rack_position" form:"rack_position"`
-		CreatedBy     string    `json:"-" form:"-"`
-		CreatedAt     time.Time `json:"-" form:"-"`
-		UpdatedBy     string    `json:"-" form:"-"`
-		UpdatedAt     time.Time `json:"-" form:"-"`
+		RowNo        uint64    `json:"row_no,omitempty" form:"-"`
+		ID           string    `json:"id" form:"-"`
+		CompanyID    string    `json:"-" form:"-"`
+		CategoryID   *string   `json:"category_id" form:"category_id"`
+		CategoryName *string   `json:"category_name" form:"-"`
+		Name         string    `json:"name" form:"name"`
+		Code         string    `json:"code" form:"code"`
+		UOM          string    `json:"uom" form:"uom"`
+		MinimumStock int64     `json:"minimum_stock" form:"minimum_stock"`
+		Stock        int64     `json:"stock" form:"stock"`
+		BasePrice    int64     `json:"base_price" form:"base_price"`
+		SellingPrice int64     `json:"selling_price" form:"selling_price"`
+		Weight       int64     `json:"weight" form:"weight"`
+		RackPosition string    `json:"rack_position" form:"rack_position"`
+		CreatedBy    string    `json:"-" form:"-"`
+		CreatedAt    time.Time `json:"-" form:"-"`
+		UpdatedBy    string    `json:"-" form:"-"`
+		UpdatedAt    time.Time `json:"-" form:"-"`
 	}
 
 	Filter struct {
@@ -72,35 +59,20 @@ func (q *Product) Validate() error {
 		return errors.New("code: is required")
 	}
 	q.UOM = strings.TrimSpace(q.UOM)
-	if q.StockType != StockTypeLimited &&
-		q.StockType != StockTypeUnlimited {
-		return errors.New("stock_type: should be either 0 (limited) or 1 (unlimited)")
-	}
 	if q.MinimumStock < 0 {
 		return errors.New("minimum_stock: requires a positive integer")
 	}
 	if q.Stock < 0 {
 		return errors.New("stock: requires a positive integer")
 	}
-	if q.PurchasePrice < 0 {
-		return errors.New("purchase_price: requires a positive integer")
+	if q.BasePrice < 0 {
+		return errors.New("base_price: requires a positive integer")
 	}
 	if q.SellingPrice < 0 {
 		return errors.New("selling_price: requires a positive integer")
 	}
 	if q.Weight < 0 {
 		return errors.New("weight: requires a positive integer")
-	}
-	if q.DiscountType != DiscountTypePercentage &&
-		q.DiscountType != DiscountTypeAmount {
-		return errors.New("stock_type: should be either 0 (percentage) or 1 (amount)")
-	}
-	if q.DiscountValue < 0 {
-		return errors.New("discount_value: requires a positive integer")
-	}
-	if q.DiscountType == DiscountTypePercentage &&
-		q.DiscountValue > 100 {
-		return errors.New("discount_value: exceeded maximum value (100)")
 	}
 	q.RackPosition = strings.TrimSpace(q.RackPosition)
 	return nil

@@ -188,14 +188,11 @@ func (q *productHTTPHandler) UserUpdateProduct(c *fiber.Ctx) error {
 	product.Name = request.Name
 	product.Code = request.Code
 	product.UOM = request.UOM
-	product.StockType = request.StockType
 	product.MinimumStock = request.MinimumStock
 	product.Stock = request.Stock
-	product.PurchasePrice = request.PurchasePrice
+	product.BasePrice = request.BasePrice
 	product.SellingPrice = request.SellingPrice
 	product.Weight = request.Weight
-	product.DiscountType = request.DiscountType
-	product.DiscountValue = request.DiscountValue
 	product.RackPosition = request.RackPosition
 	product.UpdatedBy = currentUser.ID
 	if err = q.productUseCase.UpdateProduct(ctx, product); err != nil {
@@ -557,27 +554,21 @@ func (q *productHTTPHandler) userUpdate(c *fiber.Ctx) error {
 		product.Name != request.Name ||
 		product.Code != request.Code ||
 		product.UOM != request.UOM ||
-		product.StockType != request.StockType ||
 		product.MinimumStock != request.MinimumStock ||
 		product.Stock != request.Stock ||
-		product.PurchasePrice != request.PurchasePrice ||
+		product.BasePrice != request.BasePrice ||
 		product.SellingPrice != request.SellingPrice ||
 		product.Weight != request.Weight ||
-		product.DiscountType != request.DiscountType ||
-		product.DiscountValue != request.DiscountValue ||
 		product.RackPosition != request.RackPosition {
 		product.CategoryID = request.CategoryID
 		product.Name = request.Name
 		product.Code = request.Code
 		product.UOM = request.UOM
-		product.StockType = request.StockType
 		product.MinimumStock = request.MinimumStock
 		product.Stock = request.Stock
-		product.PurchasePrice = request.PurchasePrice
+		product.BasePrice = request.BasePrice
 		product.SellingPrice = request.SellingPrice
 		product.Weight = request.Weight
-		product.DiscountType = request.DiscountType
-		product.DiscountValue = request.DiscountValue
 		product.RackPosition = request.RackPosition
 		product.UpdatedBy = currentUser.ID
 		if err = q.productUseCase.UpdateProduct(ctx, product); err != nil {

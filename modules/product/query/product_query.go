@@ -135,14 +135,11 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 		, p.name
 		, p.code
 		, p.uom
-		, p.stock_type
 		, p.minimum_stock
 		, p.stock
-		, p.purchase_price
+		, p.base_price
 		, p.selling_price
 		, p.weight
-		, p.discount_type
-		, p.discount_value
 		, p.rack_position
 		, p.created_by
 		, p.created_at
@@ -196,14 +193,11 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 			&product.Name,
 			&product.Code,
 			&product.UOM,
-			&product.StockType,
 			&product.MinimumStock,
 			&product.Stock,
-			&product.PurchasePrice,
+			&product.BasePrice,
 			&product.SellingPrice,
 			&product.Weight,
-			&product.DiscountType,
-			&product.DiscountValue,
 			&product.RackPosition,
 			&product.CreatedBy,
 			&product.CreatedAt,
@@ -230,34 +224,28 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 			, name
 			, code
 			, uom
-			, stock_type
 			, minimum_stock
 			, stock
-			, purchase_price
+			, base_price
 			, selling_price
 			, weight
-			, discount_type
-			, discount_value
 			, rack_position
 			, created_by
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $15, $16)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $12, $13)
 		RETURNING id
 			, company_id
 			, category_id
 			, name
 			, code
 			, uom
-			, stock_type
 			, minimum_stock
 			, stock
-			, purchase_price
+			, base_price
 			, selling_price
 			, weight
-			, discount_type
-			, discount_value
 			, rack_position
 			, created_by
 			, created_at
@@ -268,14 +256,11 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 		request.Name,
 		request.Code,
 		request.UOM,
-		request.StockType,
 		request.MinimumStock,
 		request.Stock,
-		request.PurchasePrice,
+		request.BasePrice,
 		request.SellingPrice,
 		request.Weight,
-		request.DiscountType,
-		request.DiscountValue,
 		request.RackPosition,
 		request.CreatedBy,
 		now,
@@ -286,14 +271,11 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 		&response.Name,
 		&response.Code,
 		&response.UOM,
-		&response.StockType,
 		&response.MinimumStock,
 		&response.Stock,
-		&response.PurchasePrice,
+		&response.BasePrice,
 		&response.SellingPrice,
 		&response.Weight,
-		&response.DiscountType,
-		&response.DiscountValue,
 		&response.RackPosition,
 		&response.CreatedBy,
 		&response.CreatedAt,
@@ -327,32 +309,26 @@ func (q *productQuery) UpdateProduct(ctx context.Context, request *productModel.
 			, name = $2
 			, code = $3
 			, uom = $4
-			, stock_type = $5
-			, minimum_stock = $6
-			, stock = $7
-			, purchase_price = $8
-			, selling_price = $9
-			, weight = $10
-			, discount_type = $11
-			, discount_value = $12
-			, rack_position = $13
-			, updated_by = $14
-			, updated_at = $15
-		WHERE id = $16
+			, minimum_stock = $5
+			, stock = $6
+			, base_price = $7
+			, selling_price = $8
+			, weight = $9
+			, rack_position = $10
+			, updated_by = $11
+			, updated_at = $12
+		WHERE id = $13
 		RETURNING id
 			, company_id
 			, category_id
 			, name
 			, code
 			, uom
-			, stock_type
 			, minimum_stock
 			, stock
-			, purchase_price
+			, base_price
 			, selling_price
 			, weight
-			, discount_type
-			, discount_value
 			, rack_position
 			, created_by
 			, created_at
@@ -362,14 +338,11 @@ func (q *productQuery) UpdateProduct(ctx context.Context, request *productModel.
 		request.Name,
 		request.Code,
 		request.UOM,
-		request.StockType,
 		request.MinimumStock,
 		request.Stock,
-		request.PurchasePrice,
+		request.BasePrice,
 		request.SellingPrice,
 		request.Weight,
-		request.DiscountType,
-		request.DiscountValue,
 		request.RackPosition,
 		request.UpdatedBy,
 		now,
@@ -381,14 +354,11 @@ func (q *productQuery) UpdateProduct(ctx context.Context, request *productModel.
 		&request.Name,
 		&request.Code,
 		&request.UOM,
-		&request.StockType,
 		&request.MinimumStock,
 		&request.Stock,
-		&request.PurchasePrice,
+		&request.BasePrice,
 		&request.SellingPrice,
 		&request.Weight,
-		&request.DiscountType,
-		&request.DiscountValue,
 		&request.RackPosition,
 		&request.CreatedBy,
 		&request.CreatedAt,
@@ -439,33 +409,27 @@ func (q *productQuery) Import(ctx context.Context, products []productModel.Produ
 				, name
 				, code
 				, uom
-				, stock_type
 				, minimum_stock
 				, stock
-				, purchase_price
+				, base_price
 				, selling_price
 				, weight
-				, discount_type
-				, discount_value
 				, rack_position
 				, created_by
 				, created_at
 				, updated_by
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $15, $16)`,
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $12, $13)`,
 			companyID,
 			product.CategoryID,
 			product.Name,
 			product.Code,
 			product.UOM,
-			product.StockType,
 			product.MinimumStock,
 			product.Stock,
-			product.PurchasePrice,
+			product.BasePrice,
 			product.SellingPrice,
 			product.Weight,
-			product.DiscountType,
-			product.DiscountValue,
 			product.RackPosition,
 			adminID,
 			now,

@@ -125,7 +125,7 @@ func (q *productUseCase) Import(ctx context.Context, filename, companyID, adminI
 		product.Code = row[1]
 		product.Name = row[2]
 		product.SellingPrice = sellingPrice
-		product.PurchasePrice = purchasePrice
+		product.BasePrice = purchasePrice
 		product.Stock = stock
 		product.UOM = row[11]
 		product.RackPosition = row[13]

@@ -169,14 +169,11 @@ func init() {
 				, name character varying NOT NULL
 				, code character varying NOT NULL
 				, uom character varying NOT NULL
-				, stock_type smallint NOT NULL
 				, minimum_stock bigint NOT NULL
 				, stock bigint NOT NULL
-				, purchase_price bigint NOT NULL
+				, base_price bigint NOT NULL
 				, selling_price bigint NOT NULL
 				, weight bigint NOT NULL
-				, discount_type smallint NOT NULL
-				, discount_value bigint NOT NULL
 				, rack_position character varying NOT NULL
 				, created_by character(36) NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
@@ -231,13 +228,6 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE INDEX ON products (stock_type)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
 			`CREATE INDEX ON products (minimum_stock)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
@@ -252,7 +242,7 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE INDEX ON products (purchase_price)`,
+			`CREATE INDEX ON products (base_price)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -293,8 +283,6 @@ func init() {
 				, reference_no character varying NOT NULL UNIQUE
 				, subtotal bigint NOT NULL
 				, discount bigint NOT NULL
-				, tax_rate float8 NOT NULL
-				, tax bigint NOT NULL
 				, total bigint NOT NULL
 				, payment_method smallint NOT NULL
 				, created_by character(36) NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
@@ -341,12 +329,9 @@ func init() {
 				, product_name character varying NOT NULL
 				, product_code character varying NOT NULL
 				, product_uom character varying NOT NULL
-				, purchase_price bigint NOT NULL
+				, base_price bigint NOT NULL
 				, selling_price bigint NOT NULL
 				, weight bigint NOT NULL
-				, discount_type smallint NOT NULL
-				, discount_value bigint NOT NULL
-				, discount_amount bigint NOT NULL
 				, quantity bigint NOT NULL
 				, subtotal bigint NOT NULL
 			)`,

@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/govalues/decimal"
-	"github.com/roysitumorang/sadia/helper"
 	productModel "github.com/roysitumorang/sadia/modules/product/model"
 )
 
@@ -30,8 +28,6 @@ type (
 		ReferenceNo   string      `json:"reference_no"`
 		Subtotal      int64       `json:"subtotal"`
 		Discount      int64       `json:"discount"`
-		TaxRate       float64     `json:"tax_rate"`
-		Tax           int64       `json:"tax"`
 		Total         int64       `json:"total"`
 		PaymentMethod uint8       `json:"payment_method"`
 		LineItems     []*LineItem `json:"line_items"`
@@ -40,26 +36,22 @@ type (
 	}
 
 	LineItem struct {
-		ID             string `json:"id"`
-		TransactionID  string `json:"-"`
-		ProductID      string `json:"product_id"`
-		ProductName    string `json:"product_name"`
-		ProductCode    string `json:"product_code"`
-		ProductUOM     string `json:"product_uom"`
-		PurchasePrice  int64  `json:"purchase_price"`
-		SellingPrice   int64  `json:"selling_price"`
-		Weight         int64  `json:"weight"`
-		DiscountType   int    `json:"discount_type"`
-		DiscountValue  int64  `json:"discount_value"`
-		DiscountAmount int64  `json:"discount_amount"`
-		Quantity       int64  `json:"quantity"`
-		Subtotal       int64  `json:"subtotal"`
+		ID            string `json:"id"`
+		TransactionID string `json:"-"`
+		ProductID     string `json:"product_id"`
+		ProductName   string `json:"product_name"`
+		ProductCode   string `json:"product_code"`
+		ProductUOM    string `json:"product_uom"`
+		BasePrice     int64  `json:"base_price"`
+		SellingPrice  int64  `json:"selling_price"`
+		Weight        int64  `json:"weight"`
+		Quantity      int64  `json:"quantity"`
+		Subtotal      int64  `json:"subtotal"`
 	}
 
 	Filter struct {
 		TransactionIDs,
 		SessionIDs,
-		StoreIDs,
 		CompanyIDs []string
 		Keyword,
 		PaginationURL string
@@ -101,78 +93,31 @@ func (q *Transaction) Validate() error {
 
 func (q *Transaction) Calculate(products map[string]*productModel.Product) error {
 	q.Subtotal = 0
-	hundredDecimal, err := decimal.New(100, 0)
-	if err != nil {
-		return err
-	}
 	for i, lineItem := range q.LineItems {
 		product, ok := products[lineItem.ProductID]
 		if !ok {
-			return fmt.Errorf("line_items[%d]:product_id %s not found", i, lineItem.ProductID)
+			return fmt.Errorf("line_items[%d].product_id %s not found", i, lineItem.ProductID)
 		}
 		if product.Stock == 0 {
-			return fmt.Errorf("line_items[%d]:product_id %s is out of stock", i, lineItem.ProductID)
+			return fmt.Errorf("line_items[%d].product_id %s is out of stock", i, lineItem.ProductID)
 		}
 		lineItem.ProductName = product.Name
 		lineItem.ProductCode = product.Code
 		lineItem.ProductUOM = product.UOM
-		lineItem.PurchasePrice = product.PurchasePrice
+		lineItem.BasePrice = product.BasePrice
 		lineItem.SellingPrice = product.SellingPrice
 		lineItem.Weight = product.Weight
 		if lineItem.Quantity > product.Stock {
 			return fmt.Errorf("line_items[%d]:quantity %d exceeds stock", i, lineItem.Quantity)
 		}
 		lineItem.Subtotal = lineItem.SellingPrice * lineItem.Quantity
-		lineItem.DiscountAmount = 0
-		lineItem.DiscountValue = product.DiscountValue
-		switch lineItem.DiscountType = product.DiscountType; lineItem.DiscountType {
-		case productModel.DiscountTypePercentage:
-			discountValue, err := decimal.New(lineItem.DiscountValue, 0)
-			if err != nil {
-				return err
-			}
-			subTotal, err := decimal.New(lineItem.Subtotal, 0)
-			if err != nil {
-				return err
-			}
-			discountAmount, err := discountValue.Mul(subTotal)
-			if err != nil {
-				return err
-			}
-			if discountAmount, err = discountAmount.Quo(hundredDecimal); err != nil {
-				return err
-			}
-			lineItem.DiscountAmount, _, _ = discountAmount.Floor(0).Int64(0)
-		case productModel.DiscountTypeAmount:
-			lineItem.DiscountAmount = (lineItem.SellingPrice - lineItem.DiscountValue) * lineItem.Quantity
-		}
-		lineItem.Subtotal -= lineItem.DiscountAmount
 		q.Subtotal += lineItem.Subtotal
 		q.LineItems[i] = lineItem
 	}
-	subtotal := q.Subtotal
 	if q.Discount > q.Subtotal {
 		return errors.New("discount cannot exceed subtotal")
 	}
-	subtotal -= q.Discount
-	q.TaxRate = helper.GetTaxRate()
-	subtotalDecimal, err := decimal.New(subtotal, 0)
-	if err != nil {
-		return err
-	}
-	taxRateDecimal, err := decimal.NewFromFloat64(q.TaxRate)
-	if err != nil {
-		return err
-	}
-	taxDecimal, err := subtotalDecimal.Mul(taxRateDecimal)
-	if err != nil {
-		return err
-	}
-	if taxDecimal, err = taxDecimal.Quo(hundredDecimal); err != nil {
-		return err
-	}
-	q.Tax, _, _ = taxDecimal.Ceil(0).Int64(0)
-	q.Total = subtotal + q.Tax
+	q.Total = q.Subtotal - q.Discount
 	return nil
 }
 
@@ -193,12 +138,6 @@ func WithTransactionIDs(transactioIDs ...string) FilterOption {
 func WithSessionIDs(sessionIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.SessionIDs = sessionIDs
-	}
-}
-
-func WithStoreIDs(storeIDs ...string) FilterOption {
-	return func(q *Filter) {
-		q.StoreIDs = storeIDs
 	}
 }
 
