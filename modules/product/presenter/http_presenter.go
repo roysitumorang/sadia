@@ -16,6 +16,7 @@ import (
 	productCategoryModel "github.com/roysitumorang/sadia/modules/product_category/model"
 	productCategoryUseCase "github.com/roysitumorang/sadia/modules/product_category/usecase"
 	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
+	transactionModel "github.com/roysitumorang/sadia/modules/transaction/model"
 	"go.uber.org/zap"
 )
 
@@ -219,6 +220,7 @@ func (q *productHTTPHandler) userIndex(c *fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	pagination := new(models.Pagination)
 	var rows []*productModel.Product
 	filter, err := sanitizer.FindProducts(ctx, c)
@@ -233,6 +235,7 @@ func (q *productHTTPHandler) userIndex(c *fiber.Ctx) error {
 			"rows":          rows,
 			"pagination":    pagination,
 			"limits":        models.Limits,
+			"cart":          cart,
 		})
 	}
 	filter.CompanyIDs = []string{currentUser.CompanyID}
@@ -247,6 +250,7 @@ func (q *productHTTPHandler) userIndex(c *fiber.Ctx) error {
 			"rows":          rows,
 			"pagination":    pagination,
 			"limits":        models.Limits,
+			"cart":          cart,
 		})
 	}
 	defer flash.Clear(c, sess)
@@ -258,6 +262,7 @@ func (q *productHTTPHandler) userIndex(c *fiber.Ctx) error {
 		"rows":          rows,
 		"pagination":    pagination,
 		"limits":        models.Limits,
+		"cart":          cart,
 	})
 }
 

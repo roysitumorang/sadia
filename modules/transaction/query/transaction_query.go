@@ -95,9 +95,9 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 		_, _ = builder.WriteString(strings.ToUpper(filter.Keyword))
 		_, _ = builder.WriteString("%%")
 		params = append(params, builder.String())
+		builder.Reset()
 		_, _ = builder.WriteString("t.reference_no LIKE $")
 		_, _ = builder.WriteString(strconv.Itoa(len(params)))
-		_, _ = builder.WriteString("))")
 		conditions = append(conditions, builder.String())
 	}
 	builder.Reset()
@@ -183,6 +183,7 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 			, product_name
 			, product_code
 			, product_uom
+			, stock
 			, base_price
 			, selling_price
 			, weight
@@ -203,7 +204,7 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 			&transaction.ID,
 			&transaction.SessionID,
 			&transaction.ReferenceNo,
-			&transaction.Subtotal,
+			&transaction.SubTotal,
 			&transaction.Discount,
 			&transaction.Total,
 			&transaction.PaymentMethod,
@@ -245,11 +246,12 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 			&lineItem.ProductName,
 			&lineItem.ProductCode,
 			&lineItem.ProductUOM,
+			&lineItem.Stock,
 			&lineItem.BasePrice,
 			&lineItem.SellingPrice,
 			&lineItem.Weight,
 			&lineItem.Quantity,
-			&lineItem.Subtotal,
+			&lineItem.SubTotal,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return nil, 0, 0, err
@@ -293,7 +295,7 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			, created_at`,
 		request.SessionID,
 		request.ReferenceNo,
-		request.Subtotal,
+		request.SubTotal,
 		request.Discount,
 		request.Total,
 		request.PaymentMethod,
@@ -303,7 +305,7 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 		&response.ID,
 		&response.SessionID,
 		&response.ReferenceNo,
-		&response.Subtotal,
+		&response.SubTotal,
 		&response.Discount,
 		&response.Total,
 		&response.PaymentMethod,
@@ -335,7 +337,8 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			, product_name
 			, product_code
 			, product_uom
-			, purchase_price
+			, stock
+			, base_price
 			, selling_price
 			, weight
 			, quantity
@@ -364,17 +367,20 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			lineItem.ProductName,
 			lineItem.ProductCode,
 			lineItem.ProductUOM,
+			lineItem.Stock,
 			lineItem.BasePrice,
 			lineItem.SellingPrice,
 			lineItem.Weight,
 			lineItem.Quantity,
-			lineItem.Subtotal,
+			lineItem.SubTotal,
 		)
 		n := len(params)
 		if i > 0 {
 			_, _ = builder.WriteString(",")
 		}
 		_, _ = builder.WriteString("($")
+		_, _ = builder.WriteString(strconv.Itoa(n - 10))
+		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 9))
 		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 8))
@@ -403,6 +409,7 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			, product_name
 			, product_code
 			, product_uom
+			, stock
 			, base_price
 			, selling_price
 			, weight
@@ -429,11 +436,12 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			&lineItem.ProductName,
 			&lineItem.ProductCode,
 			&lineItem.ProductUOM,
+			&lineItem.Stock,
 			&lineItem.BasePrice,
 			&lineItem.SellingPrice,
 			&lineItem.Weight,
 			&lineItem.Quantity,
-			&lineItem.Subtotal,
+			&lineItem.SubTotal,
 		); err != nil {
 			if errRollback := tx.Rollback(ctx); errRollback != nil {
 				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
@@ -442,6 +450,28 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			return nil, err
 		}
 		response.LineItems = append(response.LineItems, &lineItem)
+	}
+	if _, err = tx.Exec(
+		ctx,
+		`WITH s AS (
+			SELECT
+				session_id
+				, SUM(total) AS total_value
+			FROM transactions
+			WHERE session_id = $1
+			GROUP BY session_id
+		)
+		UPDATE sessions SET
+			transaction_value = s.total_value
+		FROM s
+		WHERE id = s.session_id`,
+		request.SessionID,
+	); err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+		return nil, err
 	}
 	return &response, nil
 }

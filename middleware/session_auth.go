@@ -10,6 +10,7 @@ import (
 	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
 	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
 	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
+	transactionModel "github.com/roysitumorang/sadia/modules/transaction/model"
 )
 
 func UserSessionAuth(
@@ -71,6 +72,13 @@ func UserSessionAuth(
 			}
 			sess.Set(models.CurrentSession, sessions[0])
 		}
+		cart, ok := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
+		if !ok {
+			cart = &transactionModel.Transaction{
+				LineItems: []*transactionModel.LineItem{},
+			}
+		}
+		sess.Set(transactionModel.CurrentCart, cart)
 		_ = sess.Save()
 		return c.Next()
 	}

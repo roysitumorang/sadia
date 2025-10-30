@@ -3,12 +3,14 @@ module github.com/roysitumorang/sadia
 go 1.25.0
 
 require (
-	github.com/getsentry/sentry-go v0.36.1
+	github.com/dustin/go-humanize v1.0.1
+	github.com/getsentry/sentry-go v0.36.2
 	github.com/goccy/go-json v0.10.5
 	github.com/gofiber/contrib/fibersentry v1.0.8
 	github.com/gofiber/contrib/fiberzap/v2 v2.1.6
 	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/gofiber/fiber/v3 v3.0.0-rc.2
+	github.com/gofiber/storage v1.3.3
 	github.com/gofiber/storage/valkey v0.2.1
 	github.com/gofiber/template/jet/v2 v2.1.13
 	github.com/golang-jwt/jwt/v5 v5.3.0

@@ -68,6 +68,11 @@ func (q *transactionHTTPHandler) Mount(r fiber.Router) {
 	v1.Get("", userKeyAuth, q.UserFindTransactions).
 		Post("", userKeyAuth, q.UserCreateTransaction).
 		Get("/:id", userKeyAuth, q.UserFindTransaction)
+	userSessionAuth := middleware.UserSessionAuth(q.sessionStore, q.accountUseCase, q.companyUseCase, q.sessionUseCase)
+	r.Get("", userSessionAuth, q.userIndex).
+		Get("/new", userSessionAuth, q.userNew).
+		Post("", userSessionAuth, q.userCreate).
+		Post("/cart/line-item", userSessionAuth, q.userCreateCartLineItem)
 }
 
 func (q *transactionHTTPHandler) UserFindTransactions(c *fiber.Ctx) error {
@@ -211,4 +216,311 @@ func (q *transactionHTTPHandler) UserFindTransaction(c *fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("transaction not found").WriteResponse(c)
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(transactions[0]).WriteResponse(c)
+}
+
+func (q *transactionHTTPHandler) userIndex(c *fiber.Ctx) error {
+	ctxt := "TransactionPresenter-userIndex"
+	ctx := c.Context()
+	sess, err := q.sessionStore.Get(c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
+		return c.Render("account/login", fiber.Map{
+			"authenticated": false,
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
+			"request":       accountModel.LoginRequest{},
+		})
+	}
+	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
+	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
+	if !ok {
+		flash = helper.NewFlashMessage()
+	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
+	pagination := new(models.Pagination)
+	var rows []*transactionModel.Transaction
+	filter, err := sanitizer.FindTransactions(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindTransactions")
+		c.Response().SetStatusCode(fiber.StatusBadRequest)
+		return c.Render("transaction/index", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash.Danger(err.Error()),
+			"q":             c.Query("q"),
+			"rows":          rows,
+			"pagination":    pagination,
+			"limits":        models.Limits,
+			"cart":          cart,
+		})
+	}
+	filter.CompanyIDs = []string{currentUser.CompanyID}
+	if rows, pagination, err = q.transactionUseCase.FindTransactions(ctx, filter); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindTransactions")
+		c.Response().SetStatusCode(fiber.StatusBadRequest)
+		return c.Render("transaction/index", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash.Danger(err.Error()),
+			"q":             c.Query("q"),
+			"rows":          rows,
+			"pagination":    pagination,
+			"limits":        models.Limits,
+			"cart":          cart,
+		})
+	}
+	defer flash.Clear(c, sess)
+	return c.Render("transaction/index", fiber.Map{
+		"authenticated": true,
+		"currentUser":   currentUser,
+		"flash":         flash,
+		"q":             c.Query("q"),
+		"rows":          rows,
+		"pagination":    pagination,
+		"limits":        models.Limits,
+		"cart":          cart,
+	})
+}
+
+func (q *transactionHTTPHandler) userNew(c *fiber.Ctx) error {
+	ctxt := "TransactionPresenter-userNew"
+	ctx := c.Context()
+	sess, err := q.sessionStore.Get(c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
+		return c.Render("account/login", fiber.Map{
+			"authenticated": false,
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
+			"request":       accountModel.LoginRequest{},
+		})
+	}
+	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
+	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
+	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
+	if !ok {
+		flash = helper.NewFlashMessage()
+	}
+	if currentCompany.SessionID == nil {
+		return c.Redirect("/session")
+	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
+	flash.Clear(c, sess)
+	return c.Render("transaction/new", fiber.Map{
+		"authenticated": true,
+		"currentUser":   currentUser,
+		"flash":         flash,
+		"cart":          cart,
+		"request":       cart,
+	})
+}
+
+func (q *transactionHTTPHandler) userCreate(c *fiber.Ctx) error {
+	ctxt := "TransactionPresenter-userCreate"
+	ctx := c.Context()
+	sess, err := q.sessionStore.Get(c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
+		return c.Render("account/login", fiber.Map{
+			"authenticated": false,
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
+			"request":       accountModel.LoginRequest{},
+		})
+	}
+	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
+	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
+	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
+	if !ok {
+		flash = helper.NewFlashMessage()
+	}
+	if currentCompany.SessionID == nil {
+		return c.Redirect("/session")
+	}
+	currentSession := sess.Get(models.CurrentSession).(*sessionModel.Session)
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
+	request, statusCode, err := sanitizer.ValidateCart(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateCart")
+		c.Response().SetStatusCode(statusCode)
+		return c.Render("transaction/new", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash,
+			"cart":          cart,
+			"request":       request,
+		})
+	}
+	productIDs := make([]string, len(request.LineItems))
+	for i, lineItem := range request.LineItems {
+		productIDs[i] = lineItem.ProductID
+	}
+	products, _, err := q.productUseCase.FindProducts(
+		ctx,
+		productModel.NewFilter(
+			productModel.WithCompanyIDs(currentCompany.ID),
+			productModel.WithProductIDs(productIDs...),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProducts")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("transaction/new", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash.Danger(err.Error()),
+			"cart":          cart,
+			"request":       request,
+		})
+	}
+	if len(products) == 0 {
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("transaction/new", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash.Danger("products not found"),
+			"cart":          cart,
+			"request":       request,
+		})
+	}
+	mapProducts := map[string]*productModel.Product{}
+	for _, product := range products {
+		mapProducts[product.ID] = product
+	}
+	if err = request.Calculate(mapProducts); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCalculate")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("transaction/new", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash.Danger(err.Error()),
+			"cart":          cart,
+			"request":       request,
+		})
+	}
+	now := time.Now()
+	timeZone := helper.LoadTimeZone()
+	period := now.In(timeZone).Format("20060102")
+	sequence, err := q.sequenceUseCase.SaveSequence(ctx, fmt.Sprintf("%s-%s", transactionModel.TableName, period), currentUser.ID)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrSaveSequence")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("transaction/new", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash.Danger(err.Error()),
+			"cart":          cart,
+			"request":       request,
+		})
+	}
+	request.SessionID = currentSession.ID
+	request.ReferenceNo = fmt.Sprintf(transactionModel.ReferenceNoFormat, period, sequence.Number)
+	request.CreatedBy = currentUser.ID
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("transaction/new", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash.Danger(err.Error()),
+			"cart":          cart,
+			"request":       request,
+		})
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errors.Is(errRollback, pgx.ErrTxClosed) {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
+		}
+	}()
+	if _, err = q.transactionUseCase.CreateTransaction(ctx, tx, request); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateTransaction")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("transaction/new", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash.Danger(err.Error()),
+			"cart":          cart,
+			"request":       request,
+		})
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("transaction/new", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash.Danger(err.Error()),
+			"cart":          cart,
+			"request":       request,
+		})
+	}
+	cart = &transactionModel.Transaction{
+		LineItems: []*transactionModel.LineItem{},
+	}
+	sess.Set(transactionModel.CurrentCart, cart)
+	return flash.Success("transaction created successfully").Redirect(c, sess, "/transaction")
+}
+
+func (q *transactionHTTPHandler) userCreateCartLineItem(c *fiber.Ctx) error {
+	ctx := c.Context()
+	ctxt := "TransactionPresenter-userCreateCartLineItem"
+	sess, err := q.sessionStore.Get(c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
+		return c.Render("account/login", fiber.Map{
+			"authenticated": false,
+			"flash":         helper.NewFlashMessage().Danger(err.Error()),
+			"request":       accountModel.LoginRequest{},
+		})
+	}
+	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
+	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
+	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
+	if !ok {
+		flash = helper.NewFlashMessage()
+	}
+	if currentCompany.SessionID == nil {
+		return c.Redirect("/session")
+	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
+	request, statusCode, err := sanitizer.ValidateLineItem(ctx, c)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateLineItem")
+		return flash.Danger(err.Error()).Redirect(c, sess, "/product", statusCode)
+	}
+	products, _, err := q.productUseCase.FindProducts(
+		ctx,
+		productModel.NewFilter(
+			productModel.WithProductIDs(request.ProductID),
+			productModel.WithCompanyIDs(currentUser.CompanyID),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProducts")
+	}
+	if len(products) == 0 {
+		return flash.Danger("product not found").Redirect(c, sess, "/product")
+	}
+	mapProducts := map[string]*productModel.Product{}
+	for _, product := range products {
+		mapProducts[product.ID] = product
+	}
+	var exists bool
+	for i, item := range cart.LineItems {
+		if exists = item.ProductID == request.ProductID; exists {
+			cart.LineItems[i] = request
+			break
+		}
+	}
+	if !exists {
+		cart.LineItems = append(cart.LineItems, request)
+	}
+	if err = cart.Calculate(mapProducts); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCalculate")
+		return flash.Danger(err.Error()).Redirect(c, sess, "/product")
+	}
+	sess.Set(transactionModel.CurrentCart, cart)
+	return flash.Success("product added to cart successfully").Redirect(c, sess, "/product")
 }

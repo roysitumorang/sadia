@@ -17,6 +17,7 @@ import (
 	jwtModel "github.com/roysitumorang/sadia/modules/jwt/model"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
 	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
+	transactionModel "github.com/roysitumorang/sadia/modules/transaction/model"
 	"go.uber.org/zap"
 )
 
@@ -2160,9 +2161,11 @@ func (q *accountHTTPHandler) userProfile(c *fiber.Ctx) error {
 		})
 	}
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	return c.Render("account/me", fiber.Map{
 		"authenticated": true,
 		"flash":         helper.NewFlashMessage(),
 		"currentUser":   currentUser,
+		"cart":          cart,
 	})
 }

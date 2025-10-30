@@ -14,11 +14,9 @@
             <th scope="col">Name</th>
             <th scope="col">Category</th>
             <th scope="col">UOM</th>
-            <th scope="col">Stock Type</th>
             <th scope="col">Minimum / Current Stock</th>
-            <th scope="col">Purchase / Selling Price</th>
+            <th scope="col">Base / Selling Price</th>
             <th scope="col">Weight</th>
-            <th scope="col">Discount</th>
             <th scope="col">Rack Position</th>
             <th scope="col">#</th>
         </tr>
@@ -31,13 +29,41 @@
             <td>{{ item.Name }}</td>
             <td>{{ if item.CategoryName }}{{ item.CategoryName }}{{ else }}-{{ end }}</td>
             <td>{{ item.UOM }}</td>
-            <td>{{ if item.StockType == 0 }}Limited{{ else }}Unlimited{{ end }}</td>
             <td>{{ item.MinimumStock }} / {{ item.Stock }}</td>
-            <td>{{ item.PurchasePrice }} / {{ item.SellingPrice }}</td>
+            <td>{{ item.BasePrice | Comma }} / {{ item.SellingPrice | Comma }}</td>
             <td>{{ item.Weight }} gram</td>
-            <td>{{ item.DiscountValue }}{{ if item.DiscountType == 0 }} %{{ end }}</td>
             <td>{{ if item.RackPosition }}{{ item.RackPosition }}{{ else }}-{{ end }}</td>
-            <td><a type="button" href="/product/{{ item.ID }}/edit" class="btn btn-primary"><i class="fa fa-edit">&nbsp;</i>Edit</a></td>
+            <td>
+                <a type="button" href="/product/{{ item.ID }}/edit" class="btn btn-primary"><i class="fa fa-edit">&nbsp;</i>Edit</a>
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-{{ item.ID }}" data-whatever="@mdo"><i class="fa fa-cart-plus">&nbsp;</i>Add to Cart</button>
+                <div class="modal fade" id="modal-{{ item.ID }}" tabindex="-1" role="dialog" aria-labelledby="modal-label-{{ item.ID }}">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <form method="POST" action="/transaction/cart/line-item">
+                                <input type="hidden" name="product_id" value="{{ item.ID }}" id="product_id">
+                                <div class="modal-header">
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                    <h4 class="modal-title" id="modal-label-{{ item.ID }}">Add to Cart</h4>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label for="recipient-name" class="control-label">Name:</label>
+                                        <input type="text" name="name" value="{{ item.Name }}" id="name" class="form-control" disabled="disabled">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="quantity" class="control-label">Quantity:</label>
+                                        <input type="number" name="quantity" value="1" id="quantity" class="form-control" min="1" max="{{ item.Stock }}">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">Submit</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </td>
         </tr>
         {{ end }}
     </tbody>

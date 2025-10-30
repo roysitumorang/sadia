@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/getsentry/sentry-go"
 	"github.com/goccy/go-json"
 	"github.com/gofiber/contrib/fibersentry"
@@ -38,6 +39,7 @@ import (
 	productCategoryPresenter "github.com/roysitumorang/sadia/modules/product_category/presenter"
 	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
 	sessionPresenter "github.com/roysitumorang/sadia/modules/session/presenter"
+	transactionModel "github.com/roysitumorang/sadia/modules/transaction/model"
 	transactionPresenter "github.com/roysitumorang/sadia/modules/transaction/presenter"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 	"go.uber.org/zap"
@@ -53,12 +55,16 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	// Create a new engine
 	engine := jet.New("./views", ".jet")
 	engine.Debug(debug)
+	engine.AddFunc("Comma", func(v int64) string {
+		return humanize.Comma(v)
+	})
 	sessionStore := session.New(session.Config{
 		Storage: q.Storage,
 	})
 	sessionStore.RegisterType(&accountModel.User{})
 	sessionStore.RegisterType(&companyModel.Company{})
 	sessionStore.RegisterType(&sessionModel.Session{})
+	sessionStore.RegisterType(&transactionModel.Transaction{})
 	sessionStore.RegisterType(&helper.FlashMessage{})
 	app := fiber.New(fiber.Config{
 		JSONEncoder: json.Marshal,

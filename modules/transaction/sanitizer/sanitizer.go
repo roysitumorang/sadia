@@ -44,16 +44,64 @@ func FindTransactions(ctx context.Context, c *fiber.Ctx) (*transactionModel.Filt
 
 func ValidateTransaction(ctx context.Context, c *fiber.Ctx) (*transactionModel.Transaction, int, error) {
 	ctxt := "TransactionSanitizer-ValidateTransaction"
-	var response transactionModel.Transaction
-	err := c.BodyParser(&response)
+	response := new(transactionModel.Transaction)
+	err := c.BodyParser(response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
-		return nil, fiberErr.Code, err
+		return response, fiberErr.Code, err
 	}
-	if err = (&response).Validate(); err != nil {
+	if err = response.Validate(); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
-		return nil, fiber.StatusBadRequest, err
+		return response, fiber.StatusBadRequest, err
 	}
-	return &response, fiber.StatusOK, nil
+	return response, fiber.StatusOK, nil
+}
+
+func ValidateCart(ctx context.Context, c *fiber.Ctx) (*transactionModel.Transaction, int, error) {
+	ctxt := "TransactionSanitizer-ValidateCart"
+	response := new(transactionModel.Transaction)
+	form, err := url.ParseQuery(helper.ByteSlice2String(c.Body()))
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseQuery")
+		return response, fiber.StatusBadRequest, err
+	}
+	if discounts := form["discount"]; len(discounts) > 0 {
+		discount, err := strconv.ParseInt(discounts[0], 10, 64)
+		if err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+			return response, fiber.StatusBadRequest, err
+		}
+		response.Discount = discount
+	}
+	productIDs := form["line_items[][product_id]"]
+	quantities := form["line_items[][quantity]"]
+	for i, productID := range productIDs {
+		lineItem := new(transactionModel.LineItem)
+		lineItem.ProductID = productID
+		quantity, err := strconv.ParseInt(quantities[i], 10, 64)
+		if err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+			return response, fiber.StatusBadRequest, err
+		}
+		lineItem.Quantity = quantity
+		response.LineItems = append(response.LineItems, lineItem)
+	}
+	return response, fiber.StatusOK, nil
+}
+
+func ValidateLineItem(ctx context.Context, c *fiber.Ctx) (*transactionModel.LineItem, int, error) {
+	ctxt := "TransactionSanitizer-ValidateLineItem"
+	response := new(transactionModel.LineItem)
+	err := c.BodyParser(response)
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		return response, fiberErr.Code, err
+	}
+	if err = response.Validate(); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
+		return response, fiber.StatusBadRequest, err
+	}
+	return response, fiber.StatusOK, nil
 }

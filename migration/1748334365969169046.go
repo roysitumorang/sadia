@@ -329,6 +329,7 @@ func init() {
 				, product_name character varying NOT NULL
 				, product_code character varying NOT NULL
 				, product_uom character varying NOT NULL
+				, stock bigint NOT NULL
 				, base_price bigint NOT NULL
 				, selling_price bigint NOT NULL
 				, weight bigint NOT NULL
