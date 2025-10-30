@@ -14,6 +14,7 @@ import (
 	"github.com/roysitumorang/sadia/modules/product_category/sanitizer"
 	productCategoryUseCase "github.com/roysitumorang/sadia/modules/product_category/usecase"
 	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
+	transactionModel "github.com/roysitumorang/sadia/modules/transaction/model"
 	"go.uber.org/zap"
 )
 
@@ -178,6 +179,7 @@ func (q *productCategoryHTTPHandler) userIndex(c *fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	pagination := new(models.Pagination)
 	var rows []*productCategoryModel.ProductCategory
 	filter, err := sanitizer.FindProductCategories(ctx, c)
@@ -192,6 +194,7 @@ func (q *productCategoryHTTPHandler) userIndex(c *fiber.Ctx) error {
 			"rows":          rows,
 			"pagination":    pagination,
 			"limits":        models.Limits,
+			"cart":          cart,
 		})
 	}
 	filter.CompanyIDs = []string{currentUser.CompanyID}
@@ -206,6 +209,7 @@ func (q *productCategoryHTTPHandler) userIndex(c *fiber.Ctx) error {
 			"rows":          rows,
 			"pagination":    pagination,
 			"limits":        models.Limits,
+			"cart":          cart,
 		})
 	}
 	defer flash.Clear(c, sess)
@@ -217,6 +221,7 @@ func (q *productCategoryHTTPHandler) userIndex(c *fiber.Ctx) error {
 		"rows":          rows,
 		"pagination":    pagination,
 		"limits":        models.Limits,
+		"cart":          cart,
 	})
 }
 
@@ -237,6 +242,7 @@ func (q *productCategoryHTTPHandler) userNew(c *fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	request := new(productCategoryModel.ProductCategory)
 	defer flash.Clear(c, sess)
 	return c.Render("product_category/new", fiber.Map{
@@ -244,6 +250,7 @@ func (q *productCategoryHTTPHandler) userNew(c *fiber.Ctx) error {
 		"currentUser":   currentUser,
 		"flash":         flash,
 		"request":       request,
+		"cart":          cart,
 	})
 }
 
@@ -264,6 +271,7 @@ func (q *productCategoryHTTPHandler) userCreate(c *fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	request, statusCode, err := sanitizer.ValidateProductCategory(ctx, c)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateProductCategory")
@@ -273,6 +281,7 @@ func (q *productCategoryHTTPHandler) userCreate(c *fiber.Ctx) error {
 			"currentUser":   currentUser,
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
+			"cart":          cart,
 		})
 	}
 	request.CompanyID = currentUser.CompanyID
@@ -285,6 +294,7 @@ func (q *productCategoryHTTPHandler) userCreate(c *fiber.Ctx) error {
 			"currentUser":   currentUser,
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
+			"cart":          cart,
 		})
 	}
 	return flash.Success("category created successfully").Redirect(c, sess, "/product_category")
@@ -307,6 +317,7 @@ func (q *productCategoryHTTPHandler) userEdit(c *fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	request := new(productCategoryModel.ProductCategory)
 	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
 		ctx,
@@ -323,6 +334,7 @@ func (q *productCategoryHTTPHandler) userEdit(c *fiber.Ctx) error {
 			"currentUser":   currentUser,
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
+			"cart":          cart,
 		})
 	}
 	if len(productCategories) == 0 {
@@ -334,6 +346,7 @@ func (q *productCategoryHTTPHandler) userEdit(c *fiber.Ctx) error {
 		"currentUser":   currentUser,
 		"flash":         flash,
 		"request":       productCategories[0],
+		"cart":          cart,
 	})
 }
 
@@ -354,6 +367,7 @@ func (q *productCategoryHTTPHandler) userUpdate(c *fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	request, statusCode, err := sanitizer.ValidateProductCategory(ctx, c)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateProductCategory")
@@ -363,6 +377,7 @@ func (q *productCategoryHTTPHandler) userUpdate(c *fiber.Ctx) error {
 			"currentUser":   currentUser,
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
+			"cart":          cart,
 		})
 	}
 	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
@@ -380,6 +395,7 @@ func (q *productCategoryHTTPHandler) userUpdate(c *fiber.Ctx) error {
 			"currentUser":   currentUser,
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
+			"cart":          cart,
 		})
 	}
 	if len(productCategories) == 0 {
@@ -399,6 +415,7 @@ func (q *productCategoryHTTPHandler) userUpdate(c *fiber.Ctx) error {
 				"currentUser":   currentUser,
 				"flash":         flash.Danger(err.Error()),
 				"request":       request,
+				"cart":          cart,
 			})
 		}
 	}
