@@ -23,15 +23,6 @@
         </div>
     </div>
     <div class="form-group">
-        <label for="stock_type" class="col-xs-6 col-md-4 control-label">Stock Type</label>
-        <div class="col-xs-6 col-md-4">
-            <select name="stock_type" class="form-select" id="stock_type">
-                <option value="0"{{ if request.StockType == 0 }} selected{{ end }}>Limited</option>
-                <option value="1"{{ if request.StockType == 1 }} selected{{ end }}>Unlimited</option>
-            </select>
-        </div>
-    </div>
-    <div class="form-group">
         <label for="minimum_stock" class="col-xs-6 col-md-4 control-label">Minimum Stock</label>
         <div class="col-xs-6 col-md-4">
             <input type="number" name="minimum_stock" value="{{ request.MinimumStock }}" class="form-control" id="minimum_stock" placeholder="minimum stock" autocomplete="off" />
@@ -44,9 +35,9 @@
         </div>
     </div>
     <div class="form-group">
-        <label for="purchase_price" class="col-xs-6 col-md-4 control-label">Purchase Price</label>
+        <label for="base_price" class="col-xs-6 col-md-4 control-label">Base Price</label>
         <div class="col-xs-6 col-md-4">
-            <input type="number" name="purchase_price" value="{{ request.PurchasePrice }}" class="form-control" id="purchase_price" placeholder="purchase price" autocomplete="off" />
+            <input type="number" name="base_price" value="{{ request.BasePrice }}" class="form-control" id="base_price" placeholder="base price" autocomplete="off" />
         </div>
     </div>
     <div class="form-group">
@@ -59,21 +50,6 @@
         <label for="weight" class="col-xs-6 col-md-4 control-label">Weight (gram)</label>
         <div class="col-xs-6 col-md-4">
             <input type="number" name="weight" value="{{ request.Weight }}" class="form-control" id="weight" placeholder="Weight" autocomplete="off" />
-        </div>
-    </div>
-    <div class="form-group">
-        <label for="discount_value" class="col-xs-6 col-md-4 control-label">Discount Value</label>
-        <div class="col-xs-6 col-md-4">
-            <input type="number" name="discount_value" value="{{ request.DiscountValue }}" class="form-control" id="discount_value" placeholder="discount value" autocomplete="off" />
-        </div>
-    </div>
-    <div class="form-group">
-        <label for="discount_type" class="col-xs-6 col-md-4 control-label">Discount Type</label>
-        <div class="col-xs-6 col-md-4">
-            <select name="discount_type" class="form-select" id="discount_type">
-                <option value="0"{{ if request.DiscountType == 0 }} selected{{ end }}>Percent</option>
-                <option value="1"{{ if request.DiscountType == 1 }} selected{{ end }}>Amount</option>
-            </select>
         </div>
     </div>
     <div class="form-group">

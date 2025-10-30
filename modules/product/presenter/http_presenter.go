@@ -283,6 +283,7 @@ func (q *productHTTPHandler) userNew(c *fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	request := new(productModel.Product)
 	var categoryID string
 	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
@@ -301,6 +302,7 @@ func (q *productHTTPHandler) userNew(c *fiber.Ctx) error {
 			"productCategories": productCategories,
 			"request":           request,
 			"categoryID":        categoryID,
+			"cart":              cart,
 		})
 	}
 	defer flash.Clear(c, sess)
@@ -311,6 +313,7 @@ func (q *productHTTPHandler) userNew(c *fiber.Ctx) error {
 		"productCategories": productCategories,
 		"request":           request,
 		"categoryID":        categoryID,
+		"cart":              cart,
 	})
 }
 
@@ -331,6 +334,7 @@ func (q *productHTTPHandler) userCreate(c *fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	var categoryID string
 	request, statusCode, errValidation := sanitizer.ValidateProduct(ctx, c)
 	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
@@ -349,6 +353,7 @@ func (q *productHTTPHandler) userCreate(c *fiber.Ctx) error {
 			"productCategories": productCategories,
 			"request":           request,
 			"categoryID":        categoryID,
+			"cart":              cart,
 		})
 	}
 	if errValidation != nil {
@@ -361,6 +366,7 @@ func (q *productHTTPHandler) userCreate(c *fiber.Ctx) error {
 			"productCategories": productCategories,
 			"request":           request,
 			"categoryID":        categoryID,
+			"cart":              cart,
 		})
 	}
 	if request.CategoryID != nil {
@@ -378,6 +384,7 @@ func (q *productHTTPHandler) userCreate(c *fiber.Ctx) error {
 				"flash":             flash.Danger("category_id: not found"),
 				"productCategories": productCategories,
 				"request":           request,
+				"cart":              cart,
 			})
 		}
 		categoryID = *request.CategoryID
@@ -394,6 +401,7 @@ func (q *productHTTPHandler) userCreate(c *fiber.Ctx) error {
 			"productCategories": productCategories,
 			"request":           request,
 			"categoryID":        categoryID,
+			"cart":              cart,
 		})
 	}
 	return flash.Success("product created successfully").Redirect(c, sess, "/product")
@@ -416,6 +424,7 @@ func (q *productHTTPHandler) userEdit(c *fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	var categoryID string
 	products, _, err := q.productUseCase.FindProducts(
 		ctx,
@@ -450,6 +459,7 @@ func (q *productHTTPHandler) userEdit(c *fiber.Ctx) error {
 			"productCategories": productCategories,
 			"request":           request,
 			"categoryID":        categoryID,
+			"cart":              cart,
 		})
 	}
 	defer flash.Clear(c, sess)
@@ -460,6 +470,7 @@ func (q *productHTTPHandler) userEdit(c *fiber.Ctx) error {
 		"productCategories": productCategories,
 		"request":           request,
 		"categoryID":        categoryID,
+		"cart":              cart,
 	})
 }
 
@@ -480,6 +491,7 @@ func (q *productHTTPHandler) userUpdate(c *fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	var categoryID string
 	products, _, err := q.productUseCase.FindProducts(
 		ctx,
@@ -514,6 +526,7 @@ func (q *productHTTPHandler) userUpdate(c *fiber.Ctx) error {
 			"productCategories": productCategories,
 			"request":           request,
 			"categoryID":        categoryID,
+			"cart":              cart,
 		})
 	}
 	if errValidation != nil {
@@ -526,6 +539,7 @@ func (q *productHTTPHandler) userUpdate(c *fiber.Ctx) error {
 			"productCategories": productCategories,
 			"request":           request,
 			"categoryID":        categoryID,
+			"cart":              cart,
 		})
 	}
 	if request.CategoryID != nil {
@@ -543,6 +557,7 @@ func (q *productHTTPHandler) userUpdate(c *fiber.Ctx) error {
 				"flash":             flash.Danger("category_id: not found"),
 				"productCategories": productCategories,
 				"request":           request,
+				"cart":              cart,
 			})
 		}
 		categoryID = *request.CategoryID
@@ -586,6 +601,7 @@ func (q *productHTTPHandler) userUpdate(c *fiber.Ctx) error {
 				"productCategories": productCategories,
 				"request":           request,
 				"categoryID":        categoryID,
+				"cart":              cart,
 			})
 		}
 	}
