@@ -48,7 +48,7 @@ func ValidateTransaction(ctx context.Context, c *fiber.Ctx) (*transactionModel.T
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {

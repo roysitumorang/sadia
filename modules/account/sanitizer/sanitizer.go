@@ -65,7 +65,7 @@ func ValidateAccount(ctx context.Context, c *fiber.Ctx) (*models.NewAccount, int
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {
@@ -81,7 +81,7 @@ func ValidateAdmin(ctx context.Context, c *fiber.Ctx) (*accountModel.NewAdmin, i
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {
@@ -97,7 +97,7 @@ func ValidateUser(ctx context.Context, c *fiber.Ctx) (*accountModel.NewUser, int
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {
@@ -113,7 +113,7 @@ func ValidateDeactivation(ctx context.Context, c *fiber.Ctx) (*accountModel.Deac
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {
@@ -129,7 +129,7 @@ func ValidateLogin(ctx context.Context, c *fiber.Ctx) (*accountModel.LoginReques
 	err := c.BodyParser(response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return response, fiberErr.Code, err
 	}
 	if err = (response).Validate(); err != nil {
@@ -145,7 +145,7 @@ func ValidateConfirmation(ctx context.Context, c *fiber.Ctx) (*accountModel.Conf
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {
@@ -161,7 +161,7 @@ func ValidateForgotPassword(ctx context.Context, c *fiber.Ctx) (*accountModel.Fo
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {
@@ -177,7 +177,7 @@ func ValidateResetPassword(ctx context.Context, c *fiber.Ctx) (*accountModel.Res
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {
@@ -193,7 +193,7 @@ func ValidateChangePassword(ctx context.Context, c *fiber.Ctx) (*accountModel.Ch
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {
@@ -209,7 +209,7 @@ func ValidateChangeUsername(ctx context.Context, c *fiber.Ctx) (*accountModel.Ch
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {
@@ -225,7 +225,7 @@ func ValidateChangeEmail(ctx context.Context, c *fiber.Ctx) (*accountModel.Chang
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {
@@ -241,7 +241,7 @@ func ValidateChangePhone(ctx context.Context, c *fiber.Ctx) (*accountModel.Chang
 	err := c.BodyParser(&response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
 		return nil, fiberErr.Code, err
 	}
 	if err = (&response).Validate(); err != nil {
