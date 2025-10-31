@@ -39,7 +39,7 @@ func UserSessionAuth(
 			),
 		)
 		if err != nil || len(users) == 0 {
-			sess.Reset()
+			_ = sess.Reset()
 			_ = sess.Save()
 			return c.Redirect("/account/login")
 		}
@@ -52,7 +52,7 @@ func UserSessionAuth(
 			),
 		)
 		if err != nil || len(companies) == 0 {
-			sess.Reset()
+			_ = sess.Reset()
 			_ = sess.Save()
 			return c.Redirect("/account/login")
 		}
@@ -66,7 +66,7 @@ func UserSessionAuth(
 				),
 			)
 			if err != nil || len(sessions) == 0 {
-				sess.Reset()
+				_ = sess.Reset()
 				_ = sess.Save()
 				return c.Redirect("/account/login")
 			}
