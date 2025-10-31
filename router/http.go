@@ -19,6 +19,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
+	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"github.com/gofiber/fiber/v2/middleware/rewrite"
@@ -104,6 +105,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 			},
 		}),
 		cors.New(),
+		pprof.New(),
 	)
 	if sentryEnabled := os.Getenv("SENTRY_ENABLED") == "1"; sentryEnabled {
 		_ = sentry.Init(sentry.ClientOptions{
