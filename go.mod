@@ -26,7 +26,7 @@ require (
 	github.com/sqids/sqids-go v0.4.1
 	github.com/swaggo/fiber-swagger v1.3.0
 	github.com/swaggo/swag v1.16.6
-	github.com/twmb/franz-go v1.20.3
+	github.com/twmb/franz-go v1.20.4
 	github.com/xuri/excelize/v2 v2.10.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.44.0
@@ -41,7 +41,7 @@ require (
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
-	github.com/go-openapi/jsonpointer v0.22.1 // indirect
+	github.com/go-openapi/jsonpointer v0.22.2 // indirect
 	github.com/go-openapi/jsonreference v0.21.3 // indirect
 	github.com/go-openapi/spec v0.22.1 // indirect
 	github.com/go-openapi/swag/conv v0.25.1 // indirect
