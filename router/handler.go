@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/storage"
+	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/storage/valkey"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/config"
@@ -40,7 +40,7 @@ type (
 		DbWrite                *pgxpool.Pool
 		Migration              *migration.Migration
 		KafkaService           *kafka.KafkaService
-		Storage                storage.Storage
+		Storage                fiber.Storage
 		AccountUseCase         accountUseCase.AccountUseCase
 		JwtUseCase             jwtUseCase.JwtUseCase
 		CompanyUseCase         companyUseCase.CompanyUseCase

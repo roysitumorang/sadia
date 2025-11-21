@@ -4,8 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -23,7 +22,6 @@ import (
 
 type (
 	companyHTTPHandler struct {
-		sessionStore   *session.Store
 		jwtUseCase     jwtUseCase.JwtUseCase
 		accountUseCase accountUseCase.AccountUseCase
 		companyUseCase companyUseCase.CompanyUseCase
@@ -32,14 +30,12 @@ type (
 )
 
 func New(
-	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	companyUseCase companyUseCase.CompanyUseCase,
 	sessionUseCase sessionUseCase.SessionUseCase,
 ) *companyHTTPHandler {
 	return &companyHTTPHandler{
-		sessionStore:   sessionStore,
 		jwtUseCase:     jwtUseCase,
 		accountUseCase: accountUseCase,
 		companyUseCase: companyUseCase,
@@ -63,7 +59,7 @@ func (q *companyHTTPHandler) Mount(r fiber.Router) {
 		Put("", ownerKeyAuth, q.UserUpdateMyCompany)
 }
 
-func (q *companyHTTPHandler) AdminFindCompanies(c *fiber.Ctx) error {
+func (q *companyHTTPHandler) AdminFindCompanies(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "CompanyPresenter-AdminFindCompanies"
 	filter, err := sanitizer.FindCompanies(ctx, c)
@@ -82,7 +78,7 @@ func (q *companyHTTPHandler) AdminFindCompanies(c *fiber.Ctx) error {
 	}).WriteResponse(c)
 }
 
-func (q *companyHTTPHandler) AdminCreateCompany(c *fiber.Ctx) error {
+func (q *companyHTTPHandler) AdminCreateCompany(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "CompanyPresenter-AdminCreateCompany"
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
@@ -127,7 +123,7 @@ func (q *companyHTTPHandler) AdminCreateCompany(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *companyHTTPHandler) AdminFindCompanyByID(c *fiber.Ctx) error {
+func (q *companyHTTPHandler) AdminFindCompanyByID(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "CompanyPresenter-AdminFindCompanyByID"
 	companies, _, err := q.companyUseCase.FindCompanies(ctx, companyModel.NewFilter(companyModel.WithCompanyIDs(c.Params("id"))))
@@ -141,7 +137,7 @@ func (q *companyHTTPHandler) AdminFindCompanyByID(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(companies[0]).WriteResponse(c)
 }
 
-func (q *companyHTTPHandler) AdminDeactivateCompany(c *fiber.Ctx) error {
+func (q *companyHTTPHandler) AdminDeactivateCompany(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "CompanyPresenter-AdminDeactivateCompany"
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
@@ -199,7 +195,7 @@ func (q *companyHTTPHandler) AdminDeactivateCompany(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(company).WriteResponse(c)
 }
 
-func (q *companyHTTPHandler) UserFindMyCompany(c *fiber.Ctx) error {
+func (q *companyHTTPHandler) UserFindMyCompany(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "CompanyPresenter-UserFindMyCompany"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
@@ -217,7 +213,7 @@ func (q *companyHTTPHandler) UserFindMyCompany(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(companies[0]).WriteResponse(c)
 }
 
-func (q *companyHTTPHandler) UserUpdateMyCompany(c *fiber.Ctx) error {
+func (q *companyHTTPHandler) UserUpdateMyCompany(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "CompanyPresenter-UserUpdateMyCompany"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)

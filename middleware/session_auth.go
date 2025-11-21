@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/roysitumorang/sadia/models"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
@@ -14,22 +14,18 @@ import (
 )
 
 func UserSessionAuth(
-	sessionStore *session.Store,
 	accountUseCase accountUseCase.AccountUseCase,
 	companyUseCase companyUseCase.CompanyUseCase,
 	sessionUseCase sessionUseCase.SessionUseCase,
 	userLevels ...uint8,
 ) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		ctx := c.Context()
-		sess, err := sessionStore.Get(c)
-		if err != nil {
-			return c.Redirect("/account/login")
-		}
+		sess := session.FromContext(c)
 		authenticated, authOk := sess.Get(models.Authenticated).(bool)
 		userID, userOk := sess.Get(models.UserID).(string)
 		if !authOk || !authenticated || !userOk || userID == "" {
-			return c.Redirect("/account/login")
+			return c.Redirect().To("/account/login")
 		}
 		users, _, err := accountUseCase.FindUsers(
 			ctx,
@@ -40,8 +36,8 @@ func UserSessionAuth(
 		)
 		if err != nil || len(users) == 0 {
 			_ = sess.Reset()
-			_ = sess.Save()
-			return c.Redirect("/account/login")
+			_ = sess.Session.Save()
+			return c.Redirect().To("/account/login")
 		}
 		currentUser := users[0]
 		sess.Set(models.CurrentUser, currentUser)
@@ -53,8 +49,8 @@ func UserSessionAuth(
 		)
 		if err != nil || len(companies) == 0 {
 			_ = sess.Reset()
-			_ = sess.Save()
-			return c.Redirect("/account/login")
+			_ = sess.Session.Save()
+			return c.Redirect().To("/account/login")
 		}
 		currentCompany := companies[0]
 		sess.Set(models.CurrentCompany, currentCompany)
@@ -67,8 +63,8 @@ func UserSessionAuth(
 			)
 			if err != nil || len(sessions) == 0 {
 				_ = sess.Reset()
-				_ = sess.Save()
-				return c.Redirect("/account/login")
+				_ = sess.Session.Save()
+				return c.Redirect().To("/account/login")
 			}
 			sess.Set(models.CurrentSession, sessions[0])
 		}
@@ -79,7 +75,7 @@ func UserSessionAuth(
 			}
 		}
 		sess.Set(transactionModel.CurrentCart, cart)
-		_ = sess.Save()
+		_ = sess.Session.Save()
 		return c.Next()
 	}
 }

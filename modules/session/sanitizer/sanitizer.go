@@ -7,14 +7,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
 	"go.uber.org/zap"
 )
 
-func FindSessions(ctx context.Context, c *fiber.Ctx) (*sessionModel.Filter, error) {
+func FindSessions(ctx context.Context, c fiber.Ctx) (*sessionModel.Filter, error) {
 	ctxt := "SessionSanitizer-FindSessions"
 	originalURL, err := url.ParseRequestURI(helper.ByteSlice2String(c.Request().URI().FullURI()))
 	if err != nil {
@@ -43,13 +43,13 @@ func FindSessions(ctx context.Context, c *fiber.Ctx) (*sessionModel.Filter, erro
 	return sessionModel.NewFilter(options...), nil
 }
 
-func ValidateSession(ctx context.Context, c *fiber.Ctx) (*sessionModel.Session, int, error) {
+func ValidateSession(ctx context.Context, c fiber.Ctx) (*sessionModel.Session, int, error) {
 	ctxt := "SessionSanitizer-ValidateSession"
 	response := new(sessionModel.Session)
-	err := c.BodyParser(response)
+	err := c.Bind().Body(response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return response, fiberErr.Code, err
 	}
 	if err = response.Validate(); err != nil {
@@ -59,13 +59,13 @@ func ValidateSession(ctx context.Context, c *fiber.Ctx) (*sessionModel.Session, 
 	return response, fiber.StatusOK, nil
 }
 
-func ValidateSpending(ctx context.Context, c *fiber.Ctx) (*sessionModel.Spending, int, error) {
+func ValidateSpending(ctx context.Context, c fiber.Ctx) (*sessionModel.Spending, int, error) {
 	ctxt := "SessionSanitizer-ValidateSpending"
 	response := new(sessionModel.Spending)
-	err := c.BodyParser(response)
+	err := c.Bind().Body(response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return response, fiberErr.Code, err
 	}
 	if err = response.Validate(); err != nil {

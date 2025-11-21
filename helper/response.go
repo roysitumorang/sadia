@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/roysitumorang/sadia/config"
 )
 
@@ -48,7 +48,7 @@ func (r *Response) SetData(data any) *Response {
 	return r
 }
 
-func (r *Response) WriteResponse(c *fiber.Ctx) error {
+func (r *Response) WriteResponse(c fiber.Ctx) error {
 	if r.StatusCode == fiber.StatusNoContent {
 		return c.SendStatus(r.StatusCode)
 	}
@@ -58,6 +58,6 @@ func (r *Response) WriteResponse(c *fiber.Ctx) error {
 	_, _ = builder.WriteString(ByteSlice2String(c.Request().URI().FullURI()))
 	r.RequestURL = builder.String()
 	r.RequestID = ByteSlice2String(c.Response().Header.Peek(fiber.HeaderXRequestID))
-	r.Latency = time.Since(c.Context().Time()).String()
+	r.Latency = time.Since(c.RequestCtx().Time()).String()
 	return c.Status(r.StatusCode).JSON(r)
 }

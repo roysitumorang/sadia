@@ -1,8 +1,8 @@
 package presenter
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
 	"github.com/roysitumorang/sadia/models"
@@ -20,7 +20,6 @@ import (
 
 type (
 	productCategoryHTTPHandler struct {
-		sessionStore           *session.Store
 		jwtUseCase             jwtUseCase.JwtUseCase
 		accountUseCase         accountUseCase.AccountUseCase
 		companyUseCase         companyUseCase.CompanyUseCase
@@ -30,7 +29,6 @@ type (
 )
 
 func New(
-	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	companyUseCase companyUseCase.CompanyUseCase,
@@ -38,7 +36,6 @@ func New(
 	productCategoryUseCase productCategoryUseCase.ProductCategoryUseCase,
 ) *productCategoryHTTPHandler {
 	return &productCategoryHTTPHandler{
-		sessionStore:           sessionStore,
 		jwtUseCase:             jwtUseCase,
 		accountUseCase:         accountUseCase,
 		companyUseCase:         companyUseCase,
@@ -55,7 +52,7 @@ func (q *productCategoryHTTPHandler) Mount(r fiber.Router) {
 		Post("", ownerKeyAuth, q.UserCreateProductCategory).
 		Get("/:id", userKeyAuth, q.UserFindProductCategoryByID).
 		Put("/:id", ownerKeyAuth, q.UserUpdateProductCategory)
-	userSessionAuth := middleware.UserSessionAuth(q.sessionStore, q.accountUseCase, q.companyUseCase, q.sessionUseCase)
+	userSessionAuth := middleware.UserSessionAuth(q.accountUseCase, q.companyUseCase, q.sessionUseCase)
 	r.Get("", userSessionAuth, q.userIndex).
 		Get("/new", userSessionAuth, q.userNew).
 		Post("", userSessionAuth, q.userCreate).
@@ -63,7 +60,7 @@ func (q *productCategoryHTTPHandler) Mount(r fiber.Router) {
 		Post("/:id", userSessionAuth, q.userUpdate)
 }
 
-func (q *productCategoryHTTPHandler) UserFindProductCategories(c *fiber.Ctx) error {
+func (q *productCategoryHTTPHandler) UserFindProductCategories(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "ProductCategoryPresenter-UserFindProductCategories"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
@@ -84,7 +81,7 @@ func (q *productCategoryHTTPHandler) UserFindProductCategories(c *fiber.Ctx) err
 	}).WriteResponse(c)
 }
 
-func (q *productCategoryHTTPHandler) UserCreateProductCategory(c *fiber.Ctx) error {
+func (q *productCategoryHTTPHandler) UserCreateProductCategory(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "ProductCategoryPresenter-UserCreateProductCategory"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
@@ -103,7 +100,7 @@ func (q *productCategoryHTTPHandler) UserCreateProductCategory(c *fiber.Ctx) err
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *productCategoryHTTPHandler) UserFindProductCategoryByID(c *fiber.Ctx) error {
+func (q *productCategoryHTTPHandler) UserFindProductCategoryByID(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "ProductCategoryPresenter-UserFindProductCategoryByID"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
@@ -124,7 +121,7 @@ func (q *productCategoryHTTPHandler) UserFindProductCategoryByID(c *fiber.Ctx) e
 	return helper.NewResponse(fiber.StatusOK).SetData(productCategories[0]).WriteResponse(c)
 }
 
-func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c *fiber.Ctx) error {
+func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "ProductCategoryPresenter-UserUpdateProductCategory"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
@@ -162,18 +159,10 @@ func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c *fiber.Ctx) err
 	return helper.NewResponse(fiber.StatusOK).SetData(productCategory).WriteResponse(c)
 }
 
-func (q *productCategoryHTTPHandler) userIndex(c *fiber.Ctx) error {
+func (q *productCategoryHTTPHandler) userIndex(c fiber.Ctx) error {
 	ctxt := "ProductCategoryPresenter-userIndex"
 	ctx := c.Context()
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
 	if !ok {
@@ -212,7 +201,7 @@ func (q *productCategoryHTTPHandler) userIndex(c *fiber.Ctx) error {
 			"cart":          cart,
 		})
 	}
-	defer flash.Clear(c, sess)
+	defer flash.Clear(c, sess.Session)
 	return c.Render("product_category/index", fiber.Map{
 		"authenticated": true,
 		"currentUser":   currentUser,
@@ -225,18 +214,8 @@ func (q *productCategoryHTTPHandler) userIndex(c *fiber.Ctx) error {
 	})
 }
 
-func (q *productCategoryHTTPHandler) userNew(c *fiber.Ctx) error {
-	ctxt := "ProductCategoryPresenter-userNew"
-	ctx := c.Context()
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+func (q *productCategoryHTTPHandler) userNew(c fiber.Ctx) error {
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
 	if !ok {
@@ -244,7 +223,7 @@ func (q *productCategoryHTTPHandler) userNew(c *fiber.Ctx) error {
 	}
 	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	request := new(productCategoryModel.ProductCategory)
-	defer flash.Clear(c, sess)
+	defer flash.Clear(c, sess.Session)
 	return c.Render("product_category/new", fiber.Map{
 		"authenticated": true,
 		"currentUser":   currentUser,
@@ -254,18 +233,10 @@ func (q *productCategoryHTTPHandler) userNew(c *fiber.Ctx) error {
 	})
 }
 
-func (q *productCategoryHTTPHandler) userCreate(c *fiber.Ctx) error {
+func (q *productCategoryHTTPHandler) userCreate(c fiber.Ctx) error {
 	ctxt := "ProductCategoryPresenter-userCreate"
 	ctx := c.Context()
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
 	if !ok {
@@ -297,21 +268,13 @@ func (q *productCategoryHTTPHandler) userCreate(c *fiber.Ctx) error {
 			"cart":          cart,
 		})
 	}
-	return flash.Success("category created successfully").Redirect(c, sess, "/product_category")
+	return flash.Success("category created successfully").Redirect(c, sess.Session, "/product_category")
 }
 
-func (q *productCategoryHTTPHandler) userEdit(c *fiber.Ctx) error {
+func (q *productCategoryHTTPHandler) userEdit(c fiber.Ctx) error {
 	ctxt := "ProductCategoryPresenter-userEdit"
 	ctx := c.Context()
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
 	if !ok {
@@ -338,9 +301,9 @@ func (q *productCategoryHTTPHandler) userEdit(c *fiber.Ctx) error {
 		})
 	}
 	if len(productCategories) == 0 {
-		return flash.Danger("category not found").Redirect(c, sess, "/product_category")
+		return flash.Danger("category not found").Redirect(c, sess.Session, "/product_category")
 	}
-	defer flash.Clear(c, sess)
+	defer flash.Clear(c, sess.Session)
 	return c.Render("product_category/edit", fiber.Map{
 		"authenticated": true,
 		"currentUser":   currentUser,
@@ -350,18 +313,10 @@ func (q *productCategoryHTTPHandler) userEdit(c *fiber.Ctx) error {
 	})
 }
 
-func (q *productCategoryHTTPHandler) userUpdate(c *fiber.Ctx) error {
+func (q *productCategoryHTTPHandler) userUpdate(c fiber.Ctx) error {
 	ctxt := "ProductCategoryPresenter-userUpdate"
 	ctx := c.Context()
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
 	if !ok {
@@ -399,7 +354,7 @@ func (q *productCategoryHTTPHandler) userUpdate(c *fiber.Ctx) error {
 		})
 	}
 	if len(productCategories) == 0 {
-		return flash.Danger("category not found").Redirect(c, sess, "/product_category")
+		return flash.Danger("category not found").Redirect(c, sess.Session, "/product_category")
 	}
 	productCategory := productCategories[0]
 	if productCategory.Name != request.Name ||
@@ -419,5 +374,5 @@ func (q *productCategoryHTTPHandler) userUpdate(c *fiber.Ctx) error {
 			})
 		}
 	}
-	return flash.Success("category updated successfully").Redirect(c, sess, "/product_category")
+	return flash.Success("category updated successfully").Redirect(c, sess.Session, "/product_category")
 }

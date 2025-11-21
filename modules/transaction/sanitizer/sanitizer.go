@@ -7,14 +7,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	transactionModel "github.com/roysitumorang/sadia/modules/transaction/model"
 	"go.uber.org/zap"
 )
 
-func FindTransactions(ctx context.Context, c *fiber.Ctx) (*transactionModel.Filter, error) {
+func FindTransactions(ctx context.Context, c fiber.Ctx) (*transactionModel.Filter, error) {
 	ctxt := "TransactionSanitizer-FindTransactions"
 	originalURL, err := url.ParseRequestURI(helper.ByteSlice2String(c.Request().URI().FullURI()))
 	if err != nil {
@@ -42,13 +42,13 @@ func FindTransactions(ctx context.Context, c *fiber.Ctx) (*transactionModel.Filt
 	return transactionModel.NewFilter(options...), nil
 }
 
-func ValidateTransaction(ctx context.Context, c *fiber.Ctx) (*transactionModel.Transaction, int, error) {
+func ValidateTransaction(ctx context.Context, c fiber.Ctx) (*transactionModel.Transaction, int, error) {
 	ctxt := "TransactionSanitizer-ValidateTransaction"
 	response := new(transactionModel.Transaction)
-	err := c.BodyParser(response)
+	err := c.Bind().Body(response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return response, fiberErr.Code, err
 	}
 	if err = response.Validate(); err != nil {
@@ -58,7 +58,7 @@ func ValidateTransaction(ctx context.Context, c *fiber.Ctx) (*transactionModel.T
 	return response, fiber.StatusOK, nil
 }
 
-func ValidateCart(ctx context.Context, c *fiber.Ctx) (*transactionModel.Transaction, int, error) {
+func ValidateCart(ctx context.Context, c fiber.Ctx) (*transactionModel.Transaction, int, error) {
 	ctxt := "TransactionSanitizer-ValidateCart"
 	response := new(transactionModel.Transaction)
 	form, err := url.ParseQuery(helper.ByteSlice2String(c.Body()))
@@ -90,13 +90,13 @@ func ValidateCart(ctx context.Context, c *fiber.Ctx) (*transactionModel.Transact
 	return response, fiber.StatusOK, nil
 }
 
-func ValidateLineItem(ctx context.Context, c *fiber.Ctx) (*transactionModel.LineItem, int, error) {
+func ValidateLineItem(ctx context.Context, c fiber.Ctx) (*transactionModel.LineItem, int, error) {
 	ctxt := "TransactionSanitizer-ValidateLineItem"
 	response := new(transactionModel.LineItem)
-	err := c.BodyParser(response)
+	err := c.Bind().Body(response)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBodyParser")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return response, fiberErr.Code, err
 	}
 	if err = response.Validate(); err != nil {

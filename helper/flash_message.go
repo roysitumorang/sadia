@@ -1,8 +1,8 @@
 package helper
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/session"
 	"go.uber.org/zap"
 )
 
@@ -42,17 +42,21 @@ func (f *FlashMessage) Info(message string) *FlashMessage {
 	return f
 }
 
-func (f *FlashMessage) Redirect(c *fiber.Ctx, sess *session.Session, location string, statusCode ...int) error {
+func (f *FlashMessage) Redirect(c fiber.Ctx, sess *session.Session, location string, statusCode ...int) error {
 	ctx := c.Context()
 	ctxt := "FlashMessage-Redirect"
 	sess.Set(Flash, f)
 	if err := sess.Save(); err != nil {
 		Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrSave")
 	}
-	return c.Redirect(location, statusCode...)
+	redirect := c.Redirect()
+	if len(statusCode) > 0 {
+		redirect = redirect.Status(statusCode[0])
+	}
+	return redirect.To(location)
 }
 
-func (f *FlashMessage) Clear(c *fiber.Ctx, sess *session.Session) {
+func (f *FlashMessage) Clear(c fiber.Ctx, sess *session.Session) {
 	ctx := c.Context()
 	ctxt := "FlashMessage-Clear"
 	f.Data = map[string]string{}

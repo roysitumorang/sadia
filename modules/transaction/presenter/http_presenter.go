@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -29,7 +29,6 @@ import (
 
 type (
 	transactionHTTPHandler struct {
-		sessionStore       *session.Store
 		jwtUseCase         jwtUseCase.JwtUseCase
 		accountUseCase     accountUseCase.AccountUseCase
 		companyUseCase     companyUseCase.CompanyUseCase
@@ -41,7 +40,6 @@ type (
 )
 
 func New(
-	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	companyUseCase companyUseCase.CompanyUseCase,
@@ -51,7 +49,6 @@ func New(
 	transactionUseCase transactionUseCase.TransactionUseCase,
 ) *transactionHTTPHandler {
 	return &transactionHTTPHandler{
-		sessionStore:       sessionStore,
 		jwtUseCase:         jwtUseCase,
 		accountUseCase:     accountUseCase,
 		companyUseCase:     companyUseCase,
@@ -68,14 +65,14 @@ func (q *transactionHTTPHandler) Mount(r fiber.Router) {
 	v1.Get("", userKeyAuth, q.UserFindTransactions).
 		Post("", userKeyAuth, q.UserCreateTransaction).
 		Get("/:id", userKeyAuth, q.UserFindTransaction)
-	userSessionAuth := middleware.UserSessionAuth(q.sessionStore, q.accountUseCase, q.companyUseCase, q.sessionUseCase)
+	userSessionAuth := middleware.UserSessionAuth(q.accountUseCase, q.companyUseCase, q.sessionUseCase)
 	r.Get("", userSessionAuth, q.userIndex).
 		Get("/new", userSessionAuth, q.userNew).
 		Post("", userSessionAuth, q.userCreate).
 		Post("/cart/line-item", userSessionAuth, q.userCreateCartLineItem)
 }
 
-func (q *transactionHTTPHandler) UserFindTransactions(c *fiber.Ctx) error {
+func (q *transactionHTTPHandler) UserFindTransactions(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-UserFindTransactions"
 	currentCompany := c.Locals(models.CurrentCompany).(*companyModel.Company)
@@ -99,7 +96,7 @@ func (q *transactionHTTPHandler) UserFindTransactions(c *fiber.Ctx) error {
 	}).WriteResponse(c)
 }
 
-func (q *transactionHTTPHandler) UserCreateTransaction(c *fiber.Ctx) error {
+func (q *transactionHTTPHandler) UserCreateTransaction(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-UserCreateTransaction"
 	currentUser := c.Locals(models.CurrentUser).(*accountModel.User)
@@ -194,7 +191,7 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *transactionHTTPHandler) UserFindTransaction(c *fiber.Ctx) error {
+func (q *transactionHTTPHandler) UserFindTransaction(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-UserFindTransaction"
 	currentCompany := c.Locals(models.CurrentCompany).(*companyModel.Company)
@@ -218,18 +215,10 @@ func (q *transactionHTTPHandler) UserFindTransaction(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(transactions[0]).WriteResponse(c)
 }
 
-func (q *transactionHTTPHandler) userIndex(c *fiber.Ctx) error {
+func (q *transactionHTTPHandler) userIndex(c fiber.Ctx) error {
 	ctxt := "TransactionPresenter-userIndex"
 	ctx := c.Context()
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
 	if !ok {
@@ -268,7 +257,7 @@ func (q *transactionHTTPHandler) userIndex(c *fiber.Ctx) error {
 			"cart":          cart,
 		})
 	}
-	defer flash.Clear(c, sess)
+	defer flash.Clear(c, sess.Session)
 	return c.Render("transaction/index", fiber.Map{
 		"authenticated": true,
 		"currentUser":   currentUser,
@@ -281,18 +270,8 @@ func (q *transactionHTTPHandler) userIndex(c *fiber.Ctx) error {
 	})
 }
 
-func (q *transactionHTTPHandler) userNew(c *fiber.Ctx) error {
-	ctxt := "TransactionPresenter-userNew"
-	ctx := c.Context()
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+func (q *transactionHTTPHandler) userNew(c fiber.Ctx) error {
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
@@ -300,10 +279,10 @@ func (q *transactionHTTPHandler) userNew(c *fiber.Ctx) error {
 		flash = helper.NewFlashMessage()
 	}
 	if currentCompany.SessionID == nil {
-		return c.Redirect("/session")
+		return c.Redirect().To("/session")
 	}
 	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
-	flash.Clear(c, sess)
+	flash.Clear(c, sess.Session)
 	return c.Render("transaction/new", fiber.Map{
 		"authenticated": true,
 		"currentUser":   currentUser,
@@ -313,18 +292,10 @@ func (q *transactionHTTPHandler) userNew(c *fiber.Ctx) error {
 	})
 }
 
-func (q *transactionHTTPHandler) userCreate(c *fiber.Ctx) error {
+func (q *transactionHTTPHandler) userCreate(c fiber.Ctx) error {
 	ctxt := "TransactionPresenter-userCreate"
 	ctx := c.Context()
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
@@ -332,7 +303,7 @@ func (q *transactionHTTPHandler) userCreate(c *fiber.Ctx) error {
 		flash = helper.NewFlashMessage()
 	}
 	if currentCompany.SessionID == nil {
-		return c.Redirect("/session")
+		return c.Redirect().To("/session")
 	}
 	currentSession := sess.Get(models.CurrentSession).(*sessionModel.Session)
 	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
@@ -460,21 +431,13 @@ func (q *transactionHTTPHandler) userCreate(c *fiber.Ctx) error {
 		LineItems: []*transactionModel.LineItem{},
 	}
 	sess.Set(transactionModel.CurrentCart, cart)
-	return flash.Success("transaction created successfully").Redirect(c, sess, "/transaction")
+	return flash.Success("transaction created successfully").Redirect(c, sess.Session, "/transaction")
 }
 
-func (q *transactionHTTPHandler) userCreateCartLineItem(c *fiber.Ctx) error {
+func (q *transactionHTTPHandler) userCreateCartLineItem(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-userCreateCartLineItem"
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
@@ -482,13 +445,13 @@ func (q *transactionHTTPHandler) userCreateCartLineItem(c *fiber.Ctx) error {
 		flash = helper.NewFlashMessage()
 	}
 	if currentCompany.SessionID == nil {
-		return c.Redirect("/session")
+		return c.Redirect().To("/session")
 	}
 	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	request, statusCode, err := sanitizer.ValidateLineItem(ctx, c)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateLineItem")
-		return flash.Danger(err.Error()).Redirect(c, sess, "/product", statusCode)
+		return flash.Danger(err.Error()).Redirect(c, sess.Session, "/product", statusCode)
 	}
 	products, _, err := q.productUseCase.FindProducts(
 		ctx,
@@ -501,7 +464,7 @@ func (q *transactionHTTPHandler) userCreateCartLineItem(c *fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProducts")
 	}
 	if len(products) == 0 {
-		return flash.Danger("product not found").Redirect(c, sess, "/product")
+		return flash.Danger("product not found").Redirect(c, sess.Session, "/product")
 	}
 	mapProducts := map[string]*productModel.Product{}
 	for _, product := range products {
@@ -519,8 +482,8 @@ func (q *transactionHTTPHandler) userCreateCartLineItem(c *fiber.Ctx) error {
 	}
 	if err = cart.Calculate(mapProducts); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCalculate")
-		return flash.Danger(err.Error()).Redirect(c, sess, "/product")
+		return flash.Danger(err.Error()).Redirect(c, sess.Session, "/product")
 	}
 	sess.Set(transactionModel.CurrentCart, cart)
-	return flash.Success("product added to cart successfully").Redirect(c, sess, "/product")
+	return flash.Success("product added to cart successfully").Redirect(c, sess.Session, "/product")
 }

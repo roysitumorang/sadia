@@ -13,19 +13,20 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/getsentry/sentry-go"
 	"github.com/goccy/go-json"
-	"github.com/gofiber/contrib/fibersentry"
-	"github.com/gofiber/contrib/fiberzap/v2"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/compress"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/monitor"
-	"github.com/gofiber/fiber/v2/middleware/pprof"
-	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/gofiber/fiber/v2/middleware/requestid"
-	"github.com/gofiber/fiber/v2/middleware/rewrite"
-	"github.com/gofiber/fiber/v2/middleware/session"
-	"github.com/gofiber/fiber/v2/utils"
-	"github.com/gofiber/template/jet/v2"
+	"github.com/gofiber/contrib/v3/monitor"
+	fibersentry "github.com/gofiber/contrib/v3/sentry"
+	fiberzap "github.com/gofiber/contrib/v3/zap"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/compress"
+	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/pprof"
+	"github.com/gofiber/fiber/v3/middleware/recover"
+	"github.com/gofiber/fiber/v3/middleware/requestid"
+	"github.com/gofiber/fiber/v3/middleware/rewrite"
+	"github.com/gofiber/fiber/v3/middleware/session"
+	"github.com/gofiber/swagger/v2"
+	"github.com/gofiber/template/jet/v3"
+	"github.com/gofiber/utils/v2"
 	"github.com/joho/godotenv"
 	"github.com/roysitumorang/sadia/config"
 	_ "github.com/roysitumorang/sadia/docs"
@@ -42,7 +43,6 @@ import (
 	sessionPresenter "github.com/roysitumorang/sadia/modules/session/presenter"
 	transactionModel "github.com/roysitumorang/sadia/modules/transaction/model"
 	transactionPresenter "github.com/roysitumorang/sadia/modules/transaction/presenter"
-	fiberSwagger "github.com/swaggo/fiber-swagger"
 	"go.uber.org/zap"
 )
 
@@ -59,7 +59,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	engine.AddFunc("Comma", func(v int64) string {
 		return humanize.Comma(v)
 	})
-	sessionStore := session.New(session.Config{
+	sessionMiddleware, sessionStore := session.NewWithStore(session.Config{
 		Storage: q.Storage,
 	})
 	sessionStore.RegisterType(&accountModel.User{})
@@ -71,7 +71,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		JSONEncoder: json.Marshal,
 		JSONDecoder: json.Unmarshal,
 		Views:       engine,
-		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
+		ErrorHandler: func(ctx fiber.Ctx, err error) error {
 			statusCode := fiber.StatusInternalServerError
 			var e *fiber.Error
 			if errors.As(err, &e) {
@@ -80,7 +80,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 			return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(ctx)
 		},
 	})
-	app.Use(
+	middlewares := []any{
 		recover.New(recover.Config{
 			EnableStackTrace: true,
 		}),
@@ -106,7 +106,8 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		}),
 		cors.New(),
 		pprof.New(),
-	)
+		sessionMiddleware,
+	}
 	if sentryEnabled := os.Getenv("SENTRY_ENABLED") == "1"; sentryEnabled {
 		_ = sentry.Init(sentry.ClientOptions{
 			Dsn: os.Getenv("SENTRY_DSN"),
@@ -117,16 +118,20 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 			AttachStacktrace: true,
 			EnableTracing:    true,
 		})
-		app.Use(fibersentry.New(fibersentry.Config{
-			Repanic:         true,
-			WaitForDelivery: true,
-		}))
+		middlewares = append(
+			middlewares,
+			fibersentry.New(fibersentry.Config{
+				Repanic:         true,
+				WaitForDelivery: true,
+			}),
+		)
 	}
+	app.Use(middlewares...)
 	basicAuth := middleware.BasicAuth()
 	if debug {
-		app.Get("/swagger/*", fiberSwagger.WrapHandler)
+		app.Get("/swagger/*", swagger.HandlerDefault)
 	}
-	app.Get("/ping", func(c *fiber.Ctx) error {
+	app.Get("/ping", func(c fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusOK).
 			SetData(map[string]any{
 				"version": config.Version,
@@ -139,7 +144,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		Get("/metrics", basicAuth, monitor.New(monitor.Config{
 			APIOnly: true,
 		})).
-		Get("/env", basicAuth, func(c *fiber.Ctx) error {
+		Get("/env", basicAuth, func(c fiber.Ctx) error {
 			envMap, err := godotenv.Read(".env")
 			if err != nil {
 				helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrRead")
@@ -148,14 +153,14 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 			envMap["GO_VERSION"] = runtime.Version()
 			return helper.NewResponse(fiber.StatusOK).SetData(envMap).WriteResponse(c)
 		})
-	jwtPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase).Mount(app.Group("/jwt"))
-	accountPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/account"))
-	companyPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/company"))
-	productCategoryPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductCategoryUseCase).Mount(app.Group("/product_category"))
-	productPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductCategoryUseCase, q.ProductUseCase).Mount(app.Group("/product"))
-	sessionPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/session"))
-	transactionPresenter.New(sessionStore, q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductUseCase, q.SequenceUseCase, q.TransactionUseCase).Mount(app.Group("/transaction"))
-	app.Use(func(c *fiber.Ctx) error {
+	jwtPresenter.New(q.JwtUseCase, q.AccountUseCase).Mount(app.Group("/jwt"))
+	accountPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/account"))
+	companyPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/company"))
+	productCategoryPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductCategoryUseCase).Mount(app.Group("/product_category"))
+	productPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductCategoryUseCase, q.ProductUseCase).Mount(app.Group("/product"))
+	sessionPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/session"))
+	transactionPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductUseCase, q.SequenceUseCase, q.TransactionUseCase).Mount(app.Group("/transaction"))
+	app.Use(func(c fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).WriteResponse(c)
 	})
 	port := DefaultPort

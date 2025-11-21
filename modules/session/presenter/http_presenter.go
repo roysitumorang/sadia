@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -25,7 +25,6 @@ import (
 
 type (
 	sessionHTTPHandler struct {
-		sessionStore   *session.Store
 		jwtUseCase     jwtUseCase.JwtUseCase
 		accountUseCase accountUseCase.AccountUseCase
 		companyUseCase companyUseCase.CompanyUseCase
@@ -34,14 +33,12 @@ type (
 )
 
 func New(
-	sessionStore *session.Store,
 	jwtUseCase jwtUseCase.JwtUseCase,
 	accountUseCase accountUseCase.AccountUseCase,
 	companyUseCase companyUseCase.CompanyUseCase,
 	sessionUseCase sessionUseCase.SessionUseCase,
 ) *sessionHTTPHandler {
 	return &sessionHTTPHandler{
-		sessionStore:   sessionStore,
 		jwtUseCase:     jwtUseCase,
 		accountUseCase: accountUseCase,
 		companyUseCase: companyUseCase,
@@ -56,7 +53,7 @@ func (q *sessionHTTPHandler) Mount(r fiber.Router) {
 		Post("", userKeyAuth, q.UserCreateSession).
 		Get("/mine", userKeyAuth, q.UserFindCurrentSession).
 		Put("/mine", userKeyAuth, q.UserCloseCurrentSession)
-	userSessionAuth := middleware.UserSessionAuth(q.sessionStore, q.accountUseCase, q.companyUseCase, q.sessionUseCase)
+	userSessionAuth := middleware.UserSessionAuth(q.accountUseCase, q.companyUseCase, q.sessionUseCase)
 	r.Get("", userSessionAuth, q.userIndex).
 		Get("/new", userSessionAuth, q.userNew).
 		Post("", userSessionAuth, q.userCreate).
@@ -65,7 +62,7 @@ func (q *sessionHTTPHandler) Mount(r fiber.Router) {
 		Post("/:id", userSessionAuth, q.userClose)
 }
 
-func (q *sessionHTTPHandler) UserFindSessions(c *fiber.Ctx) error {
+func (q *sessionHTTPHandler) UserFindSessions(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "SessionPresenter-UserFindSessions"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
@@ -86,7 +83,7 @@ func (q *sessionHTTPHandler) UserFindSessions(c *fiber.Ctx) error {
 	}).WriteResponse(c)
 }
 
-func (q *sessionHTTPHandler) UserCreateSession(c *fiber.Ctx) error {
+func (q *sessionHTTPHandler) UserCreateSession(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "SessionPresenter-UserCreateSession"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
@@ -131,7 +128,7 @@ func (q *sessionHTTPHandler) UserCreateSession(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
-func (q *sessionHTTPHandler) UserFindCurrentSession(c *fiber.Ctx) error {
+func (q *sessionHTTPHandler) UserFindCurrentSession(c fiber.Ctx) error {
 	currentCompany, _ := c.Locals(models.CurrentCompany).(*companyModel.Company)
 	if currentCompany.SessionID == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active session").WriteResponse(c)
@@ -140,7 +137,7 @@ func (q *sessionHTTPHandler) UserFindCurrentSession(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(currentSession).WriteResponse(c)
 }
 
-func (q *sessionHTTPHandler) UserCloseCurrentSession(c *fiber.Ctx) error {
+func (q *sessionHTTPHandler) UserCloseCurrentSession(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "SessionPresenter-UserCloseCurrentSession"
 	currentCompany, _ := c.Locals(models.CurrentCompany).(*companyModel.Company)
@@ -181,18 +178,10 @@ func (q *sessionHTTPHandler) UserCloseCurrentSession(c *fiber.Ctx) error {
 	return helper.NewResponse(fiber.StatusOK).SetData(currentSession).WriteResponse(c)
 }
 
-func (q *sessionHTTPHandler) userIndex(c *fiber.Ctx) error {
+func (q *sessionHTTPHandler) userIndex(c fiber.Ctx) error {
 	ctxt := "SessionPresenter-userIndex"
 	ctx := c.Context()
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
@@ -234,7 +223,7 @@ func (q *sessionHTTPHandler) userIndex(c *fiber.Ctx) error {
 			"cart":           cart,
 		})
 	}
-	defer flash.Clear(c, sess)
+	defer flash.Clear(c, sess.Session)
 	return c.Render("session/index", fiber.Map{
 		"authenticated":  true,
 		"currentUser":    currentUser,
@@ -248,18 +237,8 @@ func (q *sessionHTTPHandler) userIndex(c *fiber.Ctx) error {
 	})
 }
 
-func (q *sessionHTTPHandler) userNew(c *fiber.Ctx) error {
-	ctxt := "SessionPresenter-userNew"
-	ctx := c.Context()
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+func (q *sessionHTTPHandler) userNew(c fiber.Ctx) error {
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
@@ -267,11 +246,11 @@ func (q *sessionHTTPHandler) userNew(c *fiber.Ctx) error {
 		flash = helper.NewFlashMessage()
 	}
 	if currentCompany.SessionID != nil {
-		return c.Redirect("/session")
+		return c.Redirect().To("/session")
 	}
 	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	request := new(sessionModel.Session)
-	defer flash.Clear(c, sess)
+	defer flash.Clear(c, sess.Session)
 	return c.Render("session/new", fiber.Map{
 		"authenticated": true,
 		"currentUser":   currentUser,
@@ -281,18 +260,10 @@ func (q *sessionHTTPHandler) userNew(c *fiber.Ctx) error {
 	})
 }
 
-func (q *sessionHTTPHandler) userCreate(c *fiber.Ctx) error {
+func (q *sessionHTTPHandler) userCreate(c fiber.Ctx) error {
 	ctxt := "SessionPresenter-userCreate"
 	ctx := c.Context()
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
@@ -300,7 +271,7 @@ func (q *sessionHTTPHandler) userCreate(c *fiber.Ctx) error {
 		flash = helper.NewFlashMessage()
 	}
 	if currentCompany.SessionID != nil {
-		return c.Redirect("/session")
+		return c.Redirect().To("/session")
 	}
 	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	request, statusCode, err := sanitizer.ValidateSession(ctx, c)
@@ -373,21 +344,13 @@ func (q *sessionHTTPHandler) userCreate(c *fiber.Ctx) error {
 			"cart":          cart,
 		})
 	}
-	return flash.Success("session created successfully").Redirect(c, sess, "/session")
+	return flash.Success("session created successfully").Redirect(c, sess.Session, "/session")
 }
 
-func (q *sessionHTTPHandler) userShow(c *fiber.Ctx) error {
+func (q *sessionHTTPHandler) userShow(c fiber.Ctx) error {
 	ctxt := "SessionPresenter-userShow"
 	ctx := c.Context()
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
@@ -418,10 +381,10 @@ func (q *sessionHTTPHandler) userShow(c *fiber.Ctx) error {
 		})
 	}
 	if len(sessions) == 0 {
-		return flash.Danger("session not found").Redirect(c, sess, "/session")
+		return flash.Danger("session not found").Redirect(c, sess.Session, "/session")
 	}
 	session = sessions[0]
-	defer flash.Clear(c, sess)
+	defer flash.Clear(c, sess.Session)
 	return c.Render("session/show", fiber.Map{
 		"authenticated":  true,
 		"currentUser":    currentUser,
@@ -433,18 +396,10 @@ func (q *sessionHTTPHandler) userShow(c *fiber.Ctx) error {
 	})
 }
 
-func (q *sessionHTTPHandler) userCreateSpending(c *fiber.Ctx) error {
+func (q *sessionHTTPHandler) userCreateSpending(c fiber.Ctx) error {
 	ctxt := "SessionPresenter-userCreateSpending"
 	ctx := c.Context()
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
@@ -452,7 +407,7 @@ func (q *sessionHTTPHandler) userCreateSpending(c *fiber.Ctx) error {
 		flash = helper.NewFlashMessage()
 	}
 	if currentCompany.SessionID == nil {
-		return c.Redirect("/session")
+		return c.Redirect().To("/session")
 	}
 	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	currentSession := sess.Get(models.CurrentSession).(*sessionModel.Session)
@@ -521,21 +476,13 @@ func (q *sessionHTTPHandler) userCreateSpending(c *fiber.Ctx) error {
 			"cart":           cart,
 		})
 	}
-	return flash.Success("spending created successfully").Redirect(c, sess, fmt.Sprintf("/session/%s", currentSession.ID))
+	return flash.Success("spending created successfully").Redirect(c, sess.Session, fmt.Sprintf("/session/%s", currentSession.ID))
 }
 
-func (q *sessionHTTPHandler) userClose(c *fiber.Ctx) error {
+func (q *sessionHTTPHandler) userClose(c fiber.Ctx) error {
 	ctxt := "SessionPresenter-userClose"
 	ctx := c.Context()
-	sess, err := q.sessionStore.Get(c)
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGet")
-		return c.Render("account/login", fiber.Map{
-			"authenticated": false,
-			"flash":         helper.NewFlashMessage().Danger(err.Error()),
-			"request":       accountModel.LoginRequest{},
-		})
-	}
+	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
@@ -543,7 +490,7 @@ func (q *sessionHTTPHandler) userClose(c *fiber.Ctx) error {
 		flash = helper.NewFlashMessage()
 	}
 	if currentCompany.SessionID == nil {
-		return c.Redirect("/session")
+		return c.Redirect().To("/session")
 	}
 	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	currentSession := sess.Get(models.CurrentSession).(*sessionModel.Session)
@@ -610,5 +557,5 @@ func (q *sessionHTTPHandler) userClose(c *fiber.Ctx) error {
 			"cart":           cart,
 		})
 	}
-	return flash.Success("session closed successfully").Redirect(c, sess, "/session")
+	return flash.Success("session closed successfully").Redirect(c, sess.Session, "/session")
 }
