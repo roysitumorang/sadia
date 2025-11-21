@@ -3,6 +3,7 @@ module github.com/roysitumorang/sadia
 go 1.25.0
 
 require (
+	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/getsentry/sentry-go v0.38.0
 	github.com/goccy/go-json v0.10.5
@@ -22,7 +23,6 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/nyaruka/phonenumbers v1.6.7
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/rushysloth/go-tsid v1.0.6
 	github.com/spf13/cobra v1.10.1
 	github.com/sqids/sqids-go v0.4.1
 	github.com/swaggo/swag v1.16.6

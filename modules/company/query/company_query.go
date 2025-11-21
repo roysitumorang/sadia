@@ -190,7 +190,7 @@ func (q *companyQuery) FindCompanies(ctx context.Context, filter *companyModel.F
 
 func (q *companyQuery) CreateCompany(ctx context.Context, tx pgx.Tx, request *companyModel.NewCompany) (*companyModel.Company, error) {
 	ctxt := "CompanyQuery-CreateCompany"
-	_, companySqID, _, err := helper.GenerateUniqueID()
+	slug, err := helper.GenerateUniqueID()
 	if err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
@@ -224,7 +224,7 @@ func (q *companyQuery) CreateCompany(ctx context.Context, tx pgx.Tx, request *co
 			, deactivation_reason
 			, session_id`,
 		request.Name,
-		companySqID,
+		slug,
 		models.StatusUnconfirmed,
 		request.CreatedBy,
 		now,

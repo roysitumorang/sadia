@@ -19,6 +19,7 @@ import (
 	"unicode"
 	"unsafe"
 
+	"github.com/bwmarrin/snowflake"
 	"github.com/goccy/go-json"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -26,7 +27,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/keys"
 	"github.com/roysitumorang/sadia/models"
-	"github.com/rushysloth/go-tsid"
 	"github.com/sqids/sqids-go"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -45,10 +45,11 @@ var (
 	loginMaxFailedAttempts int
 	loginLockoutDuration,
 	accessTokenAge time.Duration
-	sqIDs      *sqids.Sqids
-	dbWrite    *pgxpool.Pool
-	privateKey *rsa.PrivateKey
-	InitHelper = sync.OnceValue(func() (err error) {
+	sqIDs         *sqids.Sqids
+	dbWrite       *pgxpool.Pool
+	privateKey    *rsa.PrivateKey
+	snowflakeNode *snowflake.Node
+	InitHelper    = sync.OnceValue(func() (err error) {
 		location, ok := os.LookupEnv("TIME_ZONE")
 		if !ok || location == "" {
 			return errors.New("env TIME_ZONE is required")
@@ -105,7 +106,10 @@ var (
 		if accessTokenAge, err = time.ParseDuration(envAccesTokenAge); err != nil {
 			return
 		}
-		privateKey, err = keys.InitPrivateKey()
+		if privateKey, err = keys.InitPrivateKey(); err != nil {
+			return
+		}
+		snowflakeNode, err = snowflake.NewNode(1)
 		return
 	})
 )
@@ -127,7 +131,7 @@ func ByteSlice2String(bs []byte) string {
 }
 
 func GenerateSnowflakeID() int64 {
-	return tsid.Fast().ToNumber()
+	return snowflakeNode.Generate().Int64()
 }
 
 func EncodeSqids(numbers ...int64) (string, error) {
@@ -153,17 +157,12 @@ func DecodeSqids(id string) int64 {
 	return int64(unsignedNumbers[0])
 }
 
-func GenerateUniqueID() (uniqueID int64, sqID string, uuID string, err error) {
+func GenerateUniqueID() (string, error) {
 	uuidV4, err := uuid.NewRandom()
 	if err != nil {
-		return
+		return "", err
 	}
-	uniqueID = GenerateSnowflakeID()
-	if sqID, err = EncodeSqids(uniqueID); err != nil {
-		return
-	}
-	uuID = uuidV4.String()
-	return
+	return uuidV4.String(), nil
 }
 
 func LoadTimeZone() *time.Location {

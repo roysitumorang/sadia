@@ -36,7 +36,7 @@ func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, accountID string) (
 	ctxt := "JwtQuery-CreateJWT"
 	now := time.Now()
 	expiredAt := now.Add(helper.GetAccessTokenAge())
-	_, _, jwtToken, err := helper.GenerateUniqueID()
+	token, err := helper.GenerateUniqueID()
 	if err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
@@ -58,7 +58,7 @@ func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, accountID string) (
 			, account_id
 			, created_at
 			, expired_at`,
-		jwtToken,
+		token,
 		accountID,
 		now,
 		expiredAt,
