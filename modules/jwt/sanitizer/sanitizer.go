@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/utils/v2"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	jwtModel "github.com/roysitumorang/sadia/modules/jwt/model"
@@ -24,11 +25,14 @@ func FindJWTs(ctx context.Context, c fiber.Ctx) (*jwtModel.Filter, error) {
 	var options []jwtModel.FilterOption
 	options = append(options, jwtModel.WithPaginationURL(builder.String()))
 	if rawAccountIDs, ok := urlValues["account_id"]; ok && len(rawAccountIDs) > 0 {
-		mapAccountIDs := map[string]int{}
-		var accountIDs []string
-		for _, accountID := range rawAccountIDs {
-			accountID = strings.TrimSpace(accountID)
-			if _, ok := mapAccountIDs[accountID]; accountID == "" || ok {
+		mapAccountIDs := map[int64]int{}
+		var (
+			accountID  int64
+			accountIDs []int64
+		)
+		for _, rawAccountID := range rawAccountIDs {
+			accountID, _ = utils.ParseInt(rawAccountID)
+			if _, ok := mapAccountIDs[accountID]; accountID == 0 || ok {
 				continue
 			}
 			accountIDs = append(accountIDs, accountID)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/session"
+	"github.com/gofiber/utils/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -656,9 +657,14 @@ func (q *accountHTTPHandler) AdminCreateAdmin(c fiber.Ctx) error {
 func (q *accountHTTPHandler) AdminFindAdminByID(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminFindAdminByID"
+	adminID, err := utils.ParseInt(c.Params("id"))
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
 	admins, _, err := q.accountUseCase.FindAdmins(
 		ctx,
-		accountModel.NewFilter(accountModel.WithAccountIDs(c.Params("id"))),
+		accountModel.NewFilter(accountModel.WithAccountIDs(adminID)),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
@@ -673,18 +679,23 @@ func (q *accountHTTPHandler) AdminFindAdminByID(c fiber.Ctx) error {
 func (q *accountHTTPHandler) AdminDeactivateAdmin(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminDeactivateAdmin"
+	adminID, err := utils.ParseInt(c.Params("id"))
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
 	request, statusCode, err := sanitizer.ValidateDeactivation(ctx, c)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateDeactivation")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if currentAdmin.ID == c.Params("id") {
+	if currentAdmin.ID == adminID {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("self deactivation prohibited").WriteResponse(c)
 	}
 	admins, _, err := q.accountUseCase.FindAdmins(
 		ctx,
-		accountModel.NewFilter(accountModel.WithLogin(c.Params("id"))),
+		accountModel.NewFilter(accountModel.WithAccountIDs(adminID)),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAdmins")
@@ -753,9 +764,14 @@ func (q *accountHTTPHandler) AdminFindUsers(c fiber.Ctx) error {
 func (q *accountHTTPHandler) AdminFindUserByID(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminFindUserByID"
+	userID, err := utils.ParseInt(c.Params("id"))
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
 	users, _, err := q.accountUseCase.FindUsers(
 		ctx,
-		accountModel.NewFilter(accountModel.WithAccountIDs(c.Params("id"))),
+		accountModel.NewFilter(accountModel.WithAccountIDs(userID)),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
@@ -770,6 +786,11 @@ func (q *accountHTTPHandler) AdminFindUserByID(c fiber.Ctx) error {
 func (q *accountHTTPHandler) AdminDeactivateUser(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminDeactivateUser"
+	userID, err := utils.ParseInt(c.Params("id"))
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
 	request, statusCode, err := sanitizer.ValidateDeactivation(ctx, c)
 	if err != nil {
@@ -778,7 +799,7 @@ func (q *accountHTTPHandler) AdminDeactivateUser(c fiber.Ctx) error {
 	}
 	users, _, err := q.accountUseCase.FindUsers(
 		ctx,
-		accountModel.NewFilter(accountModel.WithLogin(c.Params("id"))),
+		accountModel.NewFilter(accountModel.WithAccountIDs(userID)),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
@@ -1571,7 +1592,7 @@ func (q *accountHTTPHandler) UserFindUsers(c fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	filter.CompanyIDs = []string{currentUser.CompanyID}
+	filter.CompanyIDs = []int64{currentUser.CompanyID}
 	rows, pagination, err := q.accountUseCase.FindUsers(ctx, filter)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindAccounts")
@@ -1623,8 +1644,13 @@ func (q *accountHTTPHandler) UserCreateUser(c fiber.Ctx) error {
 func (q *accountHTTPHandler) UserFindUserByID(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "AccountPresenter-UserFindUserByID"
+	userID, err := utils.ParseInt(c.Params("id"))
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
-	users, _, err := q.accountUseCase.FindUsers(ctx, accountModel.NewFilter(accountModel.WithLogin(c.Params("id")), accountModel.WithCompanyIDs(currentUser.CompanyID)))
+	users, _, err := q.accountUseCase.FindUsers(ctx, accountModel.NewFilter(accountModel.WithAccountIDs(userID), accountModel.WithCompanyIDs(currentUser.CompanyID)))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -1638,8 +1664,13 @@ func (q *accountHTTPHandler) UserFindUserByID(c fiber.Ctx) error {
 func (q *accountHTTPHandler) UserDeactivateUser(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "AccountPresenter-UserDeactivateUser"
+	userID, err := utils.ParseInt(c.Params("id"))
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
-	if currentUser.ID == c.Params("id") {
+	if currentUser.ID == userID {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("self deactivation prohibited").WriteResponse(c)
 	}
 	request, statusCode, err := sanitizer.ValidateDeactivation(ctx, c)
@@ -1649,7 +1680,7 @@ func (q *accountHTTPHandler) UserDeactivateUser(c fiber.Ctx) error {
 	}
 	users, _, err := q.accountUseCase.FindUsers(
 		ctx,
-		accountModel.NewFilter(accountModel.WithLogin(c.Params("id")), accountModel.WithCompanyIDs(currentUser.CompanyID)),
+		accountModel.NewFilter(accountModel.WithAccountIDs(userID), accountModel.WithCompanyIDs(currentUser.CompanyID)),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindUsers")

@@ -132,7 +132,7 @@ func ValidateLogin(ctx context.Context, c fiber.Ctx) (*accountModel.LoginRequest
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return response, fiberErr.Code, err
 	}
-	if err = (response).Validate(); err != nil {
+	if err = response.Validate(); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidate")
 		return response, fiber.StatusBadRequest, err
 	}

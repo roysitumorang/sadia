@@ -8,6 +8,6 @@ import (
 
 type (
 	SequenceUseCase interface {
-		SaveSequence(ctx context.Context, name, savedBy string) (*sequenceModel.Sequence, error)
+		SaveSequence(ctx context.Context, name string, savedBy int64) (*sequenceModel.Sequence, error)
 	}
 )

@@ -23,7 +23,7 @@ func New(
 	}
 }
 
-func (q *sequenceUseCase) SaveSequence(ctx context.Context, name, savedBy string) (*sequenceModel.Sequence, error) {
+func (q *sequenceUseCase) SaveSequence(ctx context.Context, name string, savedBy int64) (*sequenceModel.Sequence, error) {
 	ctxt := "SequenceQuery-SaveSequence"
 	response, err := q.sequenceQuery.SaveSequence(ctx, name, savedBy)
 	if err != nil {

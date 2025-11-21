@@ -6,12 +6,12 @@ import (
 
 type (
 	Sequence struct {
-		ID        string    `json:"-"`
+		ID        int64     `json:"-"`
 		Name      string    `json:"-"`
 		Number    uint32    `json:"-"`
-		CreatedBy string    `json:"-"`
+		CreatedBy int64     `json:"-"`
 		CreatedAt time.Time `json:"-"`
-		UpdatedBy string    `json:"-"`
+		UpdatedBy int64     `json:"-"`
 		UpdatedAt time.Time `json:"-"`
 	}
 )

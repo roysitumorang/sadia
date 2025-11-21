@@ -194,7 +194,7 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 	)
 	params = make([]any, 0)
 	var response []*transactionModel.Transaction
-	mapTransactionOffsets := map[string]int{}
+	mapTransactionOffsets := map[int64]int{}
 	for rows.Next() {
 		transaction := transactionModel.Transaction{
 			LineItems: []*transactionModel.LineItem{},
@@ -268,6 +268,7 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 
 func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, request *transactionModel.Transaction) (*transactionModel.Transaction, error) {
 	ctxt := "TransactionQuery-CreateTransaction"
+	snowflakeID := helper.GenerateSnowflakeID()
 	now := time.Now()
 	response := transactionModel.Transaction{
 		LineItems: []*transactionModel.LineItem{},
@@ -275,7 +276,8 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO transactions (
-			session_id
+			id
+			, session_id
 			, reference_no
 			, subtotal
 			, discount
@@ -283,7 +285,7 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			, payment_method
 			, created_by
 			, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id
 			, session_id
 			, reference_no
@@ -293,6 +295,7 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			, payment_method
 			, created_by
 			, created_at`,
+		snowflakeID,
 		request.SessionID,
 		request.ReferenceNo,
 		request.SubTotal,
@@ -332,7 +335,8 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 	var builder strings.Builder
 	_, _ = builder.WriteString(
 		`INSERT INTO transaction_line_items (
-			transaction_id
+			id
+			, transaction_id
 			, product_id
 			, product_name
 			, product_code
@@ -360,8 +364,10 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return nil, err
 		}
+		snowflakeID = helper.GenerateSnowflakeID()
 		params = append(
 			params,
+			snowflakeID,
 			response.ID,
 			lineItem.ProductID,
 			lineItem.ProductName,
@@ -379,6 +385,8 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			_, _ = builder.WriteString(",")
 		}
 		_, _ = builder.WriteString("($")
+		_, _ = builder.WriteString(strconv.Itoa(n - 11))
+		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 10))
 		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 9))

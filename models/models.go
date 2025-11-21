@@ -65,7 +65,7 @@ type (
 		Username    string  `json:"username"`
 		Email       *string `json:"email"`
 		Phone       *string `json:"phone"`
-		CreatedBy   *string `json:"-"`
+		CreatedBy   *int64  `json:"-"`
 	}
 
 	Message struct {

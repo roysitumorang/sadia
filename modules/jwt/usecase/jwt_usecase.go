@@ -25,7 +25,7 @@ func New(
 	}
 }
 
-func (q *jwtUseCase) CreateJWT(ctx context.Context, tx pgx.Tx, accountID string) (*jwtModel.JsonWebToken, error) {
+func (q *jwtUseCase) CreateJWT(ctx context.Context, tx pgx.Tx, accountID int64) (*jwtModel.JsonWebToken, error) {
 	ctxt := "JwtUseCase-CreateJWT"
 	response, err := q.jwtQuery.CreateJWT(ctx, tx, accountID)
 	if err != nil {

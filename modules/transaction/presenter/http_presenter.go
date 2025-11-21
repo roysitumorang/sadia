@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/session"
+	"github.com/gofiber/utils/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -84,7 +85,7 @@ func (q *transactionHTTPHandler) UserFindTransactions(c fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindTransactions")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	filter.SessionIDs = []string{*currentCompany.SessionID}
+	filter.SessionIDs = []int64{*currentCompany.SessionID}
 	rows, pagination, err := q.transactionUseCase.FindTransactions(ctx, filter)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindTransactions")
@@ -123,7 +124,7 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateTransaction")
 		return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(c)
 	}
-	productIDs := make([]string, len(request.LineItems))
+	productIDs := make([]int64, len(request.LineItems))
 	for i, lineItem := range request.LineItems {
 		productIDs[i] = lineItem.ProductID
 	}
@@ -141,7 +142,7 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c fiber.Ctx) error {
 	if len(products) == 0 {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("products not found").WriteResponse(c)
 	}
-	mapProducts := map[string]*productModel.Product{}
+	mapProducts := map[int64]*productModel.Product{}
 	for _, product := range products {
 		mapProducts[product.ID] = product
 	}
@@ -194,6 +195,11 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c fiber.Ctx) error {
 func (q *transactionHTTPHandler) UserFindTransaction(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-UserFindTransaction"
+	transactionID, err := utils.ParseInt(c.Params("id"))
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
 	currentCompany := c.Locals(models.CurrentCompany).(*companyModel.Company)
 	if currentCompany.SessionID == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("you don't have any active session").WriteResponse(c)
@@ -202,7 +208,7 @@ func (q *transactionHTTPHandler) UserFindTransaction(c fiber.Ctx) error {
 		ctx,
 		transactionModel.NewFilter(
 			transactionModel.WithSessionIDs(*currentCompany.SessionID),
-			transactionModel.WithTransactionIDs(c.Params("id")),
+			transactionModel.WithTransactionIDs(transactionID),
 		),
 	)
 	if err != nil {
@@ -242,7 +248,7 @@ func (q *transactionHTTPHandler) userIndex(c fiber.Ctx) error {
 			"cart":          cart,
 		})
 	}
-	filter.CompanyIDs = []string{currentUser.CompanyID}
+	filter.CompanyIDs = []int64{currentUser.CompanyID}
 	if rows, pagination, err = q.transactionUseCase.FindTransactions(ctx, filter); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindTransactions")
 		c.Response().SetStatusCode(fiber.StatusBadRequest)
@@ -319,7 +325,7 @@ func (q *transactionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"request":       request,
 		})
 	}
-	productIDs := make([]string, len(request.LineItems))
+	productIDs := make([]int64, len(request.LineItems))
 	for i, lineItem := range request.LineItems {
 		productIDs[i] = lineItem.ProductID
 	}
@@ -351,7 +357,7 @@ func (q *transactionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"request":       request,
 		})
 	}
-	mapProducts := map[string]*productModel.Product{}
+	mapProducts := map[int64]*productModel.Product{}
 	for _, product := range products {
 		mapProducts[product.ID] = product
 	}
@@ -466,7 +472,7 @@ func (q *transactionHTTPHandler) userCreateCartLineItem(c fiber.Ctx) error {
 	if len(products) == 0 {
 		return flash.Danger("product not found").Redirect(c, sess.Session, "/product")
 	}
-	mapProducts := map[string]*productModel.Product{}
+	mapProducts := map[int64]*productModel.Product{}
 	for _, product := range products {
 		mapProducts[product.ID] = product
 	}

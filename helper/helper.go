@@ -266,10 +266,10 @@ func GetJwtIssuer() string {
 	return jwtIssuer
 }
 
-func GenerateAccessToken(id, subject, audience string, createdAt, expiredAt time.Time) (string, error) {
+func GenerateAccessToken(id int64, subject, audience string, createdAt, expiredAt time.Time) (string, error) {
 	numericDate := jwt.NewNumericDate(createdAt)
 	var claims jwt.RegisteredClaims
-	claims.ID = id
+	claims.ID = strconv.FormatInt(id, 10)
 	claims.Subject = subject
 	claims.Audience = append(claims.Audience, audience)
 	claims.Issuer = jwtIssuer

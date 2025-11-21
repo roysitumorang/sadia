@@ -28,7 +28,7 @@ const (
 type (
 	Account struct {
 		RowNo                   uint64     `json:"row_no,omitempty"`
-		ID                      string     `json:"id"`
+		ID                      int64      `json:"id"`
 		AccountType             uint8      `json:"account_type"`
 		Status                  int8       `json:"status"`
 		Name                    string     `json:"name"`
@@ -57,10 +57,10 @@ type (
 		LoginFailedAttempts     int        `json:"login_failed_attempts"`
 		LoginUnlockToken        *string    `json:"-"`
 		LoginLockedAt           *time.Time `json:"login_locked_at"`
-		CreatedBy               *string    `json:"-"`
+		CreatedBy               *int64     `json:"-"`
 		CreatedAt               time.Time  `json:"created_at"`
 		UpdatedAt               time.Time  `json:"updated_at"`
-		DeactivatedBy           *string    `json:"-"`
+		DeactivatedBy           *int64     `json:"-"`
 		DeactivatedAt           *time.Time `json:"deactivated_at"`
 		DeactivationReason      *string    `json:"-"`
 	}
@@ -72,13 +72,13 @@ type (
 
 	User struct {
 		*Account
-		CompanyID string `json:"company_id"`
-		UserLevel uint8  `json:"user_level"`
+		CompanyID int64 `json:"company_id"`
+		UserLevel uint8 `json:"user_level"`
 	}
 
 	Filter struct {
 		AccountIDs,
-		CompanyIDs []string
+		CompanyIDs []int64
 		StatusList []int
 		AccountTypes,
 		AdminLevels,
@@ -108,8 +108,8 @@ type (
 
 	NewUser struct {
 		*models.NewAccount
-		CompanyID string `json:"company_id"`
-		UserLevel uint8  `json:"user_level"`
+		CompanyID int64 `json:"company_id"`
+		UserLevel uint8 `json:"user_level"`
 	}
 
 	Deactivation struct {
@@ -204,13 +204,13 @@ func NewFilter(options ...FilterOption) *Filter {
 	return filter
 }
 
-func WithAccountIDs(accountIDs ...string) FilterOption {
+func WithAccountIDs(accountIDs ...int64) FilterOption {
 	return func(q *Filter) {
 		q.AccountIDs = accountIDs
 	}
 }
 
-func WithCompanyIDs(companyIDs ...string) FilterOption {
+func WithCompanyIDs(companyIDs ...int64) FilterOption {
 	return func(q *Filter) {
 		q.CompanyIDs = companyIDs
 	}
@@ -339,7 +339,7 @@ func (q *NewUser) Validate() error {
 	if err := q.NewAccount.Validate(); err != nil {
 		return err
 	}
-	if q.CompanyID = strings.TrimSpace(q.CompanyID); q.CompanyID == "" {
+	if q.CompanyID < 1 {
 		return errors.New("company_id: is required")
 	}
 	if q.UserLevel != UserLevelOwner && q.UserLevel != UserLevelStaff {

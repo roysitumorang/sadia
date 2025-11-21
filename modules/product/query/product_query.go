@@ -214,12 +214,14 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 
 func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.Product) (*productModel.Product, error) {
 	ctxt := "ProductQuery-CreateProduct"
+	snowflakeID := helper.GenerateSnowflakeID()
 	now := time.Now()
 	var response productModel.Product
 	if err := q.dbWrite.QueryRow(
 		ctx,
 		`INSERT INTO products (
-			company_id
+			id
+			, company_id
 			, category_id
 			, name
 			, code
@@ -234,7 +236,7 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $12, $13)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $13, $14)
 		RETURNING id
 			, company_id
 			, category_id
@@ -251,6 +253,7 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 			, created_at
 			, updated_by
 			, updated_at`,
+		snowflakeID,
 		request.CompanyID,
 		request.CategoryID,
 		request.Name,
@@ -384,7 +387,10 @@ func (q *productQuery) UpdateProduct(ctx context.Context, request *productModel.
 
 func (q *productQuery) Import(ctx context.Context, products []productModel.Product, companyID, adminID string) (err error) {
 	ctxt := "ProductQuery-Import"
-	var now time.Time
+	var (
+		snowflakeID int64
+		now         time.Time
+	)
 	tx, err := q.dbWrite.Begin(ctx)
 	if err != nil {
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrBegin")
@@ -400,11 +406,13 @@ func (q *productQuery) Import(ctx context.Context, products []productModel.Produ
 		}
 	}()
 	for _, product := range products {
+		snowflakeID = helper.GenerateSnowflakeID()
 		now = time.Now()
 		if _, err = tx.Exec(
 			ctx,
 			`INSERT INTO products (
-				company_id
+				id
+				, company_id
 				, category_id
 				, name
 				, code
@@ -419,7 +427,8 @@ func (q *productQuery) Import(ctx context.Context, products []productModel.Produ
 				, created_at
 				, updated_by
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $12, $13)`,
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $13, $14)`,
+			snowflakeID,
 			companyID,
 			product.CategoryID,
 			product.Name,
