@@ -8,8 +8,8 @@ require (
 	github.com/goccy/go-json v0.10.5
 	github.com/gofiber/contrib/fibersentry v1.0.8
 	github.com/gofiber/contrib/fiberzap/v2 v2.1.6
-	github.com/gofiber/fiber/v2 v2.52.9
-	github.com/gofiber/fiber/v3 v3.0.0-rc.2
+	github.com/gofiber/fiber/v2 v2.52.10
+	github.com/gofiber/fiber/v3 v3.0.0-rc.3
 	github.com/gofiber/storage v1.3.3
 	github.com/gofiber/storage/valkey v0.2.1
 	github.com/gofiber/template/jet/v2 v2.1.13
@@ -28,8 +28,8 @@ require (
 	github.com/swaggo/swag v1.16.6
 	github.com/twmb/franz-go v1.20.4
 	github.com/xuri/excelize/v2 v2.10.0
-	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.44.0
+	go.uber.org/zap v1.27.1
+	golang.org/x/crypto v0.45.0
 	golang.org/x/sync v0.18.0
 )
 
