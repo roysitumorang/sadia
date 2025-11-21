@@ -423,16 +423,19 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 
 func (q *sessionQuery) CreateSpending(ctx context.Context, tx pgx.Tx, request *sessionModel.Spending) error {
 	ctxt := "SessionQuery-CreateSpending"
+	snowflakeID := helper.GenerateSnowflakeID()
 	now := time.Now()
 	_, err := tx.Exec(
 		ctx,
 		`INSERT INTO spendings (
-			session_id
+			id
+			, session_id
 			, description
 			, value
 			, created_by
 			, created_at
-		) VALUES ($1, $2, $3, $4, $5)`,
+		) VALUES ($1, $2, $3, $4, $5, $6)`,
+		snowflakeID,
 		request.SessionID,
 		request.Description,
 		request.Value,

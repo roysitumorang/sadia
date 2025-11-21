@@ -70,7 +70,8 @@ func (q *transactionHTTPHandler) Mount(r fiber.Router) {
 	r.Get("", userSessionAuth, q.userIndex).
 		Get("/new", userSessionAuth, q.userNew).
 		Post("", userSessionAuth, q.userCreate).
-		Post("/cart/line-item", userSessionAuth, q.userCreateCartLineItem)
+		Post("/cart/line-item", userSessionAuth, q.userCreateCartLineItem).
+		Get("/cart/line-item/:id/delete", userSessionAuth, q.userRemoveCartLineItem)
 }
 
 func (q *transactionHTTPHandler) UserFindTransactions(c fiber.Ctx) error {
@@ -459,10 +460,15 @@ func (q *transactionHTTPHandler) userCreateCartLineItem(c fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateLineItem")
 		return flash.Danger(err.Error()).Redirect(c, sess.Session, "/product", statusCode)
 	}
+	var productIDs []int64
+	for _, lineItem := range cart.LineItems {
+		productIDs = append(productIDs, lineItem.ProductID)
+	}
+	productIDs = append(productIDs, request.ProductID)
 	products, _, err := q.productUseCase.FindProducts(
 		ctx,
 		productModel.NewFilter(
-			productModel.WithProductIDs(request.ProductID),
+			productModel.WithProductIDs(productIDs...),
 			productModel.WithCompanyIDs(currentUser.CompanyID),
 		),
 	)
@@ -492,4 +498,59 @@ func (q *transactionHTTPHandler) userCreateCartLineItem(c fiber.Ctx) error {
 	}
 	sess.Set(transactionModel.CurrentCart, cart)
 	return flash.Success("product added to cart successfully").Redirect(c, sess.Session, "/product")
+}
+
+func (q *transactionHTTPHandler) userRemoveCartLineItem(c fiber.Ctx) error {
+	ctx := c.Context()
+	ctxt := "TransactionPresenter-userRemoveCartLineItem"
+	sess := session.FromContext(c)
+	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
+	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
+	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
+	if !ok {
+		flash = helper.NewFlashMessage()
+	}
+	if currentCompany.SessionID == nil {
+		return c.Redirect().To("/session")
+	}
+	productID, err := utils.ParseInt(c.Params("id"))
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+		return flash.Danger("line item not found").Redirect(c, sess.Session, "/transaction/new")
+	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
+	var (
+		lineItems  []*transactionModel.LineItem
+		productIDs []int64
+	)
+	for _, lineItem := range cart.LineItems {
+		if lineItem.ProductID != productID {
+			lineItems = append(lineItems, lineItem)
+			productIDs = append(productIDs, lineItem.ProductID)
+		}
+	}
+	products, _, err := q.productUseCase.FindProducts(
+		ctx,
+		productModel.NewFilter(
+			productModel.WithProductIDs(productIDs...),
+			productModel.WithCompanyIDs(currentUser.CompanyID),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProducts")
+	}
+	if len(products) == 0 {
+		return flash.Danger("product not found").Redirect(c, sess.Session, "/product")
+	}
+	mapProducts := map[int64]*productModel.Product{}
+	for _, product := range products {
+		mapProducts[product.ID] = product
+	}
+	cart.LineItems = lineItems
+	if err = cart.Calculate(mapProducts); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCalculate")
+		return flash.Danger(err.Error()).Redirect(c, sess.Session, "/product")
+	}
+	sess.Set(transactionModel.CurrentCart, cart)
+	return flash.Success("line item deleted successfully").Redirect(c, sess.Session, "/transaction/new")
 }
