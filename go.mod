@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/getsentry/sentry-go v0.38.0
+	github.com/getsentry/sentry-go v0.39.0
 	github.com/goccy/go-json v0.10.5
 	github.com/gofiber/contrib/v3/monitor v1.0.0-rc.1
 	github.com/gofiber/contrib/v3/sentry v1.0.0-rc.1
@@ -26,7 +26,7 @@ require (
 	github.com/spf13/cobra v1.10.1
 	github.com/sqids/sqids-go v0.4.1
 	github.com/swaggo/swag v1.16.6
-	github.com/twmb/franz-go v1.20.4
+	github.com/twmb/franz-go v1.20.5
 	github.com/xuri/excelize/v2 v2.10.0
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.45.0
