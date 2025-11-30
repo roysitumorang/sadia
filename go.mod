@@ -11,7 +11,7 @@ require (
 	github.com/gofiber/contrib/v3/sentry v1.0.0-rc.1
 	github.com/gofiber/contrib/v3/zap v1.0.0-rc.1
 	github.com/gofiber/fiber/v3 v3.0.0-rc.3
-	github.com/gofiber/storage/valkey v0.2.1
+	github.com/gofiber/storage/valkey v0.2.2
 	github.com/gofiber/swagger/v2 v2.0.0-20251031122725-30bc194ed26e
 	github.com/gofiber/template/jet/v3 v3.0.0
 	github.com/gofiber/utils/v2 v2.0.0-rc.2
