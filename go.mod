@@ -23,7 +23,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/nyaruka/phonenumbers v1.6.7
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/sqids/sqids-go v0.4.1
 	github.com/swaggo/swag v1.16.6
 	github.com/twmb/franz-go v1.20.5
@@ -70,7 +70,7 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/swaggo/files/v2 v2.0.2 // indirect
 	github.com/tiendc/go-deepcopy v1.7.2 // indirect
-	github.com/tinylib/msgp v1.5.0 // indirect
+	github.com/tinylib/msgp v1.6.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.16 // indirect
 	github.com/tklauser/numcpus v0.11.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.12.0 // indirect
