@@ -14,7 +14,7 @@ require (
 	github.com/gofiber/storage/valkey v0.2.2
 	github.com/gofiber/swagger/v2 v2.0.0-20251031122725-30bc194ed26e
 	github.com/gofiber/template/jet/v3 v3.0.0
-	github.com/gofiber/utils/v2 v2.0.0-rc.3
+	github.com/gofiber/utils/v2 v2.0.0-rc.4
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/govalues/decimal v0.1.36
