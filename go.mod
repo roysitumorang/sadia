@@ -26,7 +26,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/sqids/sqids-go v0.4.1
 	github.com/swaggo/swag v1.16.6
-	github.com/twmb/franz-go v1.20.5
+	github.com/twmb/franz-go v1.20.6
 	github.com/xuri/excelize/v2 v2.10.0
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.46.0
@@ -82,7 +82,7 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/exp v0.0.0-20251209150349-8475f28825e9 // indirect
+	golang.org/x/exp v0.0.0-20251219203646-944ab1f22d93 // indirect
 	golang.org/x/mod v0.31.0 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
