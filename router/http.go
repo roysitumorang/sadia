@@ -21,12 +21,10 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/pprof"
 	"github.com/gofiber/fiber/v3/middleware/recover"
-	"github.com/gofiber/fiber/v3/middleware/requestid"
 	"github.com/gofiber/fiber/v3/middleware/rewrite"
 	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/gofiber/swagger/v2"
 	"github.com/gofiber/template/jet/v3"
-	"github.com/gofiber/utils/v2"
 	"github.com/joho/godotenv"
 	"github.com/roysitumorang/sadia/config"
 	_ "github.com/roysitumorang/sadia/docs"
@@ -87,11 +85,11 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		fiberzap.New(fiberzap.Config{
 			Logger: helper.GetLogger(),
 		}),
-		requestid.New(requestid.Config{
-			Next:      nil,
-			Header:    fiber.HeaderXRequestID,
-			Generator: utils.UUIDv4,
-		}),
+		// requestid.New(requestid.Config{
+		// 	Next:      nil,
+		// 	Header:    fiber.HeaderXRequestID,
+		// 	Generator: utils.UUIDv4,
+		// }),
 		compress.New(),
 		rewrite.New(rewrite.Config{
 			Rules: map[string]string{
