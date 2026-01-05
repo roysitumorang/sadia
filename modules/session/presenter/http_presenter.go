@@ -3,11 +3,11 @@ package presenter
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/session"
-	"github.com/gofiber/utils/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -358,7 +358,7 @@ func (q *sessionHTTPHandler) userShow(c fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
-	sessionID, err := utils.ParseInt(c.Params("id"))
+	sessionID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return flash.Danger("session not found").Redirect(c, sess.Session, "/session")

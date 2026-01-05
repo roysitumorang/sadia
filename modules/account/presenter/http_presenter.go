@@ -2,11 +2,11 @@ package presenter
 
 import (
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/session"
-	"github.com/gofiber/utils/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -657,7 +657,7 @@ func (q *accountHTTPHandler) AdminCreateAdmin(c fiber.Ctx) error {
 func (q *accountHTTPHandler) AdminFindAdminByID(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminFindAdminByID"
-	adminID, err := utils.ParseInt(c.Params("id"))
+	adminID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -679,7 +679,7 @@ func (q *accountHTTPHandler) AdminFindAdminByID(c fiber.Ctx) error {
 func (q *accountHTTPHandler) AdminDeactivateAdmin(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminDeactivateAdmin"
-	adminID, err := utils.ParseInt(c.Params("id"))
+	adminID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -764,7 +764,7 @@ func (q *accountHTTPHandler) AdminFindUsers(c fiber.Ctx) error {
 func (q *accountHTTPHandler) AdminFindUserByID(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminFindUserByID"
-	userID, err := utils.ParseInt(c.Params("id"))
+	userID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -786,7 +786,7 @@ func (q *accountHTTPHandler) AdminFindUserByID(c fiber.Ctx) error {
 func (q *accountHTTPHandler) AdminDeactivateUser(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "AccountPresenter-AdminDeactivateUser"
-	userID, err := utils.ParseInt(c.Params("id"))
+	userID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -1644,7 +1644,7 @@ func (q *accountHTTPHandler) UserCreateUser(c fiber.Ctx) error {
 func (q *accountHTTPHandler) UserFindUserByID(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "AccountPresenter-UserFindUserByID"
-	userID, err := utils.ParseInt(c.Params("id"))
+	userID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -1664,7 +1664,7 @@ func (q *accountHTTPHandler) UserFindUserByID(c fiber.Ctx) error {
 func (q *accountHTTPHandler) UserDeactivateUser(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "AccountPresenter-UserDeactivateUser"
-	userID, err := utils.ParseInt(c.Params("id"))
+	userID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/utils/v2"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	productCategoryModel "github.com/roysitumorang/sadia/modules/product_category/model"
@@ -47,7 +46,7 @@ func FindProductCategories(ctx context.Context, c fiber.Ctx) (*productCategoryMo
 func ValidateProductCategory(ctx context.Context, c fiber.Ctx) (*productCategoryModel.ProductCategory, int, error) {
 	ctxt := "ProductCategorySanitizer-ValidateProductCategory"
 	response := new(productCategoryModel.ProductCategory)
-	productCategoryID, err := utils.ParseInt(c.Params("id"))
+	productCategoryID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return response, fiber.StatusBadRequest, err

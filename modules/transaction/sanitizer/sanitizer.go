@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/utils/v2"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	transactionModel "github.com/roysitumorang/sadia/modules/transaction/model"
@@ -79,7 +78,7 @@ func ValidateCart(ctx context.Context, c fiber.Ctx) (*transactionModel.Transacti
 	quantities := form["line_items[][quantity]"]
 	for i, rawProductID := range productIDs {
 		lineItem := new(transactionModel.LineItem)
-		productID, err := utils.ParseInt(rawProductID)
+		productID, err := strconv.ParseInt(rawProductID, 10, 64)
 		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 			return response, fiber.StatusBadRequest, err
