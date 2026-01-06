@@ -75,7 +75,7 @@ require (
 	github.com/twmb/franz-go/pkg/kmsg v1.12.0 // indirect
 	github.com/valkey-io/valkey-go v1.0.70 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.68.0 // indirect
+	github.com/valyala/fasthttp v1.69.0 // indirect
 	github.com/xuri/efp v0.0.1 // indirect
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
