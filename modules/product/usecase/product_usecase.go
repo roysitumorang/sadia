@@ -2,9 +2,9 @@ package usecase
 
 import (
 	"context"
-	"strconv"
 	"strings"
 
+	"github.com/gofiber/utils/v2"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	productModel "github.com/roysitumorang/sadia/modules/product/model"
@@ -102,7 +102,7 @@ func (q *productUseCase) Import(ctx context.Context, filename, companyID, adminI
 			items := strings.Split(sellingPriceRaw, ".")
 			sellingPriceRaw = items[0]
 		}
-		sellingPrice, err := strconv.ParseInt(sellingPriceRaw, 10, 64)
+		sellingPrice, err := utils.ParseInt(sellingPriceRaw)
 		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 			return err
@@ -112,12 +112,12 @@ func (q *productUseCase) Import(ctx context.Context, filename, companyID, adminI
 			items := strings.Split(purchasePriceRaw, ".")
 			purchasePriceRaw = items[0]
 		}
-		purchasePrice, err := strconv.ParseInt(purchasePriceRaw, 10, 64)
+		purchasePrice, err := utils.ParseInt(purchasePriceRaw)
 		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 			return err
 		}
-		stock, err := strconv.ParseInt(row[8], 10, 64)
+		stock, err := utils.ParseInt(row[8])
 		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 			return err

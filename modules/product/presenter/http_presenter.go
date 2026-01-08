@@ -1,10 +1,9 @@
 package presenter
 
 import (
-	"strconv"
-
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/session"
+	"github.com/gofiber/utils/v2"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
 	"github.com/roysitumorang/sadia/models"
@@ -126,7 +125,7 @@ func (q *productHTTPHandler) UserCreateProduct(c fiber.Ctx) error {
 func (q *productHTTPHandler) UserFindProductByID(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "ProductPresenter-UserFindProductByID"
-	productID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	productID, err := utils.ParseInt(c.Params("id"))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -152,7 +151,7 @@ func (q *productHTTPHandler) UserFindProductByID(c fiber.Ctx) error {
 func (q *productHTTPHandler) UserUpdateProduct(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "ProductPresenter-UserUpdateProduct"
-	productID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	productID, err := utils.ParseInt(c.Params("id"))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -396,7 +395,7 @@ func (q *productHTTPHandler) userEdit(c fiber.Ctx) error {
 	ctxt := "ProductPresenter-userEdit"
 	ctx := c.Context()
 	sess := session.FromContext(c)
-	productID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	productID, err := utils.ParseInt(c.Params("id"))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -460,7 +459,7 @@ func (q *productHTTPHandler) userUpdate(c fiber.Ctx) error {
 	ctxt := "ProductPresenter-userUpdate"
 	ctx := c.Context()
 	sess := session.FromContext(c)
-	productID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	productID, err := utils.ParseInt(c.Params("id"))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)

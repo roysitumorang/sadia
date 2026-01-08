@@ -2,10 +2,10 @@ package presenter
 
 import (
 	"errors"
-	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/utils/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -127,7 +127,7 @@ func (q *companyHTTPHandler) AdminCreateCompany(c fiber.Ctx) error {
 func (q *companyHTTPHandler) AdminFindCompanyByID(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "CompanyPresenter-AdminFindCompanyByID"
-	companyID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	companyID, err := utils.ParseInt(c.Params("id"))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -146,7 +146,7 @@ func (q *companyHTTPHandler) AdminFindCompanyByID(c fiber.Ctx) error {
 func (q *companyHTTPHandler) AdminDeactivateCompany(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "CompanyPresenter-AdminDeactivateCompany"
-	companyID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	companyID, err := utils.ParseInt(c.Params("id"))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)

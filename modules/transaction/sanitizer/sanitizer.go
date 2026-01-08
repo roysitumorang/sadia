@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/utils/v2"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	transactionModel "github.com/roysitumorang/sadia/modules/transaction/model"
@@ -31,12 +32,12 @@ func FindTransactions(ctx context.Context, c fiber.Ctx) (*transactionModel.Filte
 		urlValues.Set("q", keyword)
 		options = append(options, transactionModel.WithKeyword(keyword))
 	}
-	limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64)
+	limit, _ := utils.ParseInt(c.Query("limit"))
 	if _, ok := models.MapLimits[limit]; !ok {
 		limit = models.Limits[0]
 	}
 	urlValues.Set("limit", strconv.FormatInt(limit, 10))
-	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
+	page, _ := utils.ParseInt(c.Query("page"))
 	page = max(page, 0)
 	options = append(options, transactionModel.WithPage(page), transactionModel.WithUrlValues(urlValues))
 	return transactionModel.NewFilter(options...), nil
@@ -67,7 +68,7 @@ func ValidateCart(ctx context.Context, c fiber.Ctx) (*transactionModel.Transacti
 		return response, fiber.StatusBadRequest, err
 	}
 	if discounts := form["discount"]; len(discounts) > 0 {
-		discount, err := strconv.ParseInt(discounts[0], 10, 64)
+		discount, err := utils.ParseInt(discounts[0])
 		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 			return response, fiber.StatusBadRequest, err
@@ -78,13 +79,13 @@ func ValidateCart(ctx context.Context, c fiber.Ctx) (*transactionModel.Transacti
 	quantities := form["line_items[][quantity]"]
 	for i, rawProductID := range productIDs {
 		lineItem := new(transactionModel.LineItem)
-		productID, err := strconv.ParseInt(rawProductID, 10, 64)
+		productID, err := utils.ParseInt(rawProductID)
 		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 			return response, fiber.StatusBadRequest, err
 		}
 		lineItem.ProductID = productID
-		quantity, err := strconv.ParseInt(quantities[i], 10, 64)
+		quantity, err := utils.ParseInt(quantities[i])
 		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 			return response, fiber.StatusBadRequest, err

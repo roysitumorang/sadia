@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/utils/v2"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
@@ -31,13 +32,13 @@ func FindSessions(ctx context.Context, c fiber.Ctx) (*sessionModel.Filter, error
 		urlValues.Set("q", keyword)
 		options = append(options, sessionModel.WithKeyword(keyword))
 	}
-	limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64)
+	limit, _ := utils.ParseInt(c.Query("limit"))
 	if _, ok := models.MapLimits[limit]; !ok {
 		limit = models.Limits[0]
 	}
 	urlValues.Set("limit", strconv.FormatInt(limit, 10))
 	options = append(options, sessionModel.WithLimit(limit))
-	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
+	page, _ := utils.ParseInt(c.Query("page"))
 	page = max(page, 0)
 	options = append(options, sessionModel.WithPage(page), sessionModel.WithUrlValues(urlValues))
 	return sessionModel.NewFilter(options...), nil

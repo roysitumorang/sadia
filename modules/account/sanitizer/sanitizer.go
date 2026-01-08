@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/utils/v2"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
@@ -48,12 +49,12 @@ func FindAccounts(ctx context.Context, c fiber.Ctx) (*accountModel.Filter, error
 		}
 		options = append(options, accountModel.WithStatusList(statusList...))
 	}
-	limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64)
+	limit, _ := utils.ParseInt(c.Query("limit"))
 	if _, ok := models.MapLimits[limit]; !ok {
 		limit = models.Limits[0]
 	}
 	urlValues.Set("limit", strconv.FormatInt(limit, 10))
-	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
+	page, _ := utils.ParseInt(c.Query("page"))
 	page = max(page, 0)
 	options = append(options, accountModel.WithPage(page), accountModel.WithUrlValues(urlValues))
 	return accountModel.NewFilter(options...), nil
@@ -285,11 +286,11 @@ func FindAdmins(ctx context.Context, c fiber.Ctx) (*accountModel.Filter, error) 
 		}
 		options = append(options, accountModel.WithStatusList(statusList...))
 	}
-	if limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64); limit > 0 {
+	if limit, _ := utils.ParseInt(c.Query("limit")); limit > 0 {
 		urlValues.Set("limit", c.Query("limit"))
 		options = append(options, accountModel.WithLimit(limit))
 	}
-	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
+	page, _ := utils.ParseInt(c.Query("page"))
 	page = max(page, 1)
 	options = append(options, accountModel.WithPage(page), accountModel.WithUrlValues(urlValues))
 	return accountModel.NewFilter(options...), nil
@@ -329,11 +330,11 @@ func FindUsers(ctx context.Context, c fiber.Ctx) (*accountModel.Filter, error) {
 		}
 		options = append(options, accountModel.WithStatusList(statusList...))
 	}
-	if limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64); limit > 0 {
+	if limit, _ := utils.ParseInt(c.Query("limit")); limit > 0 {
 		urlValues.Set("limit", c.Query("limit"))
 		options = append(options, accountModel.WithLimit(limit))
 	}
-	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
+	page, _ := utils.ParseInt(c.Query("page"))
 	page = max(page, 1)
 	options = append(options, accountModel.WithPage(page), accountModel.WithUrlValues(urlValues))
 	return accountModel.NewFilter(options...), nil

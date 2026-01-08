@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/utils/v2"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	jwtModel "github.com/roysitumorang/sadia/modules/jwt/model"
@@ -30,7 +31,7 @@ func FindJWTs(ctx context.Context, c fiber.Ctx) (*jwtModel.Filter, error) {
 			accountIDs []int64
 		)
 		for _, rawAccountID := range rawAccountIDs {
-			accountID, _ = strconv.ParseInt(rawAccountID, 10, 64)
+			accountID, _ = utils.ParseInt(rawAccountID)
 			if _, ok := mapAccountIDs[accountID]; accountID == 0 || ok {
 				continue
 			}
@@ -39,12 +40,12 @@ func FindJWTs(ctx context.Context, c fiber.Ctx) (*jwtModel.Filter, error) {
 		}
 		options = append(options, jwtModel.WithAccountIDs(accountIDs...))
 	}
-	limit, _ := strconv.ParseInt(c.Query("limit"), 10, 64)
+	limit, _ := utils.ParseInt(c.Query("limit"))
 	if _, ok := models.MapLimits[limit]; !ok {
 		limit = models.Limits[0]
 	}
 	urlValues.Set("limit", strconv.FormatInt(limit, 10))
-	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
+	page, _ := utils.ParseInt(c.Query("page"))
 	page = max(page, 0)
 	options = append(options, jwtModel.WithPage(page), jwtModel.WithUrlValues(urlValues))
 	return jwtModel.NewFilter(options...), nil

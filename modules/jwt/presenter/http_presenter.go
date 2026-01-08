@@ -2,9 +2,9 @@ package presenter
 
 import (
 	"errors"
-	"strconv"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/utils/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
@@ -63,7 +63,7 @@ func (q *jwtHTTPHandler) AdminFindJWTs(c fiber.Ctx) error {
 func (q *jwtHTTPHandler) AdminDeleteJWT(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "JwtPresenter-AdminDeleteJWT"
-	jwtID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	jwtID, err := utils.ParseInt(c.Params("id"))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)

@@ -3,11 +3,11 @@ package presenter
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/session"
+	"github.com/gofiber/utils/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -196,7 +196,7 @@ func (q *transactionHTTPHandler) UserCreateTransaction(c fiber.Ctx) error {
 func (q *transactionHTTPHandler) UserFindTransaction(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "TransactionPresenter-UserFindTransaction"
-	transactionID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	transactionID, err := utils.ParseInt(c.Params("id"))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -513,7 +513,7 @@ func (q *transactionHTTPHandler) userRemoveCartLineItem(c fiber.Ctx) error {
 	if currentCompany.SessionID == nil {
 		return c.Redirect().To("/session")
 	}
-	productID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	productID, err := utils.ParseInt(c.Params("id"))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
 		return flash.Danger("line item not found").Redirect(c, sess.Session, "/transaction/new")
