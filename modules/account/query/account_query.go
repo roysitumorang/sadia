@@ -499,8 +499,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *mo
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
 		}
-		var pgxErr *pgconn.PgError
-		if errors.As(err, &pgxErr) &&
+		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
 			case "accounts_username_key":
@@ -669,8 +668,7 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
 		}
-		var pgxErr *pgconn.PgError
-		if errors.As(err, &pgxErr) &&
+		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
 			case "accounts_username_key":

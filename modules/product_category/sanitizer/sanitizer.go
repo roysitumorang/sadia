@@ -53,8 +53,8 @@ func ValidateProductCategory(ctx context.Context, c fiber.Ctx) (*productCategory
 		return response, fiber.StatusBadRequest, err
 	}
 	response.ID = productCategoryID
-	var fiberErr *fiber.Error
-	if err = c.Bind().Body(response); errors.As(err, &fiberErr) {
+	err = c.Bind().Body(response)
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return response, fiberErr.Code, err
 	}

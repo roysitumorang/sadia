@@ -73,8 +73,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		Views:       engine,
 		ErrorHandler: func(ctx fiber.Ctx, err error) error {
 			statusCode := fiber.StatusInternalServerError
-			var e *fiber.Error
-			if errors.As(err, &e) {
+			if e, ok := errors.AsType[*fiber.Error](err); ok {
 				statusCode = e.Code
 			}
 			return helper.NewResponse(statusCode).SetMessage(err.Error()).WriteResponse(ctx)

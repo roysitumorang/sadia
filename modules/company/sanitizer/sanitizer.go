@@ -65,8 +65,7 @@ func ValidateCompany(ctx context.Context, c fiber.Ctx) (*companyModel.NewCompany
 	ctxt := "CompanySanitizer-ValidateCompany"
 	var response companyModel.NewCompany
 	err := c.Bind().Body(&response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
@@ -81,8 +80,7 @@ func ValidateDeactivation(ctx context.Context, c fiber.Ctx) (*companyModel.Deact
 	ctxt := "CompanySanitizer-ValidateDeactivation"
 	var response companyModel.Deactivation
 	err := c.Bind().Body(&response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
@@ -97,8 +95,7 @@ func ValidateUpdateCompany(ctx context.Context, c fiber.Ctx) (*companyModel.Upda
 	ctxt := "CompanySanitizer-ValidateUpdateCompany"
 	var response companyModel.UpdateCompany
 	err := c.Bind().Body(&response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}

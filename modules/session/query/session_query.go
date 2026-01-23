@@ -313,8 +313,7 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
 		}
-		var pgxErr *pgconn.PgError
-		if errors.As(err, &pgxErr) &&
+		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation &&
 			pgxErr.ConstraintName == "sessions_date_company_id_idx" {
 			err = sessionModel.ErrUniqueDateViolation

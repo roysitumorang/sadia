@@ -47,8 +47,7 @@ func ValidateTransaction(ctx context.Context, c fiber.Ctx) (*transactionModel.Tr
 	ctxt := "TransactionSanitizer-ValidateTransaction"
 	response := new(transactionModel.Transaction)
 	err := c.Bind().Body(response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return response, fiberErr.Code, err
 	}
@@ -100,8 +99,7 @@ func ValidateLineItem(ctx context.Context, c fiber.Ctx) (*transactionModel.LineI
 	ctxt := "TransactionSanitizer-ValidateLineItem"
 	response := new(transactionModel.LineItem)
 	err := c.Bind().Body(response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return response, fiberErr.Code, err
 	}

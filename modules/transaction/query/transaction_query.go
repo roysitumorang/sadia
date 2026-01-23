@@ -318,8 +318,7 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
 		}
-		var pgxErr *pgconn.PgError
-		if errors.As(err, &pgxErr) &&
+		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation &&
 			pgxErr.ConstraintName == "transactions_reference_no_key" {
 			err = transactionModel.ErrUniqueReferenceNoViolation

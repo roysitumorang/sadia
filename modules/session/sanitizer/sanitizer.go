@@ -48,8 +48,7 @@ func ValidateSession(ctx context.Context, c fiber.Ctx) (*sessionModel.Session, i
 	ctxt := "SessionSanitizer-ValidateSession"
 	response := new(sessionModel.Session)
 	err := c.Bind().Body(response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return response, fiberErr.Code, err
 	}
@@ -64,8 +63,7 @@ func ValidateSpending(ctx context.Context, c fiber.Ctx) (*sessionModel.Spending,
 	ctxt := "SessionSanitizer-ValidateSpending"
 	response := new(sessionModel.Spending)
 	err := c.Bind().Body(response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return response, fiberErr.Code, err
 	}

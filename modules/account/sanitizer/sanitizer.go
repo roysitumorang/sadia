@@ -64,8 +64,7 @@ func ValidateAccount(ctx context.Context, c fiber.Ctx) (*models.NewAccount, int,
 	ctxt := "AccountSanitizer-ValidateAccount"
 	var response models.NewAccount
 	err := c.Bind().Body(&response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
@@ -80,8 +79,7 @@ func ValidateAdmin(ctx context.Context, c fiber.Ctx) (*accountModel.NewAdmin, in
 	ctxt := "AccountSanitizer-ValidateAdmin"
 	var response accountModel.NewAdmin
 	err := c.Bind().Body(&response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
@@ -96,8 +94,7 @@ func ValidateUser(ctx context.Context, c fiber.Ctx) (*accountModel.NewUser, int,
 	ctxt := "AccountSanitizer-ValidateUser"
 	var response accountModel.NewUser
 	err := c.Bind().Body(&response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
@@ -112,8 +109,7 @@ func ValidateDeactivation(ctx context.Context, c fiber.Ctx) (*accountModel.Deact
 	ctxt := "AccountSanitizer-ValidateDeactivation"
 	var response accountModel.Deactivation
 	err := c.Bind().Body(&response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
@@ -128,8 +124,7 @@ func ValidateLogin(ctx context.Context, c fiber.Ctx) (*accountModel.LoginRequest
 	ctxt := "AccountSanitizer-ValidateLogin"
 	response := new(accountModel.LoginRequest)
 	err := c.Bind().Body(response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return response, fiberErr.Code, err
 	}
@@ -144,8 +139,7 @@ func ValidateConfirmation(ctx context.Context, c fiber.Ctx) (*accountModel.Confi
 	ctxt := "AccountSanitizer-ValidateConfirmation"
 	var response accountModel.Confirmation
 	err := c.Bind().Body(&response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
@@ -160,8 +154,7 @@ func ValidateForgotPassword(ctx context.Context, c fiber.Ctx) (*accountModel.For
 	ctxt := "AccountSanitizer-ValidateForgotPassword"
 	var response accountModel.ForgotPassword
 	err := c.Bind().Body(&response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
@@ -176,8 +169,7 @@ func ValidateResetPassword(ctx context.Context, c fiber.Ctx) (*accountModel.Rese
 	ctxt := "AccountSanitizer-ValidateResetPassword"
 	var response accountModel.ResetPassword
 	err := c.Bind().Body(&response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
@@ -192,8 +184,7 @@ func ValidateChangePassword(ctx context.Context, c fiber.Ctx) (*accountModel.Cha
 	ctxt := "AccountSanitizer-ValidateChangePassword"
 	var response accountModel.ChangePassword
 	err := c.Bind().Body(&response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
@@ -208,8 +199,7 @@ func ValidateChangeUsername(ctx context.Context, c fiber.Ctx) (*accountModel.Cha
 	ctxt := "AccountSanitizer-ValidateChangeUsername"
 	var response accountModel.ChangeUsername
 	err := c.Bind().Body(&response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
@@ -224,8 +214,7 @@ func ValidateChangeEmail(ctx context.Context, c fiber.Ctx) (*accountModel.Change
 	ctxt := "AccountSanitizer-ValidateChangeEmail"
 	var response accountModel.ChangeEmail
 	err := c.Bind().Body(&response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}
@@ -240,8 +229,7 @@ func ValidateChangePhone(ctx context.Context, c fiber.Ctx) (*accountModel.Change
 	ctxt := "AccountSanitizer-ValidateChangePhone"
 	var response accountModel.ChangePhone
 	err := c.Bind().Body(&response)
-	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return nil, fiberErr.Code, err
 	}

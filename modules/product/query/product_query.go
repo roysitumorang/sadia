@@ -285,8 +285,7 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 		&response.UpdatedBy,
 		&response.UpdatedAt,
 	); err != nil {
-		var pgxErr *pgconn.PgError
-		if errors.As(err, &pgxErr) &&
+		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
 			case "products_lower_company_id_idx":
@@ -369,8 +368,7 @@ func (q *productQuery) UpdateProduct(ctx context.Context, request *productModel.
 		&request.UpdatedAt,
 	)
 	if err != nil {
-		var pgxErr *pgconn.PgError
-		if errors.As(err, &pgxErr) &&
+		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
 			case "products_lower_company_id_idx":
@@ -446,8 +444,7 @@ func (q *productQuery) Import(ctx context.Context, products []productModel.Produ
 			if errRollback := tx.Rollback(ctx); errRollback != nil {
 				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
 			}
-			var pgxErr *pgconn.PgError
-			if errors.As(err, &pgxErr) &&
+			if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 				pgxErr.Code == pgerrcode.UniqueViolation {
 				switch pgxErr.ConstraintName {
 				case "products_lower_company_id_idx":

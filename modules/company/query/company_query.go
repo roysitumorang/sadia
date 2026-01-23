@@ -248,8 +248,7 @@ func (q *companyQuery) CreateCompany(ctx context.Context, tx pgx.Tx, request *co
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
 		}
-		var pgxErr *pgconn.PgError
-		if errors.As(err, &pgxErr) &&
+		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation &&
 			pgxErr.ConstraintName == "companies_slug_key" {
 			err = companyModel.ErrUniqueSlugViolation
@@ -310,8 +309,7 @@ func (q *companyQuery) UpdateCompany(ctx context.Context, tx pgx.Tx, request *co
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
 		}
-		var pgxErr *pgconn.PgError
-		if errors.As(err, &pgxErr) &&
+		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation &&
 			pgxErr.ConstraintName == "companies_slug_key" {
 			err = companyModel.ErrUniqueSlugViolation

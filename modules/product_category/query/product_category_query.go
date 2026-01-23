@@ -220,8 +220,7 @@ func (q *productCategoryQuery) CreateProductCategory(ctx context.Context, reques
 		&response.UpdatedBy,
 		&response.UpdatedAt,
 	); err != nil {
-		var pgxErr *pgconn.PgError
-		if errors.As(err, &pgxErr) &&
+		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
 			case "product_categories_lower_company_id_idx":
@@ -272,8 +271,7 @@ func (q *productCategoryQuery) UpdateProductCategory(ctx context.Context, reques
 		&request.UpdatedAt,
 	)
 	if err != nil {
-		var pgxErr *pgconn.PgError
-		if errors.As(err, &pgxErr) &&
+		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
 			case "product_categories_lower_company_id_idx":
