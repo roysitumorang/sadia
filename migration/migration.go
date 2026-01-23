@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -71,12 +71,8 @@ func (m *Migration) Migrate(ctx context.Context) error {
 		i++
 	}
 	if len(sortedVersions) > 0 {
-		sort.Slice(
-			sortedVersions,
-			func(i, j int) bool {
-				return sortedVersions[i] < sortedVersions[j]
-			},
-		)
+		slices.Sort(
+			sortedVersions)
 	}
 	tx, err := m.dbWrite.Begin(ctx)
 	if err != nil {
