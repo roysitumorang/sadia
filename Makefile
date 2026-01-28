@@ -1,6 +1,6 @@
 PROJECTNAME=$(shell basename "$(PWD)")
 GOBASE=$(shell pwd)
-PORT_HTTP=3000
+PORT_HTTP=`cat .env | grep ^PORT= | sed -e 's/^PORT=//'`
 
 .PHONY: all build
 
