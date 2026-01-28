@@ -1,0 +1,61 @@
+{{ include "../partials/header" }}
+
+<h2><a href="/transaction">Transaction</a> > {{ transaction.ReferenceNo }} </h2>
+<fieldset>
+    <table class="table table-striped table-hover table-condensed">
+        <thead>
+            <tr>
+                <th class="text-center">No</th>
+                <th class="text-center">Name</th>
+                <th class="text-center">Price</th>
+                <th class="text-center">Quantity</th>
+                <th class="text-center">Sub Total</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{ range i, item := transaction.LineItems }}
+            <tr class="text-nowrap">
+                <td>{{ i + 1 }}</td>
+                <td>{{ item.ProductName }}</td>
+                <td>{{ item.SellingPrice | Comma }}</td>
+                <td>{{ item.Quantity | Comma }}"</td>
+                <td>{{ item.SubTotal | Comma }}</td>
+            </tr>
+        {{ end }}
+        </tbody>
+        <thead>
+            <tr>
+                <th class="text-center">&nbsp;</th>
+                <th class="text-center">&nbsp;</th>
+                <th class="text-center">&nbsp;</th>
+                <th class="text-center">&nbsp;</th>
+                <th class="text-center">&nbsp;</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="text-nowrap">
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>Total</td>
+                <td>{{ transaction.SubTotal | Comma }}</td>
+            </tr>
+            <tr class="text-nowrap">
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>Discount</td>
+                <td>{{ transaction.Discount | Comma }}</td>
+            </tr>
+            <tr class="text-nowrap">
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>Total</td>
+                <td>{{ transaction.Total | Comma }}</td>
+            </tr>
+        </tbody>
+    </table>
+</fieldset>
+
+{{ include "../partials/footer" }}

@@ -70,6 +70,7 @@ func (q *transactionHTTPHandler) Mount(r fiber.Router) {
 	r.Get("", userSessionAuth, q.userIndex).
 		Get("/new", userSessionAuth, q.userNew).
 		Post("", userSessionAuth, q.userCreate).
+		Get("/:id", userSessionAuth, q.userShow).
 		Post("/cart/line-item", userSessionAuth, q.userCreateCartLineItem).
 		Get("/cart/line-item/:id/delete", userSessionAuth, q.userRemoveCartLineItem)
 }
@@ -439,6 +440,48 @@ func (q *transactionHTTPHandler) userCreate(c fiber.Ctx) error {
 	}
 	sess.Set(transactionModel.CurrentCart, cart)
 	return flash.Success("transaction created successfully").Redirect(c, sess.Session, "/transaction")
+}
+
+func (q *transactionHTTPHandler) userShow(c fiber.Ctx) error {
+	ctxt := "TransactionPresenter-userShow"
+	ctx := c.Context()
+	sess := session.FromContext(c)
+	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
+	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
+	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
+	if !ok {
+		flash = helper.NewFlashMessage()
+	}
+	transactionID, err := utils.ParseInt(c.Params("id"))
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+		return flash.Danger("transaction not found").Redirect(c, sess.Session, "/transaction")
+	}
+	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
+	transactions, _, err := q.transactionUseCase.FindTransactions(
+		ctx,
+		transactionModel.NewFilter(
+			transactionModel.WithCompanyIDs(currentCompany.ID),
+			transactionModel.WithTransactionIDs(transactionID),
+		),
+	)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindTransactions")
+		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if len(transactions) == 0 {
+		return flash.Danger("transaction not found").Redirect(c, sess.Session, "/transaction")
+	}
+	transaction := transactions[0]
+	defer flash.Clear(c, sess.Session)
+	return c.Render("transaction/show", fiber.Map{
+		"authenticated":  true,
+		"currentUser":    currentUser,
+		"flash":          flash,
+		"currentCompany": currentCompany,
+		"transaction":    transaction,
+		"cart":           cart,
+	})
 }
 
 func (q *transactionHTTPHandler) userCreateCartLineItem(c fiber.Ctx) error {

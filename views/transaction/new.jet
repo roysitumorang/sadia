@@ -22,9 +22,9 @@
                         {{ i + 1 }}
                     </td>
                     <td>{{ item.ProductName }}</td>
-                    <td>{{ item.SellingPrice }}</td>
+                    <td>{{ item.SellingPrice | Comma }}</td>
                     <td><input type="number" name="line_items[][quantity]" value="{{ item.Quantity }}" min="1" max="{{ item.Stock }}"></td>
-                    <td>{{ item.SubTotal }}</td>
+                    <td>{{ item.SubTotal | Comma }}</td>
                     <td><a type="button" href="/transaction/cart/line-item/{{ item.ProductID }}/delete" class="btn btn-danger"><i class="fa fa-trash">&nbsp;</i>Remove</a></td>
                 </tr>
             {{ end }}
@@ -45,7 +45,7 @@
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
                     <td>Total</td>
-                    <td>{{ request.SubTotal }}</td>
+                    <td>{{ request.SubTotal | Comma }}</td>
                     <td>&nbsp;</td>
                 </tr>
                 <tr class="text-nowrap">
@@ -61,10 +61,10 @@
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
                     <td>Total</td>
-                    <td>{{ request.Total }}</td>
+                    <td>{{ request.Total | Comma }}</td>
                     <td>&nbsp;</td>
                 </tr>
-                    <tr class="text-nowrap">
+                <tr class="text-nowrap">
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
@@ -74,6 +74,7 @@
                         <button type="submit" class="btn btn-primary">Submit</button>
                         <button type="reset" class="btn btn-secondary">Reset</button>
                     </td>
+                </tr>
             </tbody>
         </table>
     </fieldset>
