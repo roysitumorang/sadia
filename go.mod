@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/getsentry/sentry-go v0.41.0
+	github.com/getsentry/sentry-go v0.42.0
 	github.com/goccy/go-json v0.10.5
 	github.com/gofiber/contrib/v3/monitor v1.0.0-rc.1
 	github.com/gofiber/contrib/v3/sentry v1.0.0-rc.1
