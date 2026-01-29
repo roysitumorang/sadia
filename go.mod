@@ -15,7 +15,7 @@ require (
 	github.com/gofiber/swagger/v2 v2.0.0-20251031122725-30bc194ed26e
 	github.com/gofiber/template/jet/v3 v3.0.1
 	github.com/gofiber/utils/v2 v2.0.0-rc.6
-	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/govalues/decimal v0.1.36
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
