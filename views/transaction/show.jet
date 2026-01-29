@@ -18,7 +18,7 @@
                 <td>{{ i + 1 }}</td>
                 <td>{{ item.ProductName }}</td>
                 <td>{{ item.SellingPrice | Comma }}</td>
-                <td>{{ item.Quantity | Comma }}"</td>
+                <td>{{ item.Quantity | Comma }}</td>
                 <td>{{ item.SubTotal | Comma }}</td>
             </tr>
         {{ end }}

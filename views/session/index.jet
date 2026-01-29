@@ -26,10 +26,10 @@
             <td>{{ item.RowNo }}</td>
             <td>{{ item.Date }}</td>
             <td>{{ if item.Status == 1 }}closed{{ else }}on going{{ end }}</td>
-            <td>{{ item.CashboxValue }}</td>
+            <td>{{ item.CashboxValue | Comma }}</td>
             <td>{{ if item.CashboxNote }}{{ item.CashboxNote }}{{ else }}-{{ end }}</td>
-            <td>{{ item.TransactionValue }}</td>
-            <td>{{ item.SpendingValue }}</td>
+            <td>{{ item.TransactionValue | Comma }}</td>
+            <td>{{ item.SpendingValue | Comma }}</td>
             <td><a type="button" href="/session/{{ item.ID }}" class="btn btn-primary"><i class="fa fa-edit">&nbsp;</i>Show</a></td>
         </tr>
     {{ end }}
