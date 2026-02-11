@@ -15,6 +15,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/gofiber/contrib/v3/monitor"
 	fibersentry "github.com/gofiber/contrib/v3/sentry"
+	"github.com/gofiber/contrib/v3/swaggo"
 	fiberzap "github.com/gofiber/contrib/v3/zap"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/compress"
@@ -24,7 +25,6 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/requestid"
 	"github.com/gofiber/fiber/v3/middleware/rewrite"
 	"github.com/gofiber/fiber/v3/middleware/session"
-	"github.com/gofiber/swagger/v2"
 	"github.com/gofiber/template/jet/v3"
 	"github.com/gofiber/utils/v2"
 	"github.com/joho/godotenv"
@@ -128,7 +128,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	app.Use(middlewares...)
 	basicAuth := middleware.BasicAuth()
 	if debug {
-		app.Get("/swagger/*", swagger.HandlerDefault)
+		app.Get("/swagger/*", swaggo.HandlerDefault)
 	}
 	app.Get("/ping", func(c fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusOK).
