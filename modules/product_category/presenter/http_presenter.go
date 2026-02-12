@@ -327,6 +327,7 @@ func (q *productCategoryHTTPHandler) userCreate(c fiber.Ctx) error {
 	}
 	request.CompanyID = currentUser.CompanyID
 	request.CreatedBy = currentUser.ID
+	request.CreatedAt = time.Now()
 	tx, err := helper.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")

@@ -37,6 +37,7 @@ import (
 	companyModel "github.com/roysitumorang/sadia/modules/company/model"
 	companyPresenter "github.com/roysitumorang/sadia/modules/company/presenter"
 	jwtPresenter "github.com/roysitumorang/sadia/modules/jwt/presenter"
+	logPresenter "github.com/roysitumorang/sadia/modules/log/presenter"
 	productPresenter "github.com/roysitumorang/sadia/modules/product/presenter"
 	productCategoryPresenter "github.com/roysitumorang/sadia/modules/product_category/presenter"
 	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
@@ -155,6 +156,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	jwtPresenter.New(q.JwtUseCase, q.AccountUseCase).Mount(app.Group("/jwt"))
 	accountPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/account"))
 	companyPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/company"))
+	logPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.LogUseCase).Mount(app.Group("/log"))
 	productCategoryPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductCategoryUseCase, q.LogUseCase).Mount(app.Group("/product_category"))
 	productPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductCategoryUseCase, q.ProductUseCase).Mount(app.Group("/product"))
 	sessionPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/session"))

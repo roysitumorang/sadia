@@ -43,6 +43,14 @@ type (
 	FilterOption func(q *Filter)
 )
 
+func NewFilter(options ...FilterOption) *Filter {
+	filter := &Filter{UrlValues: url.Values{}}
+	for _, option := range options {
+		option(filter)
+	}
+	return filter
+}
+
 func WithLogIDs(logIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.LogIDs = logIDs
