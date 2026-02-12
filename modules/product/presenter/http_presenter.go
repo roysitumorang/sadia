@@ -377,7 +377,7 @@ func (q *productHTTPHandler) userCreate(c fiber.Ctx) error {
 			"cart":              cart,
 		})
 	}
-	return flash.Success("product created successfully").Redirect(c, sess.Session, "/product")
+	return flash.Clear(c, sess.Session).Success("product created successfully").Redirect(c, sess.Session, "/product")
 }
 
 func (q *productHTTPHandler) userEdit(c fiber.Ctx) error {
@@ -562,5 +562,5 @@ func (q *productHTTPHandler) userUpdate(c fiber.Ctx) error {
 			})
 		}
 	}
-	return flash.Success("product updated successfully").Redirect(c, sess.Session, "/product")
+	return flash.Clear(c, sess.Session).Success("product updated successfully").Redirect(c, sess.Session, "/product")
 }
