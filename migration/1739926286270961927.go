@@ -239,42 +239,6 @@ func init() {
 		}
 		if _, err = tx.Exec(
 			ctx,
-			`CREATE TABLE logs (
-				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
-				, table_name character varying NOT NULL
-				, table_id UUID NOT NULL
-				, activity character varying NOT NULL
-				, changes jsonb NOT NULL
-				, created_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
-				, created_at timestamp with time zone NOT NULL
-			)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
-			`CREATE INDEX ON logs (table_name)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
-			`CREATE INDEX ON logs (table_id)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
-			`CREATE INDEX ON logs (created_by)`,
-		); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			return
-		}
-		if _, err = tx.Exec(
-			ctx,
 			`CREATE TABLE companies (
 				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
 				, name character varying NOT NULL
@@ -330,6 +294,50 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE INDEX ON companies (deactivated_by)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE TABLE logs (
+				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
+				, company_id UUID NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, table_name character varying NOT NULL
+				, table_id UUID NOT NULL
+				, activity character varying NOT NULL
+				, changes jsonb NOT NULL
+				, created_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, created_at timestamp with time zone NOT NULL
+			)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON logs (company_id)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON logs (table_name)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON logs (table_id)`,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			return
+		}
+		if _, err = tx.Exec(
+			ctx,
+			`CREATE INDEX ON logs (created_by)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
