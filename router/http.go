@@ -155,7 +155,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	jwtPresenter.New(q.JwtUseCase, q.AccountUseCase).Mount(app.Group("/jwt"))
 	accountPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/account"))
 	companyPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/company"))
-	productCategoryPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductCategoryUseCase).Mount(app.Group("/product_category"))
+	productCategoryPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductCategoryUseCase, q.LogUseCase).Mount(app.Group("/product_category"))
 	productPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductCategoryUseCase, q.ProductUseCase).Mount(app.Group("/product"))
 	sessionPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/session"))
 	transactionPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductUseCase, q.SequenceUseCase, q.TransactionUseCase).Mount(app.Group("/transaction"))

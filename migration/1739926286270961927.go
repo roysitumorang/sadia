@@ -305,8 +305,8 @@ func init() {
 				, company_id UUID NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, table_name character varying NOT NULL
 				, table_id UUID NOT NULL
-				, activity character varying NOT NULL
-				, changes jsonb NOT NULL
+				, action character varying NOT NULL
+				, changes jsonb
 				, created_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
 			)`,

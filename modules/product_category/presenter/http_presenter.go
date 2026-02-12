@@ -1,6 +1,8 @@
 package presenter
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/roysitumorang/sadia/helper"
@@ -10,6 +12,8 @@ import (
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
 	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
+	logModel "github.com/roysitumorang/sadia/modules/log/model"
+	logUseCase "github.com/roysitumorang/sadia/modules/log/usecase"
 	productCategoryModel "github.com/roysitumorang/sadia/modules/product_category/model"
 	"github.com/roysitumorang/sadia/modules/product_category/sanitizer"
 	productCategoryUseCase "github.com/roysitumorang/sadia/modules/product_category/usecase"
@@ -25,6 +29,7 @@ type (
 		companyUseCase         companyUseCase.CompanyUseCase
 		sessionUseCase         sessionUseCase.SessionUseCase
 		productCategoryUseCase productCategoryUseCase.ProductCategoryUseCase
+		logUseCase             logUseCase.LogUseCase
 	}
 )
 
@@ -34,6 +39,7 @@ func New(
 	companyUseCase companyUseCase.CompanyUseCase,
 	sessionUseCase sessionUseCase.SessionUseCase,
 	productCategoryUseCase productCategoryUseCase.ProductCategoryUseCase,
+	logUseCase logUseCase.LogUseCase,
 ) *productCategoryHTTPHandler {
 	return &productCategoryHTTPHandler{
 		jwtUseCase:             jwtUseCase,
@@ -41,6 +47,7 @@ func New(
 		companyUseCase:         companyUseCase,
 		sessionUseCase:         sessionUseCase,
 		productCategoryUseCase: productCategoryUseCase,
+		logUseCase:             logUseCase,
 	}
 }
 
@@ -92,9 +99,37 @@ func (q *productCategoryHTTPHandler) UserCreateProductCategory(c fiber.Ctx) erro
 	}
 	request.CompanyID = currentUser.CompanyID
 	request.CreatedBy = currentUser.ID
-	response, err := q.productCategoryUseCase.CreateProductCategory(ctx, request)
+	request.CreatedAt = time.Now()
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	response, err := q.productCategoryUseCase.CreateProductCategory(ctx, tx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateProductCategory")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	log := &logModel.Log{
+		CompanyID: currentUser.CompanyID,
+		TableName: productCategoryModel.TableName,
+		TableID:   response.ID,
+		Action:    logModel.ActionCreate,
+		Changes: &logModel.Changes{
+			New: map[string]any{
+				"name": response.Name,
+				"slug": response.Slug,
+			},
+		},
+		CreatedBy: currentUser.ID,
+		CreatedAt: response.CreatedAt,
+	}
+	if _, err = q.logUseCase.CreateLog(ctx, tx, log); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateLog")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
@@ -144,19 +179,55 @@ func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c fiber.Ctx) erro
 	if len(productCategories) == 0 {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("category not found").WriteResponse(c)
 	}
-	productCategory := productCategories[0]
-	if productCategory.Name == request.Name &&
-		productCategory.Slug == request.Slug {
-		return helper.NewResponse(fiber.StatusOK).SetData(productCategory).WriteResponse(c)
+	existing := productCategories[0]
+	changes := logModel.Changes{
+		Old: map[string]any{},
+		New: map[string]any{},
 	}
-	productCategory.Name = request.Name
-	productCategory.Slug = request.Slug
-	productCategory.UpdatedBy = currentUser.ID
-	if err = q.productCategoryUseCase.UpdateProductCategory(ctx, productCategory); err != nil {
+	nameChanged := existing.Name != request.Name
+	if nameChanged {
+		changes.Old["name"] = existing.Name
+		changes.New["name"] = request.Name
+	}
+	slugChanged := existing.Slug != request.Slug
+	if slugChanged {
+		changes.Old["slug"] = existing.Slug
+		changes.New["slug"] = request.Slug
+	}
+	if nameChanged || slugChanged {
+		return helper.NewResponse(fiber.StatusOK).SetData(existing).WriteResponse(c)
+	}
+	request.ID = existing.ID
+	request.UpdatedBy = currentUser.ID
+	request.UpdatedAt = time.Now()
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	saved, err := q.productCategoryUseCase.UpdateProductCategory(ctx, tx, request)
+	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateProductCategory")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	return helper.NewResponse(fiber.StatusOK).SetData(productCategory).WriteResponse(c)
+	log := &logModel.Log{
+		CompanyID: currentUser.CompanyID,
+		TableName: productCategoryModel.TableName,
+		TableID:   saved.ID,
+		Action:    logModel.ActionUpdate,
+		Changes:   &changes,
+		CreatedBy: currentUser.ID,
+		CreatedAt: saved.UpdatedAt,
+	}
+	if _, err = q.logUseCase.CreateLog(ctx, tx, log); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateLog")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
+		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
+	}
+	return helper.NewResponse(fiber.StatusOK).SetData(existing).WriteResponse(c)
 }
 
 func (q *productCategoryHTTPHandler) userIndex(c fiber.Ctx) error {
@@ -257,8 +328,57 @@ func (q *productCategoryHTTPHandler) userCreate(c fiber.Ctx) error {
 	}
 	request.CompanyID = currentUser.CompanyID
 	request.CreatedBy = currentUser.ID
-	if _, err = q.productCategoryUseCase.CreateProductCategory(ctx, request); err != nil {
+	tx, err := helper.BeginTx(ctx)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("product_category/new", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash.Danger(err.Error()),
+			"request":       request,
+			"cart":          cart,
+		})
+	}
+	productCategory, err := q.productCategoryUseCase.CreateProductCategory(ctx, tx, request)
+	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateProductCategory")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("product_category/new", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash.Danger(err.Error()),
+			"request":       request,
+			"cart":          cart,
+		})
+	}
+	log := &logModel.Log{
+		CompanyID: currentUser.CompanyID,
+		TableName: productCategoryModel.TableName,
+		TableID:   productCategory.ID,
+		Action:    logModel.ActionCreate,
+		Changes: &logModel.Changes{
+			New: map[string]any{
+				"name": productCategory.Name,
+				"slug": productCategory.Slug,
+			},
+		},
+		CreatedBy: currentUser.ID,
+		CreatedAt: productCategory.CreatedAt,
+	}
+	if _, err = q.logUseCase.CreateLog(ctx, tx, log); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateLog")
+		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+		return c.Render("product_category/new", fiber.Map{
+			"authenticated": true,
+			"currentUser":   currentUser,
+			"flash":         flash.Danger(err.Error()),
+			"request":       request,
+			"cart":          cart,
+		})
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
 		return c.Render("product_category/new", fiber.Map{
 			"authenticated": true,
@@ -356,14 +476,71 @@ func (q *productCategoryHTTPHandler) userUpdate(c fiber.Ctx) error {
 	if len(productCategories) == 0 {
 		return flash.Danger("category not found").Redirect(c, sess.Session, "/product_category")
 	}
-	productCategory := productCategories[0]
-	if productCategory.Name != request.Name ||
-		productCategory.Slug != request.Slug {
-		productCategory.Name = request.Name
-		productCategory.Slug = request.Slug
-		productCategory.UpdatedBy = currentUser.ID
-		if err = q.productCategoryUseCase.UpdateProductCategory(ctx, productCategory); err != nil {
+	existing := productCategories[0]
+	changes := logModel.Changes{
+		Old: map[string]any{},
+		New: map[string]any{},
+	}
+	nameChanged := existing.Name != request.Name
+	if nameChanged {
+		changes.Old["name"] = existing.Name
+		changes.New["name"] = request.Name
+	}
+	slugChanged := existing.Slug != request.Slug
+	if slugChanged {
+		changes.Old["slug"] = existing.Slug
+		changes.New["slug"] = request.Slug
+	}
+	if nameChanged || slugChanged {
+		request.ID = existing.ID
+		request.UpdatedBy = currentUser.ID
+		request.UpdatedAt = time.Now()
+		tx, err := helper.BeginTx(ctx)
+		if err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
+			c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+			return c.Render("product_category/edit", fiber.Map{
+				"authenticated": true,
+				"currentUser":   currentUser,
+				"flash":         flash.Danger(err.Error()),
+				"request":       request,
+				"cart":          cart,
+			})
+		}
+		saved, err := q.productCategoryUseCase.UpdateProductCategory(ctx, tx, request)
+		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateProductCategory")
+			c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+			return c.Render("product_category/edit", fiber.Map{
+				"authenticated": true,
+				"currentUser":   currentUser,
+				"flash":         flash.Danger(err.Error()),
+				"request":       request,
+				"cart":          cart,
+			})
+		}
+		log := &logModel.Log{
+			CompanyID: currentUser.CompanyID,
+			TableName: productCategoryModel.TableName,
+			TableID:   saved.ID,
+			Action:    logModel.ActionUpdate,
+			Changes:   &changes,
+			CreatedBy: currentUser.ID,
+			CreatedAt: saved.UpdatedAt,
+		}
+		if _, err = q.logUseCase.CreateLog(ctx, tx, log); err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateLog")
+			c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
+			return c.Render("product_category/edit", fiber.Map{
+				"authenticated": true,
+				"currentUser":   currentUser,
+				"flash":         flash.Danger(err.Error()),
+				"request":       request,
+				"cart":          cart,
+			})
+		}
+		if err = tx.Commit(ctx); err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 			c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
 			return c.Render("product_category/edit", fiber.Map{
 				"authenticated": true,

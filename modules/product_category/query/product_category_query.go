@@ -5,7 +5,6 @@ import (
 	"errors"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/govalues/decimal"
 	"github.com/jackc/pgerrcode"
@@ -179,11 +178,10 @@ func (q *productCategoryQuery) FindProductCategories(ctx context.Context, filter
 	return response, total, pages, nil
 }
 
-func (q *productCategoryQuery) CreateProductCategory(ctx context.Context, request *productCategoryModel.ProductCategory) (*productCategoryModel.ProductCategory, error) {
+func (q *productCategoryQuery) CreateProductCategory(ctx context.Context, tx pgx.Tx, request *productCategoryModel.ProductCategory) (*productCategoryModel.ProductCategory, error) {
 	ctxt := "ProductCategoryQuery-CreateProductCategory"
-	now := time.Now()
 	var response productCategoryModel.ProductCategory
-	if err := q.dbWrite.QueryRow(
+	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO product_categories (
 			company_id
@@ -206,7 +204,7 @@ func (q *productCategoryQuery) CreateProductCategory(ctx context.Context, reques
 		request.Name,
 		request.Slug,
 		request.CreatedBy,
-		now,
+		request.CreatedAt,
 	).Scan(
 		&response.ID,
 		&response.CompanyID,
@@ -217,6 +215,9 @@ func (q *productCategoryQuery) CreateProductCategory(ctx context.Context, reques
 		&response.UpdatedBy,
 		&response.UpdatedAt,
 	); err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
@@ -233,10 +234,10 @@ func (q *productCategoryQuery) CreateProductCategory(ctx context.Context, reques
 	return &response, nil
 }
 
-func (q *productCategoryQuery) UpdateProductCategory(ctx context.Context, request *productCategoryModel.ProductCategory) error {
+func (q *productCategoryQuery) UpdateProductCategory(ctx context.Context, tx pgx.Tx, request *productCategoryModel.ProductCategory) (*productCategoryModel.ProductCategory, error) {
 	ctxt := "ProductCategoryQuery-UpdateProductCategory"
-	now := time.Now()
-	err := q.dbWrite.QueryRow(
+	var response productCategoryModel.ProductCategory
+	err := tx.QueryRow(
 		ctx,
 		`UPDATE product_categories SET
 			name = $1
@@ -255,19 +256,22 @@ func (q *productCategoryQuery) UpdateProductCategory(ctx context.Context, reques
 		request.Name,
 		request.Slug,
 		request.UpdatedBy,
-		now,
+		request.UpdatedAt,
 		request.ID,
 	).Scan(
-		&request.ID,
-		&request.CompanyID,
-		&request.Name,
-		&request.Slug,
-		&request.CreatedBy,
-		&request.CreatedAt,
-		&request.UpdatedBy,
-		&request.UpdatedAt,
+		&response.ID,
+		&response.CompanyID,
+		&response.Name,
+		&response.Slug,
+		&response.CreatedBy,
+		&response.CreatedAt,
+		&response.UpdatedBy,
+		&response.UpdatedAt,
 	)
 	if err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
@@ -279,6 +283,7 @@ func (q *productCategoryQuery) UpdateProductCategory(ctx context.Context, reques
 		} else {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		}
+		return nil, err
 	}
-	return err
+	return &response, nil
 }

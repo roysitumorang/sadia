@@ -9,6 +9,10 @@ import (
 	"github.com/roysitumorang/sadia/models"
 )
 
+const (
+	TableName = "product_categories"
+)
+
 type (
 	ProductCategory struct {
 		RowNo     uint64    `json:"row_no,omitempty" form:"-"`

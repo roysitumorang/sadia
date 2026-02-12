@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	productCategoryModel "github.com/roysitumorang/sadia/modules/product_category/model"
@@ -44,22 +45,22 @@ func (q *productCategoryUseCase) FindProductCategories(ctx context.Context, filt
 	return rows, pagination, nil
 }
 
-func (q *productCategoryUseCase) CreateProductCategory(ctx context.Context, request *productCategoryModel.ProductCategory) (*productCategoryModel.ProductCategory, error) {
+func (q *productCategoryUseCase) CreateProductCategory(ctx context.Context, tx pgx.Tx, request *productCategoryModel.ProductCategory) (*productCategoryModel.ProductCategory, error) {
 	ctxt := "ProductCategoryUseCase-CreateProductCategory"
-	response, err := q.productCategoryQuery.CreateProductCategory(ctx, request)
+	response, err := q.productCategoryQuery.CreateProductCategory(ctx, tx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateProductCategory")
 	}
 	return response, err
 }
 
-func (q *productCategoryUseCase) UpdateProductCategory(ctx context.Context, request *productCategoryModel.ProductCategory) error {
+func (q *productCategoryUseCase) UpdateProductCategory(ctx context.Context, tx pgx.Tx, request *productCategoryModel.ProductCategory) (*productCategoryModel.ProductCategory, error) {
 	ctxt := "ProductCategoryUseCase-UpdateProductCategory"
-	err := q.productCategoryQuery.UpdateProductCategory(ctx, request)
+	response, err := q.productCategoryQuery.UpdateProductCategory(ctx, tx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateProductCategory")
 	}
-	return err
+	return response, err
 }
 
 func (q *productCategoryUseCase) ConsumeMessage(ctx context.Context, topic string, message []byte) error {

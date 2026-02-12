@@ -21,6 +21,8 @@ import (
 	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
 	jwtQuery "github.com/roysitumorang/sadia/modules/jwt/query"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
+	logQuery "github.com/roysitumorang/sadia/modules/log/query"
+	logUseCase "github.com/roysitumorang/sadia/modules/log/usecase"
 	productQuery "github.com/roysitumorang/sadia/modules/product/query"
 	productUseCase "github.com/roysitumorang/sadia/modules/product/usecase"
 	productCategoryQuery "github.com/roysitumorang/sadia/modules/product_category/query"
@@ -44,6 +46,7 @@ type (
 		AccountUseCase         accountUseCase.AccountUseCase
 		JwtUseCase             jwtUseCase.JwtUseCase
 		CompanyUseCase         companyUseCase.CompanyUseCase
+		LogUseCase             logUseCase.LogUseCase
 		ProductCategoryUseCase productCategoryUseCase.ProductCategoryUseCase
 		ProductUseCase         productUseCase.ProductUseCase
 		SessionUseCase         sessionUseCase.SessionUseCase
@@ -88,6 +91,7 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 	accountQuery := accountQuery.New(dbRead, dbWrite)
 	jwtQuery := jwtQuery.New(dbRead, dbWrite)
 	companyQuery := companyQuery.New(dbRead, dbWrite)
+	logQuery := logQuery.New(dbRead, dbWrite)
 	productCategoryQuery := productCategoryQuery.New(dbRead, dbWrite)
 	productQuery := productQuery.New(dbRead, dbWrite)
 	sessionQuery := sessionQuery.New(dbRead, dbWrite)
@@ -96,6 +100,7 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 	accountUseCase := accountUseCase.New(accountQuery)
 	jwtUseCase := jwtUseCase.New(jwtQuery)
 	companyUseCase := companyUseCase.New(companyQuery)
+	logUseCase := logUseCase.New(logQuery)
 	productCategoryUseCase := productCategoryUseCase.New(productCategoryQuery)
 	productUseCase := productUseCase.New(productQuery)
 	sessionUseCase := sessionUseCase.New(sessionQuery)
@@ -108,6 +113,7 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		Storage:                storage,
 		AccountUseCase:         accountUseCase,
 		JwtUseCase:             jwtUseCase,
+		LogUseCase:             logUseCase,
 		CompanyUseCase:         companyUseCase,
 		ProductCategoryUseCase: productCategoryUseCase,
 		ProductUseCase:         productUseCase,
