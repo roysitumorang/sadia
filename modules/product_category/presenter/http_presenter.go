@@ -115,11 +115,9 @@ func (q *productCategoryHTTPHandler) UserCreateProductCategory(c fiber.Ctx) erro
 		TableName: productCategoryModel.TableName,
 		TableID:   response.ID,
 		Action:    logModel.ActionCreate,
-		Changes: &logModel.Changes{
-			New: map[string]any{
-				"name": response.Name,
-				"slug": response.Slug,
-			},
+		Changes: map[string]logModel.Change{
+			"name": {New: response.Name},
+			"slug": {New: response.Slug},
 		},
 		CreatedBy: currentUser.ID,
 		CreatedAt: response.CreatedAt,
@@ -180,19 +178,20 @@ func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c fiber.Ctx) erro
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("category not found").WriteResponse(c)
 	}
 	existing := productCategories[0]
-	changes := logModel.Changes{
-		Old: map[string]any{},
-		New: map[string]any{},
-	}
+	changes := map[string]logModel.Change{}
 	nameChanged := existing.Name != request.Name
 	if nameChanged {
-		changes.Old["name"] = existing.Name
-		changes.New["name"] = request.Name
+		changes["name"] = logModel.Change{
+			Old: existing.Name,
+			New: request.Name,
+		}
 	}
 	slugChanged := existing.Slug != request.Slug
 	if slugChanged {
-		changes.Old["slug"] = existing.Slug
-		changes.New["slug"] = request.Slug
+		changes["slug"] = logModel.Change{
+			Old: existing.Slug,
+			New: request.Slug,
+		}
 	}
 	if nameChanged || slugChanged {
 		return helper.NewResponse(fiber.StatusOK).SetData(existing).WriteResponse(c)
@@ -215,7 +214,7 @@ func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c fiber.Ctx) erro
 		TableName: productCategoryModel.TableName,
 		TableID:   saved.ID,
 		Action:    logModel.ActionUpdate,
-		Changes:   &changes,
+		Changes:   changes,
 		CreatedBy: currentUser.ID,
 		CreatedAt: saved.UpdatedAt,
 	}
@@ -357,11 +356,9 @@ func (q *productCategoryHTTPHandler) userCreate(c fiber.Ctx) error {
 		TableName: productCategoryModel.TableName,
 		TableID:   productCategory.ID,
 		Action:    logModel.ActionCreate,
-		Changes: &logModel.Changes{
-			New: map[string]any{
-				"name": productCategory.Name,
-				"slug": productCategory.Slug,
-			},
+		Changes: map[string]logModel.Change{
+			"name": {New: productCategory.Name},
+			"slug": {New: productCategory.Slug},
 		},
 		CreatedBy: currentUser.ID,
 		CreatedAt: productCategory.CreatedAt,
@@ -477,19 +474,20 @@ func (q *productCategoryHTTPHandler) userUpdate(c fiber.Ctx) error {
 		return flash.Danger("category not found").Redirect(c, sess.Session, "/product_category")
 	}
 	existing := productCategories[0]
-	changes := logModel.Changes{
-		Old: map[string]any{},
-		New: map[string]any{},
-	}
+	changes := map[string]logModel.Change{}
 	nameChanged := existing.Name != request.Name
 	if nameChanged {
-		changes.Old["name"] = existing.Name
-		changes.New["name"] = request.Name
+		changes["name"] = logModel.Change{
+			Old: existing.Name,
+			New: request.Name,
+		}
 	}
 	slugChanged := existing.Slug != request.Slug
 	if slugChanged {
-		changes.Old["slug"] = existing.Slug
-		changes.New["slug"] = request.Slug
+		changes["slug"] = logModel.Change{
+			Old: existing.Slug,
+			New: request.Slug,
+		}
 	}
 	if nameChanged || slugChanged {
 		request.ID = existing.ID
@@ -524,7 +522,7 @@ func (q *productCategoryHTTPHandler) userUpdate(c fiber.Ctx) error {
 			TableName: productCategoryModel.TableName,
 			TableID:   saved.ID,
 			Action:    logModel.ActionUpdate,
-			Changes:   &changes,
+			Changes:   changes,
 			CreatedBy: currentUser.ID,
 			CreatedAt: saved.UpdatedAt,
 		}

@@ -13,20 +13,20 @@ const (
 
 type (
 	Log struct {
-		RowNo     uint64    `json:"row_no,omitempty" form:"-"`
-		ID        string    `json:"id" form:"-"`
-		CompanyID string    `json:"-" form:"-"`
-		TableName string    `json:"-" form:"-"`
-		TableID   string    `json:"-" form:"-"`
-		Action    string    `json:"activity" form:"-"`
-		Changes   *Changes  `json:"changes" form:"-"`
-		CreatedBy string    `json:"-" form:"-"`
-		CreatedAt time.Time `json:"-" form:"-"`
+		RowNo     uint64            `json:"row_no,omitempty" form:"-"`
+		ID        string            `json:"id" form:"-"`
+		CompanyID string            `json:"-" form:"-"`
+		TableName string            `json:"-" form:"-"`
+		TableID   string            `json:"-" form:"-"`
+		Action    string            `json:"activity" form:"-"`
+		Changes   map[string]Change `json:"changes" form:"-"`
+		CreatedBy string            `json:"-" form:"-"`
+		CreatedAt time.Time         `json:"-" form:"-"`
 	}
 
-	Changes struct {
-		Old map[string]any `json:"old,omitempty" form:"-"`
-		New map[string]any `json:"new" form:"-"`
+	Change struct {
+		Old any `json:"old,omitempty" form:"-"`
+		New any `json:"new" form:"-"`
 	}
 
 	Filter struct {
