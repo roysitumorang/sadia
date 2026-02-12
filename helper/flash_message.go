@@ -56,7 +56,7 @@ func (f *FlashMessage) Redirect(c fiber.Ctx, sess *session.Session, location str
 	return redirect.To(location)
 }
 
-func (f *FlashMessage) Clear(c fiber.Ctx, sess *session.Session) {
+func (f *FlashMessage) Clear(c fiber.Ctx, sess *session.Session) *FlashMessage {
 	ctx := c.Context()
 	ctxt := "FlashMessage-Clear"
 	f.Data = map[string]string{}
@@ -64,4 +64,5 @@ func (f *FlashMessage) Clear(c fiber.Ctx, sess *session.Session) {
 	if err := sess.Save(); err != nil {
 		Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrSave")
 	}
+	return f
 }
