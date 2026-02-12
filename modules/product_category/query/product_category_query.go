@@ -181,21 +181,19 @@ func (q *productCategoryQuery) FindProductCategories(ctx context.Context, filter
 
 func (q *productCategoryQuery) CreateProductCategory(ctx context.Context, request *productCategoryModel.ProductCategory) (*productCategoryModel.ProductCategory, error) {
 	ctxt := "ProductCategoryQuery-CreateProductCategory"
-	snowflakeID := helper.GenerateSnowflakeID()
 	now := time.Now()
 	var response productCategoryModel.ProductCategory
 	if err := q.dbWrite.QueryRow(
 		ctx,
 		`INSERT INTO product_categories (
-			id
-			, company_id
+			company_id
 			, name
 			, slug
 			, created_by
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $5, $6)
+		) VALUES ($1, $2, $3, $4, $5, $4, $5)
 		RETURNING id
 			, company_id
 			, name
@@ -204,7 +202,6 @@ func (q *productCategoryQuery) CreateProductCategory(ctx context.Context, reques
 			, created_at
 			, updated_by
 			, updated_at`,
-		snowflakeID,
 		request.CompanyID,
 		request.Name,
 		request.Slug,

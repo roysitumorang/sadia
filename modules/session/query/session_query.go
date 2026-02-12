@@ -181,7 +181,7 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 	)
 	params = make([]any, 0)
 	var response []*sessionModel.Session
-	mapSessionOffsets := map[int64]int{}
+	mapSessionOffsets := map[string]int{}
 	for rows.Next() {
 		session := sessionModel.Session{
 			Spendings: []*sessionModel.Spending{},
@@ -252,7 +252,6 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 
 func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *sessionModel.Session) (*sessionModel.Session, error) {
 	ctxt := "SessionQuery-CreateSession"
-	snowflakeID := helper.GenerateSnowflakeID()
 	now := time.Now()
 	response := sessionModel.Session{
 		Spendings: []*sessionModel.Spending{},
@@ -260,8 +259,7 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO sessions (
-			id
-			, company_id
+			company_id
 			, date
 			, status
 			, cashbox_value
@@ -270,7 +268,7 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 			, spending_value
 			, created_by
 			, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		ON CONFLICT (date, company_id) DO UPDATE SET
 			date = EXCLUDED.date
 			, company_id = EXCLUDED.company_id
@@ -286,7 +284,6 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 			, created_at
 			, closed_by
 			, closed_at`,
-		snowflakeID,
 		request.CompanyID,
 		now.In(helper.LoadTimeZone()).Format(time.DateOnly),
 		sessionModel.StatusOnGoing,
@@ -422,19 +419,16 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 
 func (q *sessionQuery) CreateSpending(ctx context.Context, tx pgx.Tx, request *sessionModel.Spending) error {
 	ctxt := "SessionQuery-CreateSpending"
-	snowflakeID := helper.GenerateSnowflakeID()
 	now := time.Now()
 	_, err := tx.Exec(
 		ctx,
 		`INSERT INTO spendings (
-			id
-			, session_id
+			session_id
 			, description
 			, value
 			, created_by
 			, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6)`,
-		snowflakeID,
+		) VALUES ($1, $2, $3, $4, $5)`,
 		request.SessionID,
 		request.Description,
 		request.Value,

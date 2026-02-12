@@ -27,22 +27,20 @@ func New(
 	}
 }
 
-func (q *sequenceQuery) SaveSequence(ctx context.Context, name string, savedBy int64) (*sequenceModel.Sequence, error) {
+func (q *sequenceQuery) SaveSequence(ctx context.Context, name string, savedBy string) (*sequenceModel.Sequence, error) {
 	ctxt := "SequenceQuery-SaveSequence"
-	snowflakeID := helper.GenerateSnowflakeID()
 	now := time.Now()
 	var response sequenceModel.Sequence
 	if err := q.dbWrite.QueryRow(
 		ctx,
 		`INSERT INTO sequences (
-			id
-			, name
+			name
 			, number
 			, created_by
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $4, $5)
+		) VALUES ($1, $2, $3, $4, $3, $4)
 		ON CONFLICT (name) DO UPDATE SET
 			number = sequences.number + 1
 		RETURNING id
@@ -52,7 +50,6 @@ func (q *sequenceQuery) SaveSequence(ctx context.Context, name string, savedBy i
 			, created_at
 			, updated_by
 			, updated_at`,
-		snowflakeID,
 		name,
 		1,
 		savedBy,

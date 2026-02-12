@@ -10,7 +10,7 @@ import (
 
 type (
 	JwtUseCase interface {
-		CreateJWT(ctx context.Context, tx pgx.Tx, accountID int64) (*jwtModel.JsonWebToken, error)
+		CreateJWT(ctx context.Context, tx pgx.Tx, accountID string) (*jwtModel.JsonWebToken, error)
 		DeleteJWTs(ctx context.Context, tx pgx.Tx, filter *jwtModel.DeleteFilter) (int64, error)
 		FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jwtModel.JsonWebToken, *models.Pagination, error)
 		ConsumeMessage(ctx context.Context, topic string, message []byte) error

@@ -12,19 +12,19 @@ import (
 type (
 	ProductCategory struct {
 		RowNo     uint64    `json:"row_no,omitempty" form:"-"`
-		ID        int64     `json:"id" form:"-"`
-		CompanyID int64     `json:"-" form:"-"`
+		ID        string    `json:"id" form:"-"`
+		CompanyID string    `json:"-" form:"-"`
 		Name      string    `json:"name" form:"name"`
 		Slug      string    `json:"slug" form:"slug"`
-		CreatedBy int64     `json:"-" form:"-"`
+		CreatedBy string    `json:"-" form:"-"`
 		CreatedAt time.Time `json:"-" form:"-"`
-		UpdatedBy int64     `json:"-" form:"-"`
+		UpdatedBy string    `json:"-" form:"-"`
 		UpdatedAt time.Time `json:"-" form:"-"`
 	}
 
 	Filter struct {
 		ProductCategoryIDs,
-		CompanyIDs []int64
+		CompanyIDs []string
 		Keyword,
 		PaginationURL string
 		Limit,
@@ -60,13 +60,13 @@ func NewFilter(options ...FilterOption) *Filter {
 	return filter
 }
 
-func WithProductCategoryIDs(productCategoryIDs ...int64) FilterOption {
+func WithProductCategoryIDs(productCategoryIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.ProductCategoryIDs = productCategoryIDs
 	}
 }
 
-func WithCompanyIDs(companyIDs ...int64) FilterOption {
+func WithCompanyIDs(companyIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.CompanyIDs = companyIDs
 	}

@@ -32,9 +32,8 @@ func New(
 	}
 }
 
-func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, accountID int64) (*jwtModel.JsonWebToken, error) {
+func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, accountID string) (*jwtModel.JsonWebToken, error) {
 	ctxt := "JwtQuery-CreateJWT"
-	snowflakeID := helper.GenerateSnowflakeID()
 	now := time.Now()
 	expiredAt := now.Add(helper.GetAccessTokenAge())
 	token, err := helper.GenerateUniqueID()
@@ -49,18 +48,16 @@ func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, accountID int64) (*
 	if err = tx.QueryRow(
 		ctx,
 		`INSERT INTO json_web_tokens (
-			id
-			, token
+			token
 			, account_id
 			, created_at
 			, expired_at
-		) VALUES ($1, $2, $3, $4, $5)
+		) VALUES ($1, $2, $3, $4)
 		RETURNING id
 			, token
 			, account_id
 			, created_at
 			, expired_at`,
-		snowflakeID,
 		token,
 		accountID,
 		now,
@@ -225,14 +222,14 @@ func (q *jwtQuery) DeleteJWTs(ctx context.Context, tx pgx.Tx, filter *jwtModel.D
 		_, _ = builder.WriteString(strconv.Itoa(len(params)))
 		conditions = append(conditions, builder.String())
 	}
-	if filter.AccountID > 0 {
+	if filter.AccountID != "" {
 		params = append(params, filter.AccountID)
 		builder.Reset()
 		_, _ = builder.WriteString("j.account_id = $")
 		_, _ = builder.WriteString(strconv.Itoa(len(params)))
 		conditions = append(conditions, builder.String())
 	}
-	if filter.CompanyID > 0 {
+	if filter.CompanyID != "" {
 		params = append(params, filter.CompanyID)
 		builder.Reset()
 		_, _ = builder.WriteString(

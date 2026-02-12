@@ -78,12 +78,7 @@ func ValidateCart(ctx context.Context, c fiber.Ctx) (*transactionModel.Transacti
 	quantities := form["line_items[][quantity]"]
 	for i, rawProductID := range productIDs {
 		lineItem := new(transactionModel.LineItem)
-		productID, err := utils.ParseInt(rawProductID)
-		if err != nil {
-			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
-			return response, fiber.StatusBadRequest, err
-		}
-		lineItem.ProductID = productID
+		lineItem.ProductID = rawProductID
 		quantity, err := utils.ParseInt(quantities[i])
 		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")

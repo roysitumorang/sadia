@@ -10,9 +10,9 @@ import (
 type (
 	Product struct {
 		RowNo        uint64    `json:"row_no,omitempty" form:"-"`
-		ID           int64     `json:"id" form:"-"`
-		CompanyID    int64     `json:"-" form:"-"`
-		CategoryID   *int64    `json:"category_id" form:"category_id"`
+		ID           string    `json:"id" form:"-"`
+		CompanyID    string    `json:"-" form:"-"`
+		CategoryID   *string   `json:"category_id" form:"category_id"`
 		CategoryName *string   `json:"category_name" form:"-"`
 		Name         string    `json:"name" form:"name"`
 		Code         string    `json:"code" form:"code"`
@@ -23,16 +23,16 @@ type (
 		SellingPrice int64     `json:"selling_price" form:"selling_price"`
 		Weight       int64     `json:"weight" form:"weight"`
 		RackPosition string    `json:"rack_position" form:"rack_position"`
-		CreatedBy    int64     `json:"-" form:"-"`
+		CreatedBy    string    `json:"-" form:"-"`
 		CreatedAt    time.Time `json:"-" form:"-"`
-		UpdatedBy    int64     `json:"-" form:"-"`
+		UpdatedBy    string    `json:"-" form:"-"`
 		UpdatedAt    time.Time `json:"-" form:"-"`
 	}
 
 	Filter struct {
 		ProductIDs,
 		ProductCategoryIDs,
-		CompanyIDs []int64
+		CompanyIDs []string
 		Keyword,
 		PaginationURL string
 		Limit,
@@ -49,7 +49,7 @@ var (
 )
 
 func (q *Product) Validate() error {
-	if q.CategoryID != nil && *q.CategoryID < 1 {
+	if q.CategoryID != nil && *q.CategoryID == "" {
 		q.CategoryID = nil
 	}
 	if q.Name = strings.TrimSpace(q.Name); q.Name == "" {
@@ -86,19 +86,19 @@ func NewFilter(options ...FilterOption) *Filter {
 	return filter
 }
 
-func WithProductIDs(productIDs ...int64) FilterOption {
+func WithProductIDs(productIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.ProductIDs = productIDs
 	}
 }
 
-func WithProductCategoryIDs(productCategoryIDs ...int64) FilterOption {
+func WithProductCategoryIDs(productCategoryIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.ProductCategoryIDs = productCategoryIDs
 	}
 }
 
-func WithCompanyIDs(companyIDs ...int64) FilterOption {
+func WithCompanyIDs(companyIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.CompanyIDs = companyIDs
 	}

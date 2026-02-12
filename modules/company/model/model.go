@@ -13,22 +13,22 @@ import (
 type (
 	Company struct {
 		RowNo              uint64     `json:"row_no,omitempty"`
-		ID                 int64      `json:"id"`
+		ID                 string     `json:"id"`
 		Name               string     `json:"name"`
 		Slug               string     `json:"slug"`
 		Status             int8       `json:"status"`
-		CreatedBy          int64      `json:"-"`
+		CreatedBy          string     `json:"-"`
 		CreatedAt          time.Time  `json:"-"`
-		UpdatedBy          int64      `json:"-"`
+		UpdatedBy          string     `json:"-"`
 		UpdatedAt          time.Time  `json:"-"`
-		DeactivatedBy      *int64     `json:"-"`
+		DeactivatedBy      *string    `json:"-"`
 		DeactivatedAt      *time.Time `json:"-"`
 		DeactivationReason *string    `json:"-"`
-		SessionID          *int64     `json:"session_id"`
+		SessionID          *string    `json:"session_id"`
 	}
 
 	Filter struct {
-		CompanyIDs []int64
+		CompanyIDs []string
 		StatusList []int8
 		Keyword,
 		PaginationURL string
@@ -44,7 +44,7 @@ type (
 		Slug      string             `json:"-"`
 		Status    int8               `json:"-"`
 		Owner     *models.NewAccount `json:"owner"`
-		CreatedBy int64              `json:"-"`
+		CreatedBy string             `json:"-"`
 	}
 
 	Deactivation struct {
@@ -69,7 +69,7 @@ func NewFilter(options ...FilterOption) *Filter {
 	return filter
 }
 
-func WithCompanyIDs(companyIDs ...int64) FilterOption {
+func WithCompanyIDs(companyIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.CompanyIDs = companyIDs
 	}

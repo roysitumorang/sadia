@@ -190,7 +190,6 @@ func (q *companyQuery) FindCompanies(ctx context.Context, filter *companyModel.F
 
 func (q *companyQuery) CreateCompany(ctx context.Context, tx pgx.Tx, request *companyModel.NewCompany) (*companyModel.Company, error) {
 	ctxt := "CompanyQuery-CreateCompany"
-	snowflakeID := helper.GenerateSnowflakeID()
 	slug, err := helper.GenerateUniqueID()
 	if err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
@@ -204,15 +203,14 @@ func (q *companyQuery) CreateCompany(ctx context.Context, tx pgx.Tx, request *co
 	if err = tx.QueryRow(
 		ctx,
 		`INSERT INTO companies (
-			id
-			, name
+			name
 			, slug
 			, status
 			, created_by
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $5, $6)
+		) VALUES ($1, $2, $3, $4, $5, $4, $5)
 		RETURNING id
 			, name
 			, slug
@@ -225,7 +223,6 @@ func (q *companyQuery) CreateCompany(ctx context.Context, tx pgx.Tx, request *co
 			, deactivated_at
 			, deactivation_reason
 			, session_id`,
-		snowflakeID,
 		request.Name,
 		slug,
 		models.StatusUnconfirmed,

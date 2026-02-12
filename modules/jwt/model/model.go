@@ -8,16 +8,16 @@ import (
 type (
 	JsonWebToken struct {
 		RowNo     uint64    `json:"row_no,omitempty"`
-		ID        int64     `json:"string"`
+		ID        string    `json:"string"`
 		Token     string    `json:"token"`
-		AccountID int64     `json:"account_id"`
+		AccountID string    `json:"account_id"`
 		CreatedAt time.Time `json:"created_at"`
 		ExpiredAt time.Time `json:"expired_at"`
 	}
 
 	Filter struct {
 		JwtIDs,
-		AccountIDs []int64
+		AccountIDs []string
 		Tokens        []string
 		PaginationURL string
 		Limit,
@@ -30,8 +30,8 @@ type (
 	DeleteFilter struct {
 		MaxExpiredAt time.Time
 		AccountID,
-		CompanyID int64
-		JwtIDs []int64
+		CompanyID string
+		JwtIDs []string
 	}
 
 	DeleteFilterOption func(q *DeleteFilter)
@@ -45,13 +45,13 @@ func NewFilter(options ...FilterOption) *Filter {
 	return filter
 }
 
-func WithJwtIDs(jwtIDs ...int64) FilterOption {
+func WithJwtIDs(jwtIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.JwtIDs = jwtIDs
 	}
 }
 
-func WithAccountIDs(accountIDs ...int64) FilterOption {
+func WithAccountIDs(accountIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.AccountIDs = accountIDs
 	}
@@ -101,19 +101,19 @@ func WithDeleteMaxExpiredAt(maxExpiredAt time.Time) DeleteFilterOption {
 	}
 }
 
-func WithDeleteAccountID(accountID int64) DeleteFilterOption {
+func WithDeleteAccountID(accountID string) DeleteFilterOption {
 	return func(q *DeleteFilter) {
 		q.AccountID = accountID
 	}
 }
 
-func WithDeleteCompanyID(companyID int64) DeleteFilterOption {
+func WithDeleteCompanyID(companyID string) DeleteFilterOption {
 	return func(q *DeleteFilter) {
 		q.CompanyID = companyID
 	}
 }
 
-func WithDeleteJwtIDs(jwtIDs ...int64) DeleteFilterOption {
+func WithDeleteJwtIDs(jwtIDs ...string) DeleteFilterOption {
 	return func(q *DeleteFilter) {
 		q.JwtIDs = jwtIDs
 	}

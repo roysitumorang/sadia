@@ -23,22 +23,22 @@ const (
 type (
 	Transaction struct {
 		RowNo         uint64      `json:"row_no,omitempty"`
-		ID            int64       `json:"id"`
-		SessionID     int64       `json:"session_id"`
+		ID            string      `json:"id"`
+		SessionID     string      `json:"session_id"`
 		ReferenceNo   string      `json:"reference_no"`
 		SubTotal      int64       `json:"subtotal"`
 		Discount      int64       `json:"discount"`
 		Total         int64       `json:"total"`
 		PaymentMethod uint8       `json:"payment_method"`
 		LineItems     []*LineItem `json:"line_items"`
-		CreatedBy     int64       `json:"created_by"`
+		CreatedBy     string      `json:"created_by"`
 		CreatedAt     time.Time   `json:"created_at"`
 	}
 
 	LineItem struct {
-		ID            int64  `json:"id" form:"-"`
-		TransactionID int64  `json:"-" form:"-"`
-		ProductID     int64  `json:"product_id" form:"product_id"`
+		ID            string `json:"id" form:"-"`
+		TransactionID string `json:"-" form:"-"`
+		ProductID     string `json:"product_id" form:"product_id"`
 		ProductName   string `json:"product_name" form:"-"`
 		ProductCode   string `json:"product_code" form:"-"`
 		ProductUOM    string `json:"product_uom" form:"-"`
@@ -53,7 +53,7 @@ type (
 	Filter struct {
 		TransactionIDs,
 		SessionIDs,
-		CompanyIDs []int64
+		CompanyIDs []string
 		Keyword,
 		PaginationURL string
 		Limit,
@@ -72,9 +72,9 @@ func (q *Transaction) Validate() error {
 	if len(q.LineItems) == 0 {
 		return errors.New("line_items: cannot be empty")
 	}
-	mapProductIDs := map[int64]int{}
+	mapProductIDs := map[string]int{}
 	for i, lineItem := range q.LineItems {
-		if lineItem.ProductID < 1 {
+		if lineItem.ProductID == "" {
 			return fmt.Errorf("line_items[%d].product_id: is required", i)
 		}
 		if _, ok := mapProductIDs[lineItem.ProductID]; ok {
@@ -93,7 +93,7 @@ func (q *Transaction) Validate() error {
 }
 
 func (q *LineItem) Validate() error {
-	if q.ProductID < 1 {
+	if q.ProductID == "" {
 		return errors.New("product_id: is required")
 	}
 	if q.Quantity == 0 {
@@ -102,15 +102,15 @@ func (q *LineItem) Validate() error {
 	return nil
 }
 
-func (q *Transaction) Calculate(products map[int64]*productModel.Product) error {
+func (q *Transaction) Calculate(products map[string]*productModel.Product) error {
 	q.SubTotal = 0
 	for i, lineItem := range q.LineItems {
 		product, ok := products[lineItem.ProductID]
 		if !ok {
-			return fmt.Errorf("line_items[%d].product_id %d not found", i, lineItem.ProductID)
+			return fmt.Errorf("line_items[%d].product_id %s not found", i, lineItem.ProductID)
 		}
 		if product.Stock == 0 {
-			return fmt.Errorf("line_items[%d].product_id %d is out of stock", i, lineItem.ProductID)
+			return fmt.Errorf("line_items[%d].product_id %s is out of stock", i, lineItem.ProductID)
 		}
 		lineItem.ProductName = product.Name
 		lineItem.ProductCode = product.Code
@@ -141,19 +141,19 @@ func NewFilter(options ...FilterOption) *Filter {
 	return filter
 }
 
-func WithTransactionIDs(transactionIDs ...int64) FilterOption {
+func WithTransactionIDs(transactionIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.TransactionIDs = transactionIDs
 	}
 }
 
-func WithSessionIDs(sessionIDs ...int64) FilterOption {
+func WithSessionIDs(sessionIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.SessionIDs = sessionIDs
 	}
 }
 
-func WithCompanyIDs(companyIDs ...int64) FilterOption {
+func WithCompanyIDs(companyIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.CompanyIDs = companyIDs
 	}

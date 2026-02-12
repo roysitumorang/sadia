@@ -3,7 +3,6 @@ package presenter
 import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/session"
-	"github.com/gofiber/utils/v2"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
 	"github.com/roysitumorang/sadia/models"
@@ -70,7 +69,7 @@ func (q *productCategoryHTTPHandler) UserFindProductCategories(c fiber.Ctx) erro
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProductCategories")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	filter.CompanyIDs = []int64{currentUser.CompanyID}
+	filter.CompanyIDs = []string{currentUser.CompanyID}
 	rows, pagination, err := q.productCategoryUseCase.FindProductCategories(ctx, filter)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProductCategories")
@@ -104,16 +103,11 @@ func (q *productCategoryHTTPHandler) UserCreateProductCategory(c fiber.Ctx) erro
 func (q *productCategoryHTTPHandler) UserFindProductCategoryByID(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "ProductCategoryPresenter-UserFindProductCategoryByID"
-	productCategoryID, err := utils.ParseInt(c.Params("id"))
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
-	}
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
 		ctx,
 		productCategoryModel.NewFilter(
-			productCategoryModel.WithProductCategoryIDs(productCategoryID),
+			productCategoryModel.WithProductCategoryIDs(c.Params("id")),
 			productCategoryModel.WithCompanyIDs(currentUser.CompanyID),
 		),
 	)
@@ -130,11 +124,6 @@ func (q *productCategoryHTTPHandler) UserFindProductCategoryByID(c fiber.Ctx) er
 func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "ProductCategoryPresenter-UserUpdateProductCategory"
-	productCategoryID, err := utils.ParseInt(c.Params("id"))
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
-	}
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
 	request, statusCode, err := sanitizer.ValidateProductCategory(ctx, c)
 	if err != nil {
@@ -144,7 +133,7 @@ func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c fiber.Ctx) erro
 	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
 		ctx,
 		productCategoryModel.NewFilter(
-			productCategoryModel.WithProductCategoryIDs(productCategoryID),
+			productCategoryModel.WithProductCategoryIDs(c.Params("id")),
 			productCategoryModel.WithCompanyIDs(currentUser.CompanyID),
 		),
 	)
@@ -197,7 +186,7 @@ func (q *productCategoryHTTPHandler) userIndex(c fiber.Ctx) error {
 			"cart":          cart,
 		})
 	}
-	filter.CompanyIDs = []int64{currentUser.CompanyID}
+	filter.CompanyIDs = []string{currentUser.CompanyID}
 	if rows, pagination, err = q.productCategoryUseCase.FindProductCategories(ctx, filter); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProductCategories")
 		c.Response().SetStatusCode(fiber.StatusBadRequest)
@@ -286,11 +275,6 @@ func (q *productCategoryHTTPHandler) userEdit(c fiber.Ctx) error {
 	ctxt := "ProductCategoryPresenter-userEdit"
 	ctx := c.Context()
 	sess := session.FromContext(c)
-	productCategoryID, err := utils.ParseInt(c.Params("id"))
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
-	}
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
 	if !ok {
@@ -301,7 +285,7 @@ func (q *productCategoryHTTPHandler) userEdit(c fiber.Ctx) error {
 	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
 		ctx,
 		productCategoryModel.NewFilter(
-			productCategoryModel.WithProductCategoryIDs(productCategoryID),
+			productCategoryModel.WithProductCategoryIDs(c.Params("id")),
 			productCategoryModel.WithCompanyIDs(currentUser.CompanyID),
 		),
 	)
@@ -333,11 +317,6 @@ func (q *productCategoryHTTPHandler) userUpdate(c fiber.Ctx) error {
 	ctxt := "ProductCategoryPresenter-userUpdate"
 	ctx := c.Context()
 	sess := session.FromContext(c)
-	productCategoryID, err := utils.ParseInt(c.Params("id"))
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
-	}
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
 	if !ok {
@@ -359,7 +338,7 @@ func (q *productCategoryHTTPHandler) userUpdate(c fiber.Ctx) error {
 	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
 		ctx,
 		productCategoryModel.NewFilter(
-			productCategoryModel.WithProductCategoryIDs(productCategoryID),
+			productCategoryModel.WithProductCategoryIDs(c.Params("id")),
 			productCategoryModel.WithCompanyIDs(currentUser.CompanyID),
 		),
 	)

@@ -47,13 +47,8 @@ func FindProducts(ctx context.Context, c fiber.Ctx) (*productModel.Filter, error
 func ValidateProduct(ctx context.Context, c fiber.Ctx) (*productModel.Product, int, error) {
 	ctxt := "ProductSanitizer-ValidateProduct"
 	response := new(productModel.Product)
-	productID, err := utils.ParseInt(c.Params("id"))
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
-		return response, fiber.StatusBadRequest, err
-	}
-	response.ID = productID
-	err = c.Bind().Body(response)
+	response.ID = c.Params("id")
+	err := c.Bind().Body(response)
 	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return response, fiberErr.Code, err

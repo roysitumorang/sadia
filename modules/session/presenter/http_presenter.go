@@ -7,7 +7,6 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/session"
-	"github.com/gofiber/utils/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -72,7 +71,7 @@ func (q *sessionHTTPHandler) UserFindSessions(c fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindSessions")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	filter.CompanyIDs = []int64{currentUser.CompanyID}
+	filter.CompanyIDs = []string{currentUser.CompanyID}
 	rows, pagination, err := q.sessionUseCase.FindSessions(ctx, filter)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindSessions")
@@ -208,7 +207,7 @@ func (q *sessionHTTPHandler) userIndex(c fiber.Ctx) error {
 			"cart":           cart,
 		})
 	}
-	filter.CompanyIDs = []int64{currentUser.CompanyID}
+	filter.CompanyIDs = []string{currentUser.CompanyID}
 	if rows, pagination, err = q.sessionUseCase.FindSessions(ctx, filter); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindSessions")
 		c.Response().SetStatusCode(fiber.StatusBadRequest)
@@ -358,11 +357,6 @@ func (q *sessionHTTPHandler) userShow(c fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
-	sessionID, err := utils.ParseInt(c.Params("id"))
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
-		return flash.Danger("session not found").Redirect(c, sess.Session, "/session")
-	}
 	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	session := new(sessionModel.Session)
 	request := new(sessionModel.Spending)
@@ -370,7 +364,7 @@ func (q *sessionHTTPHandler) userShow(c fiber.Ctx) error {
 		ctx,
 		sessionModel.NewFilter(
 			sessionModel.WithCompanyIDs(currentUser.CompanyID),
-			sessionModel.WithSessionIDs(sessionID),
+			sessionModel.WithSessionIDs(c.Params("id")),
 		),
 	)
 	if err != nil {
@@ -482,7 +476,7 @@ func (q *sessionHTTPHandler) userCreateSpending(c fiber.Ctx) error {
 			"cart":           cart,
 		})
 	}
-	return flash.Success("spending created successfully").Redirect(c, sess.Session, fmt.Sprintf("/session/%d", currentSession.ID))
+	return flash.Success("spending created successfully").Redirect(c, sess.Session, fmt.Sprintf("/session/%s", currentSession.ID))
 }
 
 func (q *sessionHTTPHandler) userClose(c fiber.Ctx) error {

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/utils/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
@@ -127,12 +126,7 @@ func (q *companyHTTPHandler) AdminCreateCompany(c fiber.Ctx) error {
 func (q *companyHTTPHandler) AdminFindCompanyByID(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "CompanyPresenter-AdminFindCompanyByID"
-	companyID, err := utils.ParseInt(c.Params("id"))
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
-	}
-	companies, _, err := q.companyUseCase.FindCompanies(ctx, companyModel.NewFilter(companyModel.WithCompanyIDs(companyID)))
+	companies, _, err := q.companyUseCase.FindCompanies(ctx, companyModel.NewFilter(companyModel.WithCompanyIDs(c.Params("id"))))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindCompanies")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -146,11 +140,6 @@ func (q *companyHTTPHandler) AdminFindCompanyByID(c fiber.Ctx) error {
 func (q *companyHTTPHandler) AdminDeactivateCompany(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "CompanyPresenter-AdminDeactivateCompany"
-	companyID, err := utils.ParseInt(c.Params("id"))
-	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
-		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
-	}
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
 	request, statusCode, err := sanitizer.ValidateDeactivation(ctx, c)
 	if err != nil {
@@ -159,7 +148,7 @@ func (q *companyHTTPHandler) AdminDeactivateCompany(c fiber.Ctx) error {
 	}
 	companies, _, err := q.companyUseCase.FindCompanies(
 		ctx,
-		companyModel.NewFilter(companyModel.WithCompanyIDs(companyID)),
+		companyModel.NewFilter(companyModel.WithCompanyIDs(c.Params("id"))),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindCompanies")

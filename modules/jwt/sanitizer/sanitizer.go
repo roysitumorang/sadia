@@ -25,14 +25,13 @@ func FindJWTs(ctx context.Context, c fiber.Ctx) (*jwtModel.Filter, error) {
 	var options []jwtModel.FilterOption
 	options = append(options, jwtModel.WithPaginationURL(builder.String()))
 	if rawAccountIDs, ok := urlValues["account_id"]; ok && len(rawAccountIDs) > 0 {
-		mapAccountIDs := map[int64]int{}
+		mapAccountIDs := map[string]int{}
 		var (
-			accountID  int64
-			accountIDs []int64
+			accountID  string
+			accountIDs []string
 		)
 		for _, rawAccountID := range rawAccountIDs {
-			accountID, _ = utils.ParseInt(rawAccountID)
-			if _, ok := mapAccountIDs[accountID]; accountID == 0 || ok {
+			if _, ok := mapAccountIDs[rawAccountID]; rawAccountID == "" || ok {
 				continue
 			}
 			accountIDs = append(accountIDs, accountID)

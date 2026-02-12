@@ -15,8 +15,8 @@ const (
 type (
 	Session struct {
 		RowNo            uint64      `json:"row_no,omitempty" form:"-"`
-		ID               int64       `json:"id" form:"-"`
-		CompanyID        int64       `json:"company_id" form:"-"`
+		ID               string      `json:"id" form:"-"`
+		CompanyID        string      `json:"company_id" form:"-"`
 		Date             string      `json:"date" form:"date"`
 		Status           uint8       `json:"status" form:"-"`
 		CashboxValue     int64       `json:"cashbox_value" form:"cashbox_value"`
@@ -24,24 +24,24 @@ type (
 		TransactionValue int64       `json:"transaction_value" form:"-"`
 		SpendingValue    int64       `json:"spending_value" form:"-"`
 		Spendings        []*Spending `json:"spendings" form:"-"`
-		CreatedBy        int64       `json:"created_by" form:"-"`
+		CreatedBy        string      `json:"created_by" form:"-"`
 		CreatedAt        time.Time   `json:"created_at" form:"-"`
-		ClosedBy         *int64      `json:"closed_by" form:"-"`
+		ClosedBy         *string     `json:"closed_by" form:"-"`
 		ClosedAt         *time.Time  `json:"closed_at" form:"-"`
 	}
 
 	Spending struct {
-		ID          int64     `json:"id" form:"-"`
-		SessionID   int64     `json:"-" form:"-"`
+		ID          string    `json:"id" form:"-"`
+		SessionID   string    `json:"-" form:"-"`
 		Description string    `json:"description" form:"description"`
 		Value       int64     `json:"value" form:"value"`
-		CreatedBy   int64     `json:"created_by"`
+		CreatedBy   string    `json:"created_by"`
 		CreatedAt   time.Time `json:"-" form:"-"`
 	}
 
 	Filter struct {
 		SessionIDs,
-		CompanyIDs []int64
+		CompanyIDs []string
 		Date,
 		Keyword,
 		PaginationURL string
@@ -95,13 +95,13 @@ func NewFilter(options ...FilterOption) *Filter {
 	return filter
 }
 
-func WithSessionIDs(sessionIDs ...int64) FilterOption {
+func WithSessionIDs(sessionIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.SessionIDs = sessionIDs
 	}
 }
 
-func WithCompanyIDs(companyIDs ...int64) FilterOption {
+func WithCompanyIDs(companyIDs ...string) FilterOption {
 	return func(q *Filter) {
 		q.CompanyIDs = companyIDs
 	}

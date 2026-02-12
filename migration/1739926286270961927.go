@@ -17,7 +17,7 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE accounts (
-				id bigint NOT NULL PRIMARY KEY
+				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
 				, account_type smallint NOT NULL
 				, status smallint NOT NULL
 				, name character varying NOT NULL
@@ -46,10 +46,10 @@ func init() {
 				, login_failed_attempts integer NOT NULL DEFAULT 0
 				, login_unlock_token character varying UNIQUE
 				, login_locked_at timestamp with time zone
-				, created_by bigint REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
+				, created_by UUID REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, created_at timestamp with time zone NOT NULL
 				, updated_at timestamp with time zone NOT NULL
-				, deactivated_by bigint REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
+				, deactivated_by UUID REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, deactivated_at timestamp with time zone
 				, deactivation_reason character varying
 			)`,
@@ -151,7 +151,7 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE admins (
-				account_id bigint NOT NULL PRIMARY KEY REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				account_id UUID NOT NULL PRIMARY KEY REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, admin_level smallint NOT NULL
 			)`,
 		); err != nil {
@@ -161,9 +161,9 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE json_web_tokens (
-				id bigint NOT NULL PRIMARY KEY
+				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
 				, token character varying NOT NULL UNIQUE
-				, account_id bigint NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, account_id UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
 				, expired_at timestamp with time zone NOT NULL
 			)`,
@@ -194,13 +194,11 @@ func init() {
 		}
 		confirmationToken, emailConfirmationToken, phoneConfirmationToken := helper.RandomString(32), helper.RandomString(32), helper.RandomNumber(6)
 		now := time.Now()
-		snowflakeID := helper.GenerateSnowflakeID()
-		var adminID int64
+		var adminID string
 		if err = tx.QueryRow(
 			ctx,
 			`INSERT INTO accounts (
-				id
-				, account_type
+				account_type
 				, status
 				, name
 				, username
@@ -211,9 +209,8 @@ func init() {
 				, phone_confirmation_token
 				, created_at
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
 			RETURNING id`,
-			snowflakeID,
 			models.AccountTypeAdmin,
 			models.StatusUnconfirmed,
 			"Roy Situmorang",
@@ -243,12 +240,12 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE logs (
-				id bigint NOT NULL PRIMARY KEY
+				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
 				, table_name character varying NOT NULL
-				, table_id character varying NOT NULL
+				, table_id UUID NOT NULL
 				, activity character varying NOT NULL
 				, changes jsonb NOT NULL
-				, created_by bigint NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, created_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
 			)`,
 		); err != nil {
@@ -279,15 +276,15 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE companies (
-				id bigint NOT NULL PRIMARY KEY
+				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
 				, name character varying NOT NULL
 				, slug character varying NOT NULL UNIQUE
 				, status smallint NOT NULL
-				, created_by bigint NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, created_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
-				, updated_by bigint NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, updated_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, updated_at timestamp with time zone NOT NULL
-				, deactivated_by bigint REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
+				, deactivated_by UUID REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, deactivated_at timestamp with time zone
 				, deactivation_reason character varying
 			)`,
@@ -340,8 +337,8 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE users (
-				account_id bigint NOT NULL PRIMARY KEY REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
-				, company_id bigint NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
+				account_id UUID NOT NULL PRIMARY KEY REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, company_id UUID NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, user_level smallint NOT NULL
 			)`,
 		); err != nil {
@@ -355,22 +352,19 @@ func init() {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
 		}
-		snowflakeID = helper.GenerateSnowflakeID()
 		var companyID string
 		if err = tx.QueryRow(
 			ctx,
 			`INSERT INTO companies (
-				id
-				, name
+				name
 				, slug
 				, status
 				, created_by
 				, created_at
 				, updated_by
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $5, $6)
+			) VALUES ($1, $2, $3, $4, $5, $4, $5)
 			RETURNING id`,
-			snowflakeID,
 			"Apotik Lestari",
 			"apotik-lestari",
 			models.StatusUnconfirmed,
@@ -380,14 +374,12 @@ func init() {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
 		}
-		snowflakeID = helper.GenerateSnowflakeID()
 		confirmationToken, emailConfirmationToken, phoneConfirmationToken = helper.RandomString(32), helper.RandomString(32), helper.RandomNumber(6)
-		var userID int64
+		var userID string
 		if err = tx.QueryRow(
 			ctx,
 			`INSERT INTO accounts (
-				id
-				, account_type
+				account_type
 				, status
 				, name
 				, username
@@ -398,9 +390,8 @@ func init() {
 				, phone_confirmation_token
 				, created_at
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
 			RETURNING id`,
-			snowflakeID,
 			models.AccountTypeUser,
 			models.StatusUnconfirmed,
 			"Yuli Ervanita Pasaribu",
