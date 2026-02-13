@@ -35,7 +35,7 @@
             <td>{{ if item.RackPosition }}{{ item.RackPosition }}{{ else }}-{{ end }}</td>
             <td>
                 <a type="button" href="/product/{{ item.ID }}/edit" class="btn btn-primary"><i class="fa fa-edit">&nbsp;</i>Edit</a>
-                {{ if item.Stock > 0 }}
+                {{ if currentCompany.SessionID && item.Stock > 0 }}
                     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-{{ item.ID }}" data-whatever="@mdo"><i class="fa fa-cart-plus">&nbsp;</i>Add to Cart</button>
                     <div class="modal fade" id="modal-{{ item.ID }}" tabindex="-1" role="dialog" aria-labelledby="modal-label-{{ item.ID }}">
                         <div class="modal-dialog" role="document">

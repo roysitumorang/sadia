@@ -10,6 +10,7 @@ import (
 	"github.com/roysitumorang/sadia/models"
 	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
+	companyModel "github.com/roysitumorang/sadia/modules/company/model"
 	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
 	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
 	logModel "github.com/roysitumorang/sadia/modules/log/model"
@@ -351,6 +352,7 @@ func (q *productHTTPHandler) userIndex(c fiber.Ctx) error {
 	ctx := c.Context()
 	sess := session.FromContext(c)
 	currentUser := sess.Get(models.CurrentUser).(*accountModel.User)
+	currentCompany := sess.Get(models.CurrentCompany).(*companyModel.Company)
 	flash, ok := sess.Get(helper.Flash).(*helper.FlashMessage)
 	if !ok {
 		flash = helper.NewFlashMessage()
@@ -363,14 +365,15 @@ func (q *productHTTPHandler) userIndex(c fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProducts")
 		c.Response().SetStatusCode(fiber.StatusBadRequest)
 		return c.Render("product_category/index", fiber.Map{
-			"authenticated": true,
-			"currentUser":   currentUser,
-			"flash":         flash.Danger(err.Error()),
-			"q":             c.Query("q"),
-			"rows":          rows,
-			"pagination":    pagination,
-			"limits":        models.Limits,
-			"cart":          cart,
+			"authenticated":  true,
+			"currentUser":    currentUser,
+			"flash":          flash.Danger(err.Error()),
+			"q":              c.Query("q"),
+			"rows":           rows,
+			"pagination":     pagination,
+			"limits":         models.Limits,
+			"cart":           cart,
+			"currentCompany": currentCompany,
 		})
 	}
 	filter.CompanyIDs = []string{currentUser.CompanyID}
@@ -378,26 +381,28 @@ func (q *productHTTPHandler) userIndex(c fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProducts")
 		c.Response().SetStatusCode(fiber.StatusBadRequest)
 		return c.Render("product/index", fiber.Map{
-			"authenticated": true,
-			"currentUser":   currentUser,
-			"flash":         flash.Danger(err.Error()),
-			"q":             c.Query("q"),
-			"rows":          rows,
-			"pagination":    pagination,
-			"limits":        models.Limits,
-			"cart":          cart,
+			"authenticated":  true,
+			"currentUser":    currentUser,
+			"flash":          flash.Danger(err.Error()),
+			"q":              c.Query("q"),
+			"rows":           rows,
+			"pagination":     pagination,
+			"limits":         models.Limits,
+			"cart":           cart,
+			"currentCompany": currentCompany,
 		})
 	}
 	defer flash.Clear(c, sess.Session)
 	return c.Render("product/index", fiber.Map{
-		"authenticated": true,
-		"currentUser":   currentUser,
-		"flash":         flash,
-		"q":             c.Query("q"),
-		"rows":          rows,
-		"pagination":    pagination,
-		"limits":        models.Limits,
-		"cart":          cart,
+		"authenticated":  true,
+		"currentUser":    currentUser,
+		"flash":          flash,
+		"q":              c.Query("q"),
+		"rows":           rows,
+		"pagination":     pagination,
+		"limits":         models.Limits,
+		"cart":           cart,
+		"currentCompany": currentCompany,
 	})
 }
 
