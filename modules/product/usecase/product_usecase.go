@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/utils/v2"
+	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
 	productModel "github.com/roysitumorang/sadia/modules/product/model"
@@ -47,22 +48,22 @@ func (q *productUseCase) FindProducts(ctx context.Context, filter *productModel.
 	return rows, pagination, nil
 }
 
-func (q *productUseCase) CreateProduct(ctx context.Context, request *productModel.Product) (*productModel.Product, error) {
+func (q *productUseCase) CreateProduct(ctx context.Context, tx pgx.Tx, request *productModel.Product) (*productModel.Product, error) {
 	ctxt := "ProductUseCase-CreateProduct"
-	response, err := q.productQuery.CreateProduct(ctx, request)
+	response, err := q.productQuery.CreateProduct(ctx, tx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateProduct")
 	}
 	return response, err
 }
 
-func (q *productUseCase) UpdateProduct(ctx context.Context, request *productModel.Product) error {
+func (q *productUseCase) UpdateProduct(ctx context.Context, tx pgx.Tx, request *productModel.Product) (*productModel.Product, error) {
 	ctxt := "ProductUseCase-UpdateProduct"
-	err := q.productQuery.UpdateProduct(ctx, request)
+	response, err := q.productQuery.UpdateProduct(ctx, tx, request)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateProduct")
 	}
-	return err
+	return response, err
 }
 
 func (q *productUseCase) ConsumeMessage(ctx context.Context, topic string, message []byte) error {

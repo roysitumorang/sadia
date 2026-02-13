@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/models"
 	productModel "github.com/roysitumorang/sadia/modules/product/model"
 )
@@ -10,8 +11,8 @@ import (
 type (
 	ProductUseCase interface {
 		FindProducts(ctx context.Context, filter *productModel.Filter) ([]*productModel.Product, *models.Pagination, error)
-		CreateProduct(ctx context.Context, request *productModel.Product) (*productModel.Product, error)
-		UpdateProduct(ctx context.Context, request *productModel.Product) error
+		CreateProduct(ctx context.Context, tx pgx.Tx, request *productModel.Product) (*productModel.Product, error)
+		UpdateProduct(ctx context.Context, tx pgx.Tx, request *productModel.Product) (*productModel.Product, error)
 		ConsumeMessage(ctx context.Context, topic string, message []byte) error
 		Import(ctx context.Context, filename, companyID, adminID string) error
 	}

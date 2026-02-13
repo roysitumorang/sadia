@@ -119,7 +119,7 @@ func (q *productCategoryHTTPHandler) UserCreateProductCategory(c fiber.Ctx) erro
 			"name": {New: response.Name},
 			"slug": {New: response.Slug},
 		},
-		CreatedBy: currentUser.ID,
+		CreatedBy: response.CreatedBy,
 		CreatedAt: response.CreatedAt,
 	}
 	if _, err = q.logUseCase.CreateLog(ctx, tx, log); err != nil {
@@ -193,7 +193,7 @@ func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c fiber.Ctx) erro
 			New: request.Slug,
 		}
 	}
-	if nameChanged || slugChanged {
+	if !nameChanged && !slugChanged {
 		return helper.NewResponse(fiber.StatusOK).SetData(existing).WriteResponse(c)
 	}
 	request.ID = existing.ID
@@ -215,7 +215,7 @@ func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c fiber.Ctx) erro
 		TableID:   saved.ID,
 		Action:    logModel.ActionUpdate,
 		Changes:   changes,
-		CreatedBy: currentUser.ID,
+		CreatedBy: saved.CreatedBy,
 		CreatedAt: saved.UpdatedAt,
 	}
 	if _, err = q.logUseCase.CreateLog(ctx, tx, log); err != nil {
@@ -226,7 +226,7 @@ func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c fiber.Ctx) erro
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	return helper.NewResponse(fiber.StatusOK).SetData(existing).WriteResponse(c)
+	return helper.NewResponse(fiber.StatusOK).SetData(saved).WriteResponse(c)
 }
 
 func (q *productCategoryHTTPHandler) userIndex(c fiber.Ctx) error {

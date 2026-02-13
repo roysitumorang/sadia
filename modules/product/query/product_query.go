@@ -212,11 +212,10 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 	return response, total, pages, nil
 }
 
-func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.Product) (*productModel.Product, error) {
+func (q *productQuery) CreateProduct(ctx context.Context, tx pgx.Tx, request *productModel.Product) (*productModel.Product, error) {
 	ctxt := "ProductQuery-CreateProduct"
-	now := time.Now()
 	var response productModel.Product
-	if err := q.dbWrite.QueryRow(
+	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO products (
 			company_id
@@ -263,7 +262,7 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 		request.Weight,
 		request.RackPosition,
 		request.CreatedBy,
-		now,
+		request.CreatedAt,
 	).Scan(
 		&response.ID,
 		&response.CompanyID,
@@ -282,6 +281,9 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 		&response.UpdatedBy,
 		&response.UpdatedAt,
 	); err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
@@ -298,10 +300,10 @@ func (q *productQuery) CreateProduct(ctx context.Context, request *productModel.
 	return &response, nil
 }
 
-func (q *productQuery) UpdateProduct(ctx context.Context, request *productModel.Product) error {
+func (q *productQuery) UpdateProduct(ctx context.Context, tx pgx.Tx, request *productModel.Product) (*productModel.Product, error) {
 	ctxt := "ProductQuery-UpdateProduct"
-	now := time.Now()
-	err := q.dbWrite.QueryRow(
+	var response productModel.Product
+	err := tx.QueryRow(
 		ctx,
 		`UPDATE products SET
 			category_id = $1
@@ -344,27 +346,30 @@ func (q *productQuery) UpdateProduct(ctx context.Context, request *productModel.
 		request.Weight,
 		request.RackPosition,
 		request.UpdatedBy,
-		now,
+		request.UpdatedAt,
 		request.ID,
 	).Scan(
-		&request.ID,
-		&request.CompanyID,
-		&request.CategoryID,
-		&request.Name,
-		&request.Code,
-		&request.UOM,
-		&request.MinimumStock,
-		&request.Stock,
-		&request.BasePrice,
-		&request.SellingPrice,
-		&request.Weight,
-		&request.RackPosition,
-		&request.CreatedBy,
-		&request.CreatedAt,
-		&request.UpdatedBy,
-		&request.UpdatedAt,
+		&response.ID,
+		&response.CompanyID,
+		&response.CategoryID,
+		&response.Name,
+		&response.Code,
+		&response.UOM,
+		&response.MinimumStock,
+		&response.Stock,
+		&response.BasePrice,
+		&response.SellingPrice,
+		&response.Weight,
+		&response.RackPosition,
+		&response.CreatedBy,
+		&response.CreatedAt,
+		&response.UpdatedBy,
+		&response.UpdatedAt,
 	)
 	if err != nil {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
@@ -376,8 +381,9 @@ func (q *productQuery) UpdateProduct(ctx context.Context, request *productModel.
 		} else {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		}
+		return nil, err
 	}
-	return err
+	return &response, nil
 }
 
 func (q *productQuery) Import(ctx context.Context, products []productModel.Product, companyID, adminID string) (err error) {

@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+const (
+	TableName = "products"
+)
+
 type (
 	Product struct {
 		RowNo        uint64    `json:"row_no,omitempty" form:"-"`
