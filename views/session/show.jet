@@ -21,11 +21,12 @@
                 <td>{{ if session.CashboxNote }}{{ session.CashboxNote }}{{ else }}-{{ end }}</td>
                 <td>{{ session.TransactionValue | Comma }}</td>
                 <td>{{ session.SpendingValue | Comma }}</td>
-                <td><button type="submit" class="btn btn-primary">Close</button></td>
+                <td>{{ if session.Status == 1 }}-{{ else }}<button type="submit" class="btn btn-primary">Close</button>{{ end }}</td>
             </tr>
         </tbody>
     </table>
 </form>
+{{ if session.Status == 0 }}
 <form action="/session/{{ session.ID }}/spending" method="POST" role="form" class="form-horizontal">
     <fieldset>
         <legend class="text-center">New Spending</legend>
@@ -50,6 +51,7 @@
         </div>
     </fieldset>
 </form>
+{{ end }}
 <div class="clearfix"></div>
 <h2 class="navbar-form navbar-left">Spending</h2>
 <table class="table table-striped table-hover table-condensed">
