@@ -373,6 +373,7 @@ func (q *productHTTPHandler) userIndex(c fiber.Ctx) error {
 			"pagination":     pagination,
 			"limits":         models.Limits,
 			"cart":           cart,
+			"path":           c.Route().Path,
 			"currentCompany": currentCompany,
 		})
 	}
@@ -389,6 +390,7 @@ func (q *productHTTPHandler) userIndex(c fiber.Ctx) error {
 			"pagination":     pagination,
 			"limits":         models.Limits,
 			"cart":           cart,
+			"path":           c.Route().Path,
 			"currentCompany": currentCompany,
 		})
 	}
@@ -402,6 +404,7 @@ func (q *productHTTPHandler) userIndex(c fiber.Ctx) error {
 		"pagination":     pagination,
 		"limits":         models.Limits,
 		"cart":           cart,
+		"path":           c.Route().Path,
 		"currentCompany": currentCompany,
 	})
 }
@@ -435,6 +438,7 @@ func (q *productHTTPHandler) userNew(c fiber.Ctx) error {
 			"request":           request,
 			"categoryID":        categoryID,
 			"cart":              cart,
+			"path":              c.Route().Path,
 		})
 	}
 	defer flash.Clear(c, sess.Session)
@@ -446,6 +450,7 @@ func (q *productHTTPHandler) userNew(c fiber.Ctx) error {
 		"request":           request,
 		"categoryID":        categoryID,
 		"cart":              cart,
+		"path":              c.Route().Path,
 	})
 }
 
@@ -478,6 +483,7 @@ func (q *productHTTPHandler) userCreate(c fiber.Ctx) error {
 			"request":           request,
 			"categoryID":        categoryID,
 			"cart":              cart,
+			"path":              c.Route().Path,
 		})
 	}
 	if errValidation != nil {
@@ -491,6 +497,7 @@ func (q *productHTTPHandler) userCreate(c fiber.Ctx) error {
 			"request":           request,
 			"categoryID":        categoryID,
 			"cart":              cart,
+			"path":              c.Route().Path,
 		})
 	}
 	if request.CategoryID != nil {
@@ -509,6 +516,7 @@ func (q *productHTTPHandler) userCreate(c fiber.Ctx) error {
 				"productCategories": productCategories,
 				"request":           request,
 				"cart":              cart,
+				"path":              c.Route().Path,
 			})
 		}
 		categoryID = *request.CategoryID
@@ -528,6 +536,7 @@ func (q *productHTTPHandler) userCreate(c fiber.Ctx) error {
 			"request":           request,
 			"categoryID":        categoryID,
 			"cart":              cart,
+			"path":              c.Route().Path,
 		})
 	}
 	response, err := q.productUseCase.CreateProduct(ctx, tx, request)
@@ -542,6 +551,7 @@ func (q *productHTTPHandler) userCreate(c fiber.Ctx) error {
 			"request":           request,
 			"categoryID":        categoryID,
 			"cart":              cart,
+			"path":              c.Route().Path,
 		})
 	}
 	log := &logModel.Log{
@@ -575,6 +585,7 @@ func (q *productHTTPHandler) userCreate(c fiber.Ctx) error {
 			"request":           request,
 			"categoryID":        categoryID,
 			"cart":              cart,
+			"path":              c.Route().Path,
 		})
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -588,6 +599,7 @@ func (q *productHTTPHandler) userCreate(c fiber.Ctx) error {
 			"request":           request,
 			"categoryID":        categoryID,
 			"cart":              cart,
+			"path":              c.Route().Path,
 		})
 	}
 	return flash.Clear(c, sess.Session).Success("product created successfully").Redirect(c, sess.Session, "/product")
@@ -638,6 +650,7 @@ func (q *productHTTPHandler) userEdit(c fiber.Ctx) error {
 			"request":           request,
 			"categoryID":        categoryID,
 			"cart":              cart,
+			"path":              c.Route().Path,
 		})
 	}
 	defer flash.Clear(c, sess.Session)
@@ -649,6 +662,7 @@ func (q *productHTTPHandler) userEdit(c fiber.Ctx) error {
 		"request":           request,
 		"categoryID":        categoryID,
 		"cart":              cart,
+		"path":              c.Route().Path,
 	})
 }
 
@@ -697,6 +711,7 @@ func (q *productHTTPHandler) userUpdate(c fiber.Ctx) error {
 			"request":           request,
 			"categoryID":        categoryID,
 			"cart":              cart,
+			"path":              c.Route().Path,
 		})
 	}
 	if errValidation != nil {
@@ -710,6 +725,7 @@ func (q *productHTTPHandler) userUpdate(c fiber.Ctx) error {
 			"request":           request,
 			"categoryID":        categoryID,
 			"cart":              cart,
+			"path":              c.Route().Path,
 		})
 	}
 	if request.CategoryID != nil {
@@ -728,6 +744,7 @@ func (q *productHTTPHandler) userUpdate(c fiber.Ctx) error {
 				"productCategories": productCategories,
 				"request":           request,
 				"cart":              cart,
+				"path":              c.Route().Path,
 			})
 		}
 		categoryID = *request.CategoryID
@@ -836,6 +853,7 @@ func (q *productHTTPHandler) userUpdate(c fiber.Ctx) error {
 				"request":           request,
 				"categoryID":        categoryID,
 				"cart":              cart,
+				"path":              c.Route().Path,
 			})
 		}
 		saved, err := q.productUseCase.UpdateProduct(ctx, tx, request)
@@ -850,6 +868,7 @@ func (q *productHTTPHandler) userUpdate(c fiber.Ctx) error {
 				"request":           request,
 				"categoryID":        categoryID,
 				"cart":              cart,
+				"path":              c.Route().Path,
 			})
 		}
 		log := &logModel.Log{
@@ -872,6 +891,7 @@ func (q *productHTTPHandler) userUpdate(c fiber.Ctx) error {
 				"request":           request,
 				"categoryID":        categoryID,
 				"cart":              cart,
+				"path":              c.Route().Path,
 			})
 		}
 		if err = tx.Commit(ctx); err != nil {
@@ -885,6 +905,7 @@ func (q *productHTTPHandler) userUpdate(c fiber.Ctx) error {
 				"request":           request,
 				"categoryID":        categoryID,
 				"cart":              cart,
+				"path":              c.Route().Path,
 			})
 		}
 	}

@@ -205,6 +205,7 @@ func (q *sessionHTTPHandler) userIndex(c fiber.Ctx) error {
 			"limits":         models.Limits,
 			"currentCompany": currentCompany,
 			"cart":           cart,
+			"path":           c.Route().Path,
 		})
 	}
 	filter.CompanyIDs = []string{currentUser.CompanyID}
@@ -221,6 +222,7 @@ func (q *sessionHTTPHandler) userIndex(c fiber.Ctx) error {
 			"limits":         models.Limits,
 			"currentCompany": currentCompany,
 			"cart":           cart,
+			"path":           c.Route().Path,
 		})
 	}
 	defer flash.Clear(c, sess.Session)
@@ -234,6 +236,7 @@ func (q *sessionHTTPHandler) userIndex(c fiber.Ctx) error {
 		"limits":         models.Limits,
 		"currentCompany": currentCompany,
 		"cart":           cart,
+		"path":           c.Route().Path,
 	})
 }
 
@@ -257,6 +260,7 @@ func (q *sessionHTTPHandler) userNew(c fiber.Ctx) error {
 		"flash":         flash,
 		"request":       request,
 		"cart":          cart,
+		"path":          c.Route().Path,
 	})
 }
 
@@ -284,6 +288,7 @@ func (q *sessionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	request.CompanyID = currentUser.CompanyID
@@ -298,6 +303,7 @@ func (q *sessionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	defer func() {
@@ -319,6 +325,7 @@ func (q *sessionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	currentCompany.SessionID = &response.ID
@@ -331,6 +338,7 @@ func (q *sessionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -342,6 +350,7 @@ func (q *sessionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	return flash.Success("session created successfully").Redirect(c, sess.Session, "/session")
@@ -378,6 +387,7 @@ func (q *sessionHTTPHandler) userShow(c fiber.Ctx) error {
 			"session":        session,
 			"request":        request,
 			"cart":           cart,
+			"path":           c.Route().Path,
 		})
 	}
 	if len(sessions) == 0 {
@@ -393,6 +403,7 @@ func (q *sessionHTTPHandler) userShow(c fiber.Ctx) error {
 		"session":        session,
 		"request":        request,
 		"cart":           cart,
+		"path":           c.Route().Path,
 	})
 }
 
@@ -423,6 +434,7 @@ func (q *sessionHTTPHandler) userCreateSpending(c fiber.Ctx) error {
 			"session":        currentSession,
 			"request":        request,
 			"cart":           cart,
+			"path":           c.Route().Path,
 		})
 	}
 	request.SessionID = *currentCompany.SessionID
@@ -439,6 +451,7 @@ func (q *sessionHTTPHandler) userCreateSpending(c fiber.Ctx) error {
 			"session":        currentSession,
 			"request":        request,
 			"cart":           cart,
+			"path":           c.Route().Path,
 		})
 	}
 	defer func() {
@@ -461,6 +474,7 @@ func (q *sessionHTTPHandler) userCreateSpending(c fiber.Ctx) error {
 			"session":        currentSession,
 			"request":        request,
 			"cart":           cart,
+			"path":           c.Route().Path,
 		})
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -474,6 +488,7 @@ func (q *sessionHTTPHandler) userCreateSpending(c fiber.Ctx) error {
 			"session":        currentSession,
 			"request":        request,
 			"cart":           cart,
+			"path":           c.Route().Path,
 		})
 	}
 	return flash.Success("spending created successfully").Redirect(c, sess.Session, fmt.Sprintf("/session/%s", currentSession.ID))
@@ -509,6 +524,7 @@ func (q *sessionHTTPHandler) userClose(c fiber.Ctx) error {
 			"currentCompany": currentCompany,
 			"session":        currentSession,
 			"cart":           cart,
+			"path":           c.Route().Path,
 		})
 	}
 	defer func() {
@@ -530,6 +546,7 @@ func (q *sessionHTTPHandler) userClose(c fiber.Ctx) error {
 			"currentCompany": currentCompany,
 			"session":        currentSession,
 			"cart":           cart,
+			"path":           c.Route().Path,
 		})
 	}
 	currentCompany.SessionID = nil
@@ -543,6 +560,7 @@ func (q *sessionHTTPHandler) userClose(c fiber.Ctx) error {
 			"currentCompany": currentCompany,
 			"session":        currentSession,
 			"cart":           cart,
+			"path":           c.Route().Path,
 		})
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -555,6 +573,7 @@ func (q *sessionHTTPHandler) userClose(c fiber.Ctx) error {
 			"currentCompany": currentCompany,
 			"session":        currentSession,
 			"cart":           cart,
+			"path":           c.Route().Path,
 		})
 	}
 	return flash.Success("session closed successfully").Redirect(c, sess.Session, "/session")

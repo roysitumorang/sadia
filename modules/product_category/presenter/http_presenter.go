@@ -254,6 +254,7 @@ func (q *productCategoryHTTPHandler) userIndex(c fiber.Ctx) error {
 			"pagination":    pagination,
 			"limits":        models.Limits,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	filter.CompanyIDs = []string{currentUser.CompanyID}
@@ -269,6 +270,7 @@ func (q *productCategoryHTTPHandler) userIndex(c fiber.Ctx) error {
 			"pagination":    pagination,
 			"limits":        models.Limits,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	defer flash.Clear(c, sess.Session)
@@ -281,6 +283,7 @@ func (q *productCategoryHTTPHandler) userIndex(c fiber.Ctx) error {
 		"pagination":    pagination,
 		"limits":        models.Limits,
 		"cart":          cart,
+		"path":          c.Route().Path,
 	})
 }
 
@@ -300,6 +303,7 @@ func (q *productCategoryHTTPHandler) userNew(c fiber.Ctx) error {
 		"flash":         flash,
 		"request":       request,
 		"cart":          cart,
+		"path":          c.Route().Path,
 	})
 }
 
@@ -323,6 +327,7 @@ func (q *productCategoryHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	request.CompanyID = currentUser.CompanyID
@@ -338,6 +343,7 @@ func (q *productCategoryHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	productCategory, err := q.productCategoryUseCase.CreateProductCategory(ctx, tx, request)
@@ -350,6 +356,7 @@ func (q *productCategoryHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	log := &logModel.Log{
@@ -373,6 +380,7 @@ func (q *productCategoryHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -384,6 +392,7 @@ func (q *productCategoryHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	return flash.Clear(c, sess.Session).Success("category created successfully").Redirect(c, sess.Session, "/product_category")
@@ -416,6 +425,7 @@ func (q *productCategoryHTTPHandler) userEdit(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	if len(productCategories) == 0 {
@@ -428,6 +438,7 @@ func (q *productCategoryHTTPHandler) userEdit(c fiber.Ctx) error {
 		"flash":         flash,
 		"request":       productCategories[0],
 		"cart":          cart,
+		"path":          c.Route().Path,
 	})
 }
 
@@ -451,6 +462,7 @@ func (q *productCategoryHTTPHandler) userUpdate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
@@ -469,6 +481,7 @@ func (q *productCategoryHTTPHandler) userUpdate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	if len(productCategories) == 0 {
@@ -504,6 +517,7 @@ func (q *productCategoryHTTPHandler) userUpdate(c fiber.Ctx) error {
 				"flash":         flash.Danger(err.Error()),
 				"request":       request,
 				"cart":          cart,
+				"path":          c.Route().Path,
 			})
 		}
 		saved, err := q.productCategoryUseCase.UpdateProductCategory(ctx, tx, request)
@@ -516,6 +530,7 @@ func (q *productCategoryHTTPHandler) userUpdate(c fiber.Ctx) error {
 				"flash":         flash.Danger(err.Error()),
 				"request":       request,
 				"cart":          cart,
+				"path":          c.Route().Path,
 			})
 		}
 		log := &logModel.Log{
@@ -536,6 +551,7 @@ func (q *productCategoryHTTPHandler) userUpdate(c fiber.Ctx) error {
 				"flash":         flash.Danger(err.Error()),
 				"request":       request,
 				"cart":          cart,
+				"path":          c.Route().Path,
 			})
 		}
 		if err = tx.Commit(ctx); err != nil {
@@ -547,6 +563,7 @@ func (q *productCategoryHTTPHandler) userUpdate(c fiber.Ctx) error {
 				"flash":         flash.Danger(err.Error()),
 				"request":       request,
 				"cart":          cart,
+				"path":          c.Route().Path,
 			})
 		}
 	}

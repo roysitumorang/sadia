@@ -242,6 +242,7 @@ func (q *transactionHTTPHandler) userIndex(c fiber.Ctx) error {
 			"pagination":    pagination,
 			"limits":        models.Limits,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	filter.CompanyIDs = []string{currentUser.CompanyID}
@@ -257,6 +258,7 @@ func (q *transactionHTTPHandler) userIndex(c fiber.Ctx) error {
 			"pagination":    pagination,
 			"limits":        models.Limits,
 			"cart":          cart,
+			"path":          c.Route().Path,
 		})
 	}
 	defer flash.Clear(c, sess.Session)
@@ -269,6 +271,7 @@ func (q *transactionHTTPHandler) userIndex(c fiber.Ctx) error {
 		"pagination":    pagination,
 		"limits":        models.Limits,
 		"cart":          cart,
+		"path":          c.Route().Path,
 	})
 }
 
@@ -291,6 +294,7 @@ func (q *transactionHTTPHandler) userNew(c fiber.Ctx) error {
 		"flash":         flash,
 		"cart":          cart,
 		"request":       cart,
+		"path":          c.Route().Path,
 	})
 }
 
@@ -319,6 +323,7 @@ func (q *transactionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash,
 			"cart":          cart,
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	productIDs := make([]string, len(request.LineItems))
@@ -341,6 +346,7 @@ func (q *transactionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"cart":          cart,
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	if len(products) == 0 {
@@ -351,6 +357,7 @@ func (q *transactionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger("products not found"),
 			"cart":          cart,
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	mapProducts := map[string]*productModel.Product{}
@@ -366,6 +373,7 @@ func (q *transactionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"cart":          cart,
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	now := time.Now()
@@ -381,6 +389,7 @@ func (q *transactionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"cart":          cart,
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	request.SessionID = currentSession.ID
@@ -396,6 +405,7 @@ func (q *transactionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"cart":          cart,
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	defer func() {
@@ -416,6 +426,7 @@ func (q *transactionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"cart":          cart,
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -427,6 +438,7 @@ func (q *transactionHTTPHandler) userCreate(c fiber.Ctx) error {
 			"flash":         flash.Danger(err.Error()),
 			"cart":          cart,
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	cart = &transactionModel.Transaction{
@@ -470,6 +482,7 @@ func (q *transactionHTTPHandler) userShow(c fiber.Ctx) error {
 		"currentCompany": currentCompany,
 		"transaction":    transaction,
 		"cart":           cart,
+		"path":           c.Route().Path,
 	})
 }
 

@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -59,6 +60,9 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	engine.Debug(debug)
 	engine.AddFunc("Comma", func(v int64) string {
 		return humanize.Comma(v)
+	})
+	engine.AddFunc("HasPrefix", func(s, prefix string) bool {
+		return strings.HasPrefix(s, prefix)
 	})
 	sessionMiddleware, sessionStore := session.NewWithStore(session.Config{
 		Storage: q.Storage,

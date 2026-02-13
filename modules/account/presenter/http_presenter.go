@@ -1949,6 +1949,7 @@ func (q *accountHTTPHandler) userNewLogin(c fiber.Ctx) error {
 		"authenticated": authenticated,
 		"flash":         flash,
 		"request":       request,
+		"path":          c.Route().Path,
 	})
 }
 
@@ -1969,6 +1970,7 @@ func (q *accountHTTPHandler) userLogin(c fiber.Ctx) error {
 			"authenticated": authenticated,
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	users, _, err := q.accountUseCase.FindUsers(
@@ -1982,6 +1984,7 @@ func (q *accountHTTPHandler) userLogin(c fiber.Ctx) error {
 			"authenticated": authenticated,
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	if len(users) == 0 ||
@@ -1992,6 +1995,7 @@ func (q *accountHTTPHandler) userLogin(c fiber.Ctx) error {
 			"authenticated": authenticated,
 			"flash":         flash.Danger("login failed"),
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	user := users[0]
@@ -2001,6 +2005,7 @@ func (q *accountHTTPHandler) userLogin(c fiber.Ctx) error {
 			"authenticated": authenticated,
 			"flash":         flash.Danger("login locked out, max. failed attempts exceeded"),
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	encryptedPassword := helper.String2ByteSlice(*user.EncryptedPassword)
@@ -2013,6 +2018,7 @@ func (q *accountHTTPHandler) userLogin(c fiber.Ctx) error {
 			"authenticated": authenticated,
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	defer func() {
@@ -2037,6 +2043,7 @@ func (q *accountHTTPHandler) userLogin(c fiber.Ctx) error {
 				"authenticated": authenticated,
 				"flash":         flash.Danger(err.Error()),
 				"request":       request,
+				"path":          c.Route().Path,
 			})
 		}
 		if user.LoginLockedAt != nil {
@@ -2047,6 +2054,7 @@ func (q *accountHTTPHandler) userLogin(c fiber.Ctx) error {
 					"authenticated": authenticated,
 					"flash":         flash.Danger(err.Error()),
 					"request":       request,
+					"path":          c.Route().Path,
 				})
 			}
 		}
@@ -2057,6 +2065,7 @@ func (q *accountHTTPHandler) userLogin(c fiber.Ctx) error {
 				"authenticated": authenticated,
 				"flash":         flash.Danger(err.Error()),
 				"request":       request,
+				"path":          c.Route().Path,
 			})
 		}
 		if user.LoginLockedAt != nil {
@@ -2065,6 +2074,7 @@ func (q *accountHTTPHandler) userLogin(c fiber.Ctx) error {
 				"authenticated": authenticated,
 				"flash":         flash.Danger("login locked out, max. failed attempts exceeded"),
 				"request":       request,
+				"path":          c.Route().Path,
 			})
 		}
 		c.Response().SetStatusCode(fiber.StatusBadRequest)
@@ -2072,6 +2082,7 @@ func (q *accountHTTPHandler) userLogin(c fiber.Ctx) error {
 			"authenticated": authenticated,
 			"flash":         flash.Danger("login failed"),
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	ipAddress := c.IP()
@@ -2088,6 +2099,7 @@ func (q *accountHTTPHandler) userLogin(c fiber.Ctx) error {
 			"authenticated": authenticated,
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -2097,6 +2109,7 @@ func (q *accountHTTPHandler) userLogin(c fiber.Ctx) error {
 			"authenticated": authenticated,
 			"flash":         flash.Danger(err.Error()),
 			"request":       request,
+			"path":          c.Route().Path,
 		})
 	}
 	if err = sess.Regenerate(); err != nil {
@@ -2128,5 +2141,6 @@ func (q *accountHTTPHandler) userProfile(c fiber.Ctx) error {
 		"flash":         flash,
 		"currentUser":   currentUser,
 		"cart":          cart,
+		"path":          c.Route().Path,
 	})
 }

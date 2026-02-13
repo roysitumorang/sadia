@@ -21,12 +21,12 @@
         <div class="container">
             <nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
                 <ul class="nav navbar-nav">
-                    <li><a href="/"><i class="fa fa-home">&nbsp;</i>&nbsp;Home</a></li>
+                    <li{{ if path=="" || HasPrefix(path, "/account") }} class="active"{{ end }}><a href="/"><i class="fa fa-home">&nbsp;</i>&nbsp;Home</a></li>
                     {{ if authenticated }}
-                    <li><a href="/product_category"><i class="fa fa-group">&nbsp;</i>&nbsp;Product Category</a></li>
-                    <li><a href="/product"><i class="fa fa-dollar">&nbsp;</i>&nbsp;Product</a></li>
-                    <li><a href="/session"><i class="fa fa-key">&nbsp;</i>&nbsp;Session</a></li>
-                    <li><a href="/transaction"><i class="fa fa-reorder">&nbsp;</i>&nbsp;Transaction</a></li>
+                    <li{{ if HasPrefix(path, "/product_category") }} class="active"{{ end }}><a href="/product_category"><i class="fa fa-group">&nbsp;</i>&nbsp;Product Category</a></li>
+                    <li{{ if HasPrefix(path, "/product") && !HasPrefix(path, "/product_category") }} class="active"{{ end }}><a href="/product"><i class="fa fa-dollar">&nbsp;</i>&nbsp;Product</a></li>
+                    <li{{ if HasPrefix(path, "/session") }} class="active"{{ end }}><a href="/session"><i class="fa fa-key">&nbsp;</i>&nbsp;Session</a></li>
+                    <li{{ if HasPrefix(path, "/transaction") }} class="active"{{ end }}><a href="/transaction"><i class="fa fa-reorder">&nbsp;</i>&nbsp;Transaction</a></li>
                     {{ end }}
                 </ul>
                 {{ if authenticated }}
