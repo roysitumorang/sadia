@@ -17,10 +17,10 @@
         <tbody>
             <tr class="text-nowrap">
                 <td>{{ if session.Status == 1 }}closed{{ else }}on going{{ end }}</td>
-                <td>{{ session.CashboxValue }}</td>
+                <td>{{ session.CashboxValue | Comma }}</td>
                 <td>{{ if session.CashboxNote }}{{ session.CashboxNote }}{{ else }}-{{ end }}</td>
-                <td>{{ session.TransactionValue }}</td>
-                <td>{{ session.SpendingValue }}</td>
+                <td>{{ session.TransactionValue | Comma }}</td>
+                <td>{{ session.SpendingValue | Comma }}</td>
                 <td><button type="submit" class="btn btn-primary">Close</button></td>
             </tr>
         </tbody>
@@ -65,7 +65,7 @@
         <tr class="text-nowrap">
             <td>{{ i + 1 }}</td>
             <td>{{ item.Description }}</td>
-            <td>{{ item.Value }}</td>
+            <td>{{ item.Value | Comma }}</td>
         </tr>
     {{ end }}
     </tbody>
