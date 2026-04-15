@@ -69,7 +69,7 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/swaggo/files/v2 v2.0.2 // indirect
 	github.com/tiendc/go-deepcopy v1.7.2 // indirect
-	github.com/tinylib/msgp v1.6.3 // indirect
+	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/tklauser/go-sysconf v0.3.16 // indirect
 	github.com/tklauser/numcpus v0.11.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.13.1 // indirect
