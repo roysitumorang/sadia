@@ -7,10 +7,10 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/getsentry/sentry-go v0.45.1
 	github.com/goccy/go-json v0.10.6
-	github.com/gofiber/contrib/v3/monitor v1.0.1
-	github.com/gofiber/contrib/v3/sentry v1.1.0
-	github.com/gofiber/contrib/v3/swaggo v1.0.1
-	github.com/gofiber/contrib/v3/zap v1.0.1
+	github.com/gofiber/contrib/v3/monitor v1.0.2
+	github.com/gofiber/contrib/v3/sentry v1.1.1
+	github.com/gofiber/contrib/v3/swaggo v1.0.2
+	github.com/gofiber/contrib/v3/zap v1.0.2
 	github.com/gofiber/fiber/v3 v3.1.0
 	github.com/gofiber/storage/valkey v0.2.3
 	github.com/gofiber/template/jet/v3 v3.0.2
@@ -19,7 +19,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/govalues/decimal v0.1.36
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
-	github.com/jackc/pgx/v5 v5.9.1
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/joho/godotenv v1.5.1
 	github.com/nyaruka/phonenumbers v1.7.1
 	github.com/robfig/cron/v3 v3.0.1
@@ -40,7 +40,7 @@ require (
 	github.com/andybalholm/brotli v1.2.1 // indirect
 	github.com/ebitengine/purego v0.10.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
-	github.com/go-openapi/jsonpointer v0.23.0 // indirect
+	github.com/go-openapi/jsonpointer v0.23.1 // indirect
 	github.com/go-openapi/jsonreference v0.21.5 // indirect
 	github.com/go-openapi/spec v0.22.4 // indirect
 	github.com/go-openapi/swag/conv v0.26.0 // indirect
@@ -50,7 +50,7 @@ require (
 	github.com/go-openapi/swag/stringutils v0.26.0 // indirect
 	github.com/go-openapi/swag/typeutils v0.26.0 // indirect
 	github.com/go-openapi/swag/yamlutils v0.26.0 // indirect
-	github.com/gofiber/schema v1.7.0 // indirect
+	github.com/gofiber/schema v1.7.1 // indirect
 	github.com/gofiber/template/v2 v2.1.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
