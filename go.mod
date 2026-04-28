@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/getsentry/sentry-go v0.46.0
+	github.com/getsentry/sentry-go v0.46.1
 	github.com/goccy/go-json v0.10.6
 	github.com/gofiber/contrib/v3/monitor v1.0.3
 	github.com/gofiber/contrib/v3/sentry v1.1.2
@@ -28,7 +28,7 @@ require (
 	github.com/swaggo/swag v1.16.6
 	github.com/twmb/franz-go v1.21.0
 	github.com/xuri/excelize/v2 v2.10.1
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.50.0
 	golang.org/x/sync v0.20.0
 )
