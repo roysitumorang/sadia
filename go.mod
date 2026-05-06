@@ -5,14 +5,14 @@ go 1.26
 require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/getsentry/sentry-go v0.46.1
+	github.com/getsentry/sentry-go v0.46.2
 	github.com/goccy/go-json v0.10.6
 	github.com/gofiber/contrib/v3/monitor v1.0.4
 	github.com/gofiber/contrib/v3/sentry v1.1.3
 	github.com/gofiber/contrib/v3/swaggo v1.0.4
 	github.com/gofiber/contrib/v3/zap v1.0.4
 	github.com/gofiber/fiber/v3 v3.2.0
-	github.com/gofiber/storage/valkey v0.2.5
+	github.com/gofiber/storage/valkey v0.2.6
 	github.com/gofiber/template/jet/v3 v3.0.3
 	github.com/gofiber/utils/v2 v2.0.4
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -26,7 +26,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/sqids/sqids-go v0.4.1
 	github.com/swaggo/swag v1.16.6
-	github.com/twmb/franz-go v1.21.0
+	github.com/twmb/franz-go v1.21.1
 	github.com/xuri/excelize/v2 v2.10.1
 	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.50.0
@@ -75,7 +75,7 @@ require (
 	github.com/twmb/franz-go/pkg/kmsg v1.13.1 // indirect
 	github.com/valkey-io/valkey-go v1.0.74 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.70.0 // indirect
+	github.com/valyala/fasthttp v1.71.0 // indirect
 	github.com/xuri/efp v0.0.1 // indirect
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
