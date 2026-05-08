@@ -7,10 +7,10 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/getsentry/sentry-go v0.46.2
 	github.com/goccy/go-json v0.10.6
-	github.com/gofiber/contrib/v3/monitor v1.0.4
-	github.com/gofiber/contrib/v3/sentry v1.1.3
-	github.com/gofiber/contrib/v3/swaggo v1.0.4
-	github.com/gofiber/contrib/v3/zap v1.0.4
+	github.com/gofiber/contrib/v3/monitor v1.0.5
+	github.com/gofiber/contrib/v3/sentry v1.1.4
+	github.com/gofiber/contrib/v3/swaggo v1.0.5
+	github.com/gofiber/contrib/v3/zap v1.0.5
 	github.com/gofiber/fiber/v3 v3.2.0
 	github.com/gofiber/storage/valkey v0.2.6
 	github.com/gofiber/template/jet/v3 v3.0.3
