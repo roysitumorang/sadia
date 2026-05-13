@@ -12,16 +12,16 @@ require (
 	github.com/gofiber/contrib/v3/swaggo v1.0.5
 	github.com/gofiber/contrib/v3/zap v1.0.5
 	github.com/gofiber/fiber/v3 v3.2.0
-	github.com/gofiber/storage/valkey v0.2.6
+	github.com/gofiber/storage/valkey v0.2.7
 	github.com/gofiber/template/jet/v3 v3.0.3
-	github.com/gofiber/utils/v2 v2.0.4
+	github.com/gofiber/utils/v2 v2.0.5
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/govalues/decimal v0.1.36
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/joho/godotenv v1.5.1
-	github.com/nyaruka/phonenumbers v1.7.2
+	github.com/nyaruka/phonenumbers v1.7.4
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.10.2
 	github.com/sqids/sqids-go v0.4.1
@@ -70,10 +70,10 @@ require (
 	github.com/swaggo/files/v2 v2.0.2 // indirect
 	github.com/tiendc/go-deepcopy v1.7.2 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
-	github.com/tklauser/go-sysconf v0.3.16 // indirect
-	github.com/tklauser/numcpus v0.11.0 // indirect
+	github.com/tklauser/go-sysconf v0.4.0 // indirect
+	github.com/tklauser/numcpus v0.12.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.13.1 // indirect
-	github.com/valkey-io/valkey-go v1.0.74 // indirect
+	github.com/valkey-io/valkey-go v1.0.75 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.71.0 // indirect
 	github.com/xuri/efp v0.0.1 // indirect
