@@ -13,7 +13,11 @@ type (
 )
 
 const (
-	Flash = "flash"
+	Flash   = "flash"
+	danger  = "danger"
+	success = "success"
+	warning = "warning"
+	info    = "info"
 )
 
 func NewFlashMessage() *FlashMessage {
@@ -23,22 +27,22 @@ func NewFlashMessage() *FlashMessage {
 }
 
 func (f *FlashMessage) Danger(message string) *FlashMessage {
-	f.Data["danger"] = message
+	f.Data[danger] = message
 	return f
 }
 
 func (f *FlashMessage) Success(message string) *FlashMessage {
-	f.Data["success"] = message
+	f.Data[success] = message
 	return f
 }
 
 func (f *FlashMessage) Warning(message string) *FlashMessage {
-	f.Data["warning"] = message
+	f.Data[warning] = message
 	return f
 }
 
 func (f *FlashMessage) Info(message string) *FlashMessage {
-	f.Data["info"] = message
+	f.Data[info] = message
 	return f
 }
 
