@@ -7,21 +7,21 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/getsentry/sentry-go v0.46.2
 	github.com/goccy/go-json v0.10.6
-	github.com/gofiber/contrib/v3/monitor v1.0.6
-	github.com/gofiber/contrib/v3/sentry v1.1.5
-	github.com/gofiber/contrib/v3/swaggo v1.0.6
+	github.com/gofiber/contrib/v3/monitor v1.0.7
+	github.com/gofiber/contrib/v3/sentry v1.1.6
+	github.com/gofiber/contrib/v3/swaggo v1.0.7
 	github.com/gofiber/contrib/v3/zap v1.0.7
 	github.com/gofiber/fiber/v3 v3.3.0
-	github.com/gofiber/storage/valkey v0.2.7
-	github.com/gofiber/template/jet/v3 v3.0.4
-	github.com/gofiber/utils/v2 v2.0.6
+	github.com/gofiber/storage/valkey v0.2.8
+	github.com/gofiber/template/jet/v3 v3.0.5
+	github.com/gofiber/utils/v2 v2.1.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/govalues/decimal v0.1.36
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
-	github.com/jackc/pgx/v5 v5.9.2
+	github.com/jackc/pgx/v5 v5.10.0
 	github.com/joho/godotenv v1.5.1
-	github.com/nyaruka/phonenumbers v1.7.5
+	github.com/nyaruka/phonenumbers v1.8.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.10.2
 	github.com/sqids/sqids-go v0.4.1
@@ -41,8 +41,8 @@ require (
 	github.com/ebitengine/purego v0.10.1 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v0.23.1 // indirect
-	github.com/go-openapi/jsonreference v0.21.5 // indirect
-	github.com/go-openapi/spec v0.22.4 // indirect
+	github.com/go-openapi/jsonreference v0.21.6 // indirect
+	github.com/go-openapi/spec v0.22.5 // indirect
 	github.com/go-openapi/swag/conv v0.26.0 // indirect
 	github.com/go-openapi/swag/jsonname v0.26.0 // indirect
 	github.com/go-openapi/swag/jsonutils v0.26.0 // indirect
@@ -50,7 +50,7 @@ require (
 	github.com/go-openapi/swag/stringutils v0.26.0 // indirect
 	github.com/go-openapi/swag/typeutils v0.26.0 // indirect
 	github.com/go-openapi/swag/yamlutils v0.26.0 // indirect
-	github.com/gofiber/schema v1.7.1 // indirect
+	github.com/gofiber/schema v1.7.2 // indirect
 	github.com/gofiber/template/v2 v2.1.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -61,11 +61,11 @@ require (
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
-	github.com/pierrec/lz4/v4 v4.1.26 // indirect
+	github.com/pierrec/lz4/v4 v4.1.27 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/richardlehane/mscfb v1.0.6 // indirect
 	github.com/richardlehane/msoleps v1.0.6 // indirect
-	github.com/shirou/gopsutil/v4 v4.26.4 // indirect
+	github.com/shirou/gopsutil/v4 v4.26.5 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/swaggo/files/v2 v2.0.2 // indirect
 	github.com/tiendc/go-deepcopy v1.7.2 // indirect
