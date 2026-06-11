@@ -7,8 +7,8 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/getsentry/sentry-go v0.46.2
 	github.com/goccy/go-json v0.10.6
-	github.com/gofiber/contrib/v3/monitor v1.0.7
-	github.com/gofiber/contrib/v3/sentry v1.1.6
+	github.com/gofiber/contrib/v3/monitor v1.1.0
+	github.com/gofiber/contrib/v3/sentry v1.1.7
 	github.com/gofiber/contrib/v3/swaggo v1.0.7
 	github.com/gofiber/contrib/v3/zap v1.0.7
 	github.com/gofiber/fiber/v3 v3.3.0
@@ -85,6 +85,6 @@ require (
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
-	golang.org/x/tools v0.45.0 // indirect
+	golang.org/x/tools v0.46.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
