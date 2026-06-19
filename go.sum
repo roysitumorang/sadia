@@ -49,8 +49,8 @@ github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/fxamacker/cbor/v2 v2.9.2 h1:X4Ksno9+x3cz0TZv69ec1hxP/+tymuR8PXQJyDwfh78=
 github.com/fxamacker/cbor/v2 v2.9.2/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
-github.com/getsentry/sentry-go v0.46.2 h1:1jhYwrKGa3sIpo/y5iDNXS5wDoT7I1KNzMHrnK6ojns=
-github.com/getsentry/sentry-go v0.46.2/go.mod h1:evVbw2qotNUdYG8KxXbAdjOQWWvWIwKxpjdZZIvcIPw=
+github.com/getsentry/sentry-go v0.47.0 h1:AnSMSyrYA5qZCIN/2xpgAAwv63sVULV+vBq37ajouc8=
+github.com/getsentry/sentry-go v0.47.0/go.mod h1:h+b4VHpKnK7aUXB5wc+KDnPgp9ZtfliRD4eV85FbiSA=
 github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA=
 github.com/go-errors/errors v1.4.2/go.mod h1:sIVyrIiJhuEF+Pj9Ebtd6P/rEYROXFi3BopGUQ5a5Og=
 github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
@@ -95,8 +95,8 @@ github.com/gofiber/contrib/v3/sentry v1.1.7 h1:nLUreB63tgqE6mkitVjWl0HPcRDmOwtir
 github.com/gofiber/contrib/v3/sentry v1.1.7/go.mod h1:v3e02vQ8SarujN5JMdan0StUNPvaA7aevqtWc2cGiXY=
 github.com/gofiber/contrib/v3/swaggo v1.0.7 h1:NwjBOldwhl4JaUVpo3XQ+L9d5vl7bjc24GJx4e5rqfs=
 github.com/gofiber/contrib/v3/swaggo v1.0.7/go.mod h1:UouDgg79E4BRhRN7KAJlMMYnbW3VVXW2Sc2q6O5hfnU=
-github.com/gofiber/contrib/v3/zap v1.0.7 h1:8WZJFQPGw7sQRxikaMxdOZLWyfu0MPum+VMvb6FE0YY=
-github.com/gofiber/contrib/v3/zap v1.0.7/go.mod h1:UGYV9FNDMM2jkZKRO2KJTeuC9lSB6Vuq5nN/lEa24TI=
+github.com/gofiber/contrib/v3/zap v1.0.8 h1:gK8HieHrQX2rv3rjor0Gmb9ilmmW9kve/yYb7HhKVk0=
+github.com/gofiber/contrib/v3/zap v1.0.8/go.mod h1:HCN6AMuwk89MFmRY4Z2p2bss33MK7ecEsYtKwOXFb2E=
 github.com/gofiber/fiber/v3 v3.3.0 h1:QBd3sYCqdy6Qs5gJYzSw4I4SbqL204jPqpdub/ueiw8=
 github.com/gofiber/fiber/v3 v3.3.0/go.mod h1:YH7/TAoRaU4kF8slDCtQuFJ1NzC+3MtxUI4KfvQtaIA=
 github.com/gofiber/schema v1.8.0 h1:NGsC9toPHmj8Xg4KpznuXBzNmHG6V5YV0tXKpKMcmis=
