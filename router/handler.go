@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,14 +58,26 @@ type (
 
 func MakeHandler(ctx context.Context) (*Service, error) {
 	ctxt := "Router-MakeHandler"
-	dbRead, err := config.GetDbReadOnly(ctx)
+	envMaxConns, ok := os.LookupEnv("DB_MAX_CONNECTIONS")
+	if !ok || envMaxConns == "" {
+		return nil, errors.New("db: env DB_MAX_CONNECTIONS is required")
+	}
+	conns, err := strconv.ParseInt(envMaxConns, 10, 32)
 	if err != nil {
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGetDbReadOnly")
 		return nil, err
 	}
-	dbWrite, err := config.GetDbWriteOnly(ctx)
+	if conns < 1 {
+		return nil, errors.New("db: env DB_MAX_CONNECTIONS requires a positive integer")
+	}
+	maxConns := int32(conns)
+	dbRead, err := config.CreateDbConnection(ctx, os.Getenv("DB_READ_DSN"), maxConns)
 	if err != nil {
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGetDbWriteOnly")
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrCreateDbConnection")
+		return nil, err
+	}
+	dbWrite, err := config.CreateDbConnection(ctx, os.Getenv("DB_WRITE_DSN"), maxConns)
+	if err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrCreateDbConnection")
 		return nil, err
 	}
 	migration := migration.New(dbRead, dbWrite)
