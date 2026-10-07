@@ -11,8 +11,6 @@ github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc
 github.com/KyleBanks/depth v1.2.1/go.mod h1:jzSb9d0L43HxTQfT+oSA1EEp2q+ne2uh6XgeJcm8brE=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
-github.com/bwmarrin/snowflake v0.3.0 h1:xm67bEhkKh6ij1790JB83OujPR5CzNe8QuQqAgISZN0=
-github.com/bwmarrin/snowflake v0.3.0/go.mod h1:NdZxfVWX+oR6y2K0o6qAYv6gIOP9rjG0/E9WsDpxqwE=
 github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=
 github.com/cenkalti/backoff/v4 v4.3.0/go.mod h1:Y3VNntkOUPxTVeUxJ/G5vcM//AlwfmyYozVcomhLiZE=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
@@ -87,6 +85,8 @@ github.com/go-openapi/testify/v2 v2.8.0 h1:19QDx5b57p8KjO2E4sgs/woL4Akp+FGLRlVm2
 github.com/go-openapi/testify/v2 v2.8.0/go.mod h1:4gUN8jC+RqOE2qjW/vDmfyTvl5BCht4qL7oca0odrak=
 github.com/goccy/go-json v0.11.2 h1:jdZv93Tt4ioR8yW1CoNsvSxrcZlCXAUU1aZXN7gpXUA=
 github.com/goccy/go-json v0.11.2/go.mod h1:3NdmfEkZlB7YI5UFw/qdFKq8XN1aiWR0YyRPWZNQltY=
+github.com/godruoyi/go-snowflake v0.0.2 h1:rN9imTkrUJ5ZjuwTOi7kTGQFEZSUI3pwPMzAb7uitk4=
+github.com/godruoyi/go-snowflake v0.0.2/go.mod h1:6JXMZzmleLpSK9pYpg4LXTcAz54mdYXTeXUvVks17+4=
 github.com/gofiber/contrib/v3/monitor v1.2.2 h1:TLld7FppW5LLiV4QwdEhG8fWSbkfMbO+6pG1HCEa5tM=
 github.com/gofiber/contrib/v3/monitor v1.2.2/go.mod h1:uBWvxXxIS+ozaCtb1C9o+NJjghptiDi6ShWFTbUGcfY=
 github.com/gofiber/contrib/v3/sentry v1.1.12 h1:sFnsnmkWZNFoe42gXpUEpeEsp/+ohWnkyhi4RE8l/k0=

@@ -3,11 +3,11 @@ module github.com/roysitumorang/sadia
 go 1.27.1
 
 require (
-	github.com/bwmarrin/snowflake v0.3.0
 	github.com/coregx/coregex v0.12.25
 	github.com/dustin/go-humanize v1.1.0
 	github.com/getsentry/sentry-go v0.49.0
 	github.com/goccy/go-json v0.11.2
+	github.com/godruoyi/go-snowflake v0.0.2
 	github.com/gofiber/contrib/v3/monitor v1.2.2
 	github.com/gofiber/contrib/v3/sentry v1.1.12
 	github.com/gofiber/contrib/v3/swaggo v1.0.12

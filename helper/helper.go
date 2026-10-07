@@ -20,8 +20,8 @@ import (
 	"unsafe"
 	"uuid"
 
-	"github.com/bwmarrin/snowflake"
 	"github.com/goccy/go-json"
+	"github.com/godruoyi/go-snowflake"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -45,11 +45,10 @@ var (
 	loginMaxFailedAttempts int
 	loginLockoutDuration,
 	accessTokenAge time.Duration
-	sqIDs         *sqids.Sqids
-	dbWrite       *pgxpool.Pool
-	privateKey    *rsa.PrivateKey
-	snowflakeNode *snowflake.Node
-	InitHelper    = sync.OnceValue(func() (err error) {
+	sqIDs      *sqids.Sqids
+	dbWrite    *pgxpool.Pool
+	privateKey *rsa.PrivateKey
+	InitHelper = sync.OnceValue(func() (err error) {
 		location, ok := os.LookupEnv("TIME_ZONE")
 		if !ok || location == "" {
 			return errors.New("env TIME_ZONE is required")
@@ -106,10 +105,7 @@ var (
 		if accessTokenAge, err = time.ParseDuration(envAccesTokenAge); err != nil {
 			return
 		}
-		if privateKey, err = keys.InitPrivateKey(); err != nil {
-			return
-		}
-		snowflakeNode, err = snowflake.NewNode(1)
+		privateKey, err = keys.InitPrivateKey()
 		return
 	})
 )
@@ -130,31 +126,26 @@ func ByteSlice2String(bs []byte) string {
 	return *(*string)(unsafe.Pointer(&bs))
 }
 
-func GenerateSnowflakeID() int64 {
-	return snowflakeNode.Generate().Int64()
+func GenerateSnowflakeID() uint64 {
+	return snowflake.ID()
 }
 
-func EncodeSqids(numbers ...int64) (string, error) {
-	n := len(numbers)
-	if n == 0 {
+func EncodeSqids(numbers ...uint64) (string, error) {
+	if len(numbers) == 0 {
 		return "", nil
 	}
-	unsignedNumbers := make([]uint64, len(numbers))
-	for i, number := range numbers {
-		unsignedNumbers[i] = uint64(number)
-	}
-	return sqIDs.Encode(unsignedNumbers)
+	return sqIDs.Encode(numbers)
 }
 
-func DecodeSqids(id string) int64 {
+func DecodeSqids(id string) uint64 {
 	if id == "" {
 		return 0
 	}
-	unsignedNumbers := sqIDs.Decode(id)
-	if len(unsignedNumbers) == 0 {
+	numbers := sqIDs.Decode(id)
+	if len(numbers) == 0 {
 		return 0
 	}
-	return int64(unsignedNumbers[0])
+	return numbers[0]
 }
 
 func GenerateUniqueID() string {
