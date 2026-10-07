@@ -14,17 +14,17 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE sessions (
-				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
-				, company_id UUID NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
+				id uint8 NOT NULL PRIMARY KEY
+				, company_id uint8 NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, date date NOT NULL
-				, status smallint NOT NULL
+				, status uint1 NOT NULL
 				, cashbox_value integer NOT NULL
 				, cashbox_note character varying NOT NULL
-				, transaction_value bigint NOT NULL DEFAULT 0
-				, spending_value bigint NOT NULL DEFAULT 0
-				, created_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, transaction_value uint8 NOT NULL DEFAULT 0
+				, spending_value uint8 NOT NULL DEFAULT 0
+				, created_by uint8 NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
-				, closed_by UUID REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
+				, closed_by uint8 REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, closed_at timestamp with time zone
 			)`,
 		); err != nil {
@@ -69,7 +69,7 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`ALTER TABLE companies
-				ADD COLUMN session_id UUID REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE SET NULL`,
+				ADD COLUMN session_id uint8 REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE SET NULL`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -84,11 +84,11 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE spendings (
-				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
-				, session_id UUID NOT NULL REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE
+				id uint8 NOT NULL PRIMARY KEY
+				, session_id uint8 NOT NULL REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, description character varying NOT NULL
-				, value bigint NOT NULL
-				, created_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, value uint8 NOT NULL
+				, created_by uint8 NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
 			)`,
 		); err != nil {
@@ -112,13 +112,13 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE product_categories (
-				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
-				, company_id UUID NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
+				id uint8 NOT NULL PRIMARY KEY
+				, company_id uint8 NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, name character varying NOT NULL
 				, slug character varying NOT NULL
-				, created_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, created_by uint8 NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
-				, updated_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, updated_by uint8 NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, updated_at timestamp with time zone NOT NULL
 			)`,
 		); err != nil {
@@ -163,21 +163,21 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE products (
-				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
-				, company_id UUID NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
-				, category_id UUID REFERENCES product_categories (id) ON UPDATE CASCADE ON DELETE SET NULL
+				id uint8 NOT NULL PRIMARY KEY
+				, company_id uint8 NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, category_id uint8 REFERENCES product_categories (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, name character varying NOT NULL
 				, code character varying NOT NULL
 				, uom character varying NOT NULL
-				, minimum_stock bigint NOT NULL
-				, stock bigint NOT NULL
-				, base_price bigint NOT NULL
-				, selling_price bigint NOT NULL
-				, weight bigint NOT NULL
+				, minimum_stock uint8 NOT NULL
+				, stock uint8 NOT NULL
+				, base_price uint8 NOT NULL
+				, selling_price uint8 NOT NULL
+				, weight uint8 NOT NULL
 				, rack_position character varying NOT NULL
-				, created_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, created_by uint8 NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
-				, updated_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, updated_by uint8 NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, updated_at timestamp with time zone NOT NULL
 			)`,
 		); err != nil {
@@ -278,14 +278,14 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE transactions (
-				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
-				, session_id UUID NOT NULL REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE
+				id uint8 NOT NULL PRIMARY KEY
+				, session_id uint8 NOT NULL REFERENCES sessions (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, reference_no character varying NOT NULL UNIQUE
-				, subtotal bigint NOT NULL
-				, discount bigint NOT NULL
-				, total bigint NOT NULL
-				, payment_method smallint NOT NULL
-				, created_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, subtotal uint8 NOT NULL
+				, discount uint8 NOT NULL
+				, total uint8 NOT NULL
+				, payment_method uint1 NOT NULL
+				, created_by uint8 NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
 			)`,
 		); err != nil {
@@ -323,18 +323,18 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE transaction_line_items (
-				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
-				, transaction_id UUID NOT NULL REFERENCES transactions (id) ON UPDATE CASCADE ON DELETE CASCADE
-				, product_id UUID NOT NULL REFERENCES products (id) ON UPDATE CASCADE ON DELETE CASCADE
+				id uint8 NOT NULL PRIMARY KEY
+				, transaction_id uint8 NOT NULL REFERENCES transactions (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, product_id uint8 NOT NULL REFERENCES products (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, product_name character varying NOT NULL
 				, product_code character varying NOT NULL
 				, product_uom character varying NOT NULL
-				, stock bigint NOT NULL
-				, base_price bigint NOT NULL
-				, selling_price bigint NOT NULL
-				, weight bigint NOT NULL
-				, quantity bigint NOT NULL
-				, subtotal bigint NOT NULL
+				, stock uint8 NOT NULL
+				, base_price uint8 NOT NULL
+				, selling_price uint8 NOT NULL
+				, weight uint8 NOT NULL
+				, quantity uint8 NOT NULL
+				, subtotal uint8 NOT NULL
 			)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
@@ -357,12 +357,12 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE sequences (
-				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
+				id uint8 NOT NULL PRIMARY KEY
 				, name character varying NOT NULL UNIQUE
 				, number integer NOT NULL
-				, created_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, created_by uint8 NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
-				, updated_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, updated_by uint8 NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, updated_at timestamp with time zone NOT NULL
 			)`,
 		); err != nil {

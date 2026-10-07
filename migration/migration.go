@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"time"
@@ -22,7 +23,7 @@ type (
 )
 
 var (
-	Migrations = map[int64]func(ctx context.Context, tx pgx.Tx) error{}
+	Migrations = map[uint64]func(ctx context.Context, tx pgx.Tx) error{}
 )
 
 func New(
@@ -40,7 +41,7 @@ func (m *Migration) Migrate(ctx context.Context) error {
 	if _, err := m.dbWrite.Exec(
 		ctx,
 		`CREATE TABLE IF NOT EXISTS migrations (
-			"version" bigint NOT NULL PRIMARY KEY
+			"version" uint8 NOT NULL PRIMARY KEY
 		)`,
 	); err != nil {
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
@@ -55,66 +56,56 @@ func (m *Migration) Migrate(ctx context.Context) error {
 		return err
 	}
 	defer rows.Close()
-	mapVersions := map[int64]int{}
+	var version uint64
+	mapVersions := map[uint64]struct{}{}
 	for rows.Next() {
-		var version int64
-		if err := rows.Scan(&version); err != nil {
+		if err = rows.Scan(&version); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return err
 		}
-		mapVersions[version] = 1
+		mapVersions[version] = struct{}{}
 	}
-	sortedVersions := make([]int64, len(Migrations))
-	var i int
-	for version := range Migrations {
-		sortedVersions[i] = version
-		i++
-	}
-	if len(sortedVersions) > 0 {
-		slices.Sort(
-			sortedVersions)
-	}
-	tx, err := m.dbWrite.Begin(ctx)
+	sortedVersions := slices.Collect(maps.Keys(Migrations))
+	slices.Sort(sortedVersions)
+	tx, err := m.dbWrite.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel: pgx.Serializable,
+	})
 	if err != nil {
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrBegin")
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrBeginTx")
 		return err
 	}
+	defer func(ctx context.Context) {
+		if err = tx.Rollback(ctx); errors.Is(err, pgx.ErrTxClosed) {
+			err = nil
+		}
+		if err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrRollback")
+		}
+	}(ctx)
 	for _, version := range sortedVersions {
 		if _, ok := mapVersions[version]; ok {
 			continue
 		}
 		function, ok := Migrations[version]
 		if !ok {
-			err := fmt.Errorf("migration function for version %d not found", version)
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrOK")
-			if errRollback := tx.Rollback(ctx); errRollback != nil {
-				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-			}
-			return err
+			return fmt.Errorf("migration function for version %d not found", version)
 		}
 		if err := function(ctx, tx); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrFunction")
-			if errRollback := tx.Rollback(ctx); errRollback != nil {
-				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-			}
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO "migrations" ("version") VALUES ($1)`, version); err != nil {
+		if _, err = tx.Exec(ctx, `INSERT INTO "migrations" ("version") VALUES ($1)`, version); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
-			if errRollback := tx.Rollback(ctx); errRollback != nil {
-				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-			}
 			return err
 		}
 	}
-	if err := tx.Commit(ctx); err != nil {
+	if err = tx.Commit(ctx); err != nil {
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrCommit")
-		return err
 	}
-	return nil
+	return err
 }
 
-func (m *Migration) CreateMigrationFile(_ context.Context) error {
+func (m *Migration) CreateMigrationFile() error {
 	now := time.Now().UTC().UnixNano()
 	filepath := fmt.Sprintf("./migration/%d.go", now)
 	content := fmt.Sprintf(

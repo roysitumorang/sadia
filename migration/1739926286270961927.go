@@ -17,9 +17,9 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE accounts (
-				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
-				, account_type smallint NOT NULL
-				, status smallint NOT NULL
+				id uint8 NOT NULL PRIMARY KEY
+				, account_type uint1 NOT NULL
+				, status uint1 NOT NULL
 				, name character varying NOT NULL
 				, username character varying NOT NULL UNIQUE
 				, confirmation_token character varying UNIQUE
@@ -46,10 +46,10 @@ func init() {
 				, login_failed_attempts integer NOT NULL DEFAULT 0
 				, login_unlock_token character varying UNIQUE
 				, login_locked_at timestamp with time zone
-				, created_by UUID REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
+				, created_by uint8 REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, created_at timestamp with time zone NOT NULL
 				, updated_at timestamp with time zone NOT NULL
-				, deactivated_by UUID REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
+				, deactivated_by uint8 REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, deactivated_at timestamp with time zone
 				, deactivation_reason character varying
 			)`,
@@ -151,8 +151,8 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE admins (
-				account_id UUID NOT NULL PRIMARY KEY REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
-				, admin_level smallint NOT NULL
+				account_id uint8 NOT NULL PRIMARY KEY REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, admin_level uint1 NOT NULL
 			)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
@@ -161,9 +161,9 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE json_web_tokens (
-				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
+				id uint8 NOT NULL PRIMARY KEY
 				, token character varying NOT NULL UNIQUE
-				, account_id UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, account_id uint8 NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
 				, expired_at timestamp with time zone NOT NULL
 			)`,
@@ -194,11 +194,12 @@ func init() {
 		}
 		confirmationToken, emailConfirmationToken, phoneConfirmationToken := helper.RandomString(32), helper.RandomString(32), helper.RandomNumber(6)
 		now := time.Now()
-		var adminID string
+		var adminID uint64
 		if err = tx.QueryRow(
 			ctx,
 			`INSERT INTO accounts (
-				account_type
+				id
+				, account_type
 				, status
 				, name
 				, username
@@ -209,8 +210,9 @@ func init() {
 				, phone_confirmation_token
 				, created_at
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
 			RETURNING id`,
+			helper.GenerateSnowflakeID(),
 			models.AccountTypeAdmin,
 			models.StatusUnconfirmed,
 			"Roy Situmorang",
@@ -222,7 +224,7 @@ func init() {
 			phoneConfirmationToken,
 			now,
 		).Scan(&adminID); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return
 		}
 		if _, err = tx.Exec(
@@ -240,15 +242,15 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE companies (
-				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
+				id uint8 NOT NULL PRIMARY KEY
 				, name character varying NOT NULL
 				, slug character varying NOT NULL UNIQUE
-				, status smallint NOT NULL
-				, created_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, status uint1 NOT NULL
+				, created_by uint8 NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
-				, updated_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, updated_by uint8 NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, updated_at timestamp with time zone NOT NULL
-				, deactivated_by UUID REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
+				, deactivated_by uint8 REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE SET NULL
 				, deactivated_at timestamp with time zone
 				, deactivation_reason character varying
 			)`,
@@ -301,13 +303,13 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE logs (
-				id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7()
-				, company_id UUID NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
+				id uint8 NOT NULL PRIMARY KEY
+				, company_id uint8 NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, table_name character varying NOT NULL
-				, table_id UUID NOT NULL
+				, table_id uint8 NOT NULL
 				, action character varying NOT NULL
 				, changes jsonb
-				, created_by UUID NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, created_by uint8 NOT NULL REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
 				, created_at timestamp with time zone NOT NULL
 			)`,
 		); err != nil {
@@ -345,9 +347,9 @@ func init() {
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE users (
-				account_id UUID NOT NULL PRIMARY KEY REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
-				, company_id UUID NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
-				, user_level smallint NOT NULL
+				account_id uint8 NOT NULL PRIMARY KEY REFERENCES accounts (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, company_id uint8 NOT NULL REFERENCES companies (id) ON UPDATE CASCADE ON DELETE CASCADE
+				, user_level uint1 NOT NULL
 			)`,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
@@ -360,34 +362,37 @@ func init() {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
 		}
-		var companyID string
+		var companyID uint64
 		if err = tx.QueryRow(
 			ctx,
 			`INSERT INTO companies (
-				name
+				id
+				, name
 				, slug
 				, status
 				, created_by
 				, created_at
 				, updated_by
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $4, $5)
+			) VALUES ($1, $2, $3, $4, $5, $6, $5, $6)
 			RETURNING id`,
+			helper.GenerateSnowflakeID(),
 			"Apotik Lestari",
 			"apotik-lestari",
 			models.StatusUnconfirmed,
 			adminID,
 			now,
 		).Scan(&companyID); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return
 		}
 		confirmationToken, emailConfirmationToken, phoneConfirmationToken = helper.RandomString(32), helper.RandomString(32), helper.RandomNumber(6)
-		var userID string
+		var userID uint64
 		if err = tx.QueryRow(
 			ctx,
 			`INSERT INTO accounts (
-				account_type
+				id
+				, account_type
 				, status
 				, name
 				, username
@@ -398,8 +403,9 @@ func init() {
 				, phone_confirmation_token
 				, created_at
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
 			RETURNING id`,
+			helper.GenerateSnowflakeID(),
 			models.AccountTypeUser,
 			models.StatusUnconfirmed,
 			"Yuli Ervanita Pasaribu",
@@ -411,7 +417,7 @@ func init() {
 			phoneConfirmationToken,
 			now,
 		).Scan(&userID); err != nil {
-			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return
 		}
 		if _, err = tx.Exec(

@@ -159,7 +159,7 @@ func main() {
 			var activity string
 			switch args[0] {
 			case "new":
-				if err := service.Migration.CreateMigrationFile(ctx); err != nil {
+				if err := service.Migration.CreateMigrationFile(); err != nil {
 					helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrCreateMigrationFile")
 					return
 				}
