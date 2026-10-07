@@ -32,7 +32,7 @@ func New(
 	}
 }
 
-func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, accountID string) (*jwtModel.JsonWebToken, error) {
+func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, accountID uint64) (*jwtModel.JsonWebToken, error) {
 	ctxt := "JwtQuery-CreateJWT"
 	now := time.Now()
 	expiredAt := now.Add(helper.GetAccessTokenAge())
@@ -41,16 +41,18 @@ func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, accountID string) (
 	err := tx.QueryRow(
 		ctx,
 		`INSERT INTO json_web_tokens (
-			token
+			id
+			, token
 			, account_id
 			, created_at
 			, expired_at
-		) VALUES ($1, $2, $3, $4)
+		) VALUES ($1, $2, $3, $4, $5)
 		RETURNING id
 			, token
 			, account_id
 			, created_at
 			, expired_at`,
+		helper.GenerateSnowflakeID(),
 		token,
 		accountID,
 		now,
@@ -63,9 +65,6 @@ func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, accountID string) (
 		&response.ExpiredAt,
 	)
 	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		return nil, err
 	}
@@ -216,14 +215,14 @@ func (q *jwtQuery) DeleteJWTs(ctx context.Context, tx pgx.Tx, filter *jwtModel.D
 		_, _ = builder.WriteString(strconv.Itoa(len(params)))
 		conditions = append(conditions, builder.String())
 	}
-	if filter.AccountID != "" {
+	if filter.AccountID != 0 {
 		params = append(params, filter.AccountID)
 		builder.Reset()
 		_, _ = builder.WriteString("j.account_id = $")
 		_, _ = builder.WriteString(strconv.Itoa(len(params)))
 		conditions = append(conditions, builder.String())
 	}
-	if filter.CompanyID != "" {
+	if filter.CompanyID != 0 {
 		params = append(params, filter.CompanyID)
 		builder.Reset()
 		_, _ = builder.WriteString(
@@ -266,9 +265,6 @@ func (q *jwtQuery) DeleteJWTs(ctx context.Context, tx pgx.Tx, filter *jwtModel.D
 	}
 	result, err := tx.Exec(ctx, builder.String(), params...)
 	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 	}
 	return result.RowsAffected(), err

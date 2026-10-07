@@ -2,9 +2,9 @@ package usecase
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
-	"github.com/gofiber/utils/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
@@ -73,7 +73,7 @@ func (q *productUseCase) ConsumeMessage(ctx context.Context, topic string, messa
 	return nil
 }
 
-func (q *productUseCase) Import(ctx context.Context, filename, companyID, adminID string) error {
+func (q *productUseCase) Import(ctx context.Context, filename string, companyID, adminID uint64) error {
 	ctxt := "ProductUseCase-Import"
 	f, err := excelize.OpenFile(filename)
 	if err != nil {
@@ -103,9 +103,9 @@ func (q *productUseCase) Import(ctx context.Context, filename, companyID, adminI
 			items := strings.Split(sellingPriceRaw, ".")
 			sellingPriceRaw = items[0]
 		}
-		sellingPrice, err := utils.ParseInt(sellingPriceRaw)
+		sellingPrice, err := strconv.ParseUint(sellingPriceRaw, 10, 64)
 		if err != nil {
-			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
 			return err
 		}
 		purchasePriceRaw := row[6]
@@ -113,14 +113,14 @@ func (q *productUseCase) Import(ctx context.Context, filename, companyID, adminI
 			items := strings.Split(purchasePriceRaw, ".")
 			purchasePriceRaw = items[0]
 		}
-		purchasePrice, err := utils.ParseInt(purchasePriceRaw)
+		purchasePrice, err := strconv.ParseUint(purchasePriceRaw, 10, 64)
 		if err != nil {
-			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
 			return err
 		}
-		stock, err := utils.ParseInt(row[8])
+		stock, err := strconv.ParseUint(row[8], 10, 64)
 		if err != nil {
-			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
 			return err
 		}
 		product.Code = row[1]

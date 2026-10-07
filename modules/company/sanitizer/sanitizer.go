@@ -3,7 +3,6 @@ package sanitizer
 import (
 	"context"
 	"errors"
-	"math"
 	"net/url"
 	"strconv"
 	"strings"
@@ -34,19 +33,19 @@ func FindCompanies(ctx context.Context, c fiber.Ctx) (*companyModel.Filter, erro
 		options = append(options, companyModel.WithKeyword(keyword))
 	}
 	if rawStatusList, ok := urlValues["status"]; ok {
-		mapStatus := map[string]int{}
-		var statusList []int8
+		mapStatus := map[string]struct{}{}
+		var statusList []uint8
 		for _, rawStatus := range rawStatusList {
 			rawStatus = strings.TrimSpace(rawStatus)
 			if _, ok := mapStatus[rawStatus]; rawStatus == "" || ok {
 				continue
 			}
-			status, err := strconv.Atoi(rawStatus)
-			if err != nil || status < math.MinInt8 || status > math.MaxInt8 {
+			status, err := strconv.ParseUint(rawStatus, 10, 8)
+			if err != nil {
 				continue
 			}
-			statusList = append(statusList, int8(status))
-			mapStatus[rawStatus] = 1
+			statusList = append(statusList, uint8(status))
+			mapStatus[rawStatus] = struct{}{}
 		}
 		options = append(options, companyModel.WithStatusList(statusList...))
 	}

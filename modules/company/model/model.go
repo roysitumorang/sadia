@@ -13,23 +13,23 @@ import (
 type (
 	Company struct {
 		RowNo              uint64     `json:"row_no,omitempty"`
-		ID                 string     `json:"id"`
+		ID                 uint64     `json:"id,string"`
 		Name               string     `json:"name"`
 		Slug               string     `json:"slug"`
-		Status             int8       `json:"status"`
-		CreatedBy          string     `json:"-"`
+		Status             uint8      `json:"status"`
+		CreatedBy          uint64     `json:"-"`
 		CreatedAt          time.Time  `json:"-"`
-		UpdatedBy          string     `json:"-"`
+		UpdatedBy          uint64     `json:"-"`
 		UpdatedAt          time.Time  `json:"-"`
-		DeactivatedBy      *string    `json:"-"`
+		DeactivatedBy      *uint64    `json:"-"`
 		DeactivatedAt      *time.Time `json:"-"`
 		DeactivationReason *string    `json:"-"`
-		SessionID          *string    `json:"session_id"`
+		SessionID          *uint64    `json:"session_id,string"`
 	}
 
 	Filter struct {
-		CompanyIDs []string
-		StatusList []int8
+		CompanyIDs []uint64
+		StatusList []uint8
 		Keyword,
 		PaginationURL string
 		Limit,
@@ -44,7 +44,7 @@ type (
 		Slug      string             `json:"-"`
 		Status    int8               `json:"-"`
 		Owner     *models.NewAccount `json:"owner"`
-		CreatedBy string             `json:"-"`
+		CreatedBy uint64             `json:"-"`
 	}
 
 	Deactivation struct {
@@ -69,13 +69,13 @@ func NewFilter(options ...FilterOption) *Filter {
 	return filter
 }
 
-func WithCompanyIDs(companyIDs ...string) FilterOption {
+func WithCompanyIDs(companyIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.CompanyIDs = companyIDs
 	}
 }
 
-func WithStatusList(statusList ...int8) FilterOption {
+func WithStatusList(statusList ...uint8) FilterOption {
 	return func(q *Filter) {
 		q.StatusList = statusList
 	}

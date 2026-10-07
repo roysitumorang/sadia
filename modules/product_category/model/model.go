@@ -16,19 +16,19 @@ const (
 type (
 	ProductCategory struct {
 		RowNo     uint64    `json:"row_no,omitempty" form:"-"`
-		ID        string    `json:"id" form:"-"`
-		CompanyID string    `json:"-" form:"-"`
+		ID        uint64    `json:"id,string" form:"-"`
+		CompanyID uint64    `json:"-" form:"-"`
 		Name      string    `json:"name" form:"name"`
 		Slug      string    `json:"slug" form:"slug"`
-		CreatedBy string    `json:"-" form:"-"`
+		CreatedBy uint64    `json:"-" form:"-"`
 		CreatedAt time.Time `json:"-" form:"-"`
-		UpdatedBy string    `json:"-" form:"-"`
+		UpdatedBy uint64    `json:"-" form:"-"`
 		UpdatedAt time.Time `json:"-" form:"-"`
 	}
 
 	Filter struct {
 		ProductCategoryIDs,
-		CompanyIDs []string
+		CompanyIDs []uint64
 		Keyword,
 		PaginationURL string
 		Limit,
@@ -64,13 +64,13 @@ func NewFilter(options ...FilterOption) *Filter {
 	return filter
 }
 
-func WithProductCategoryIDs(productCategoryIDs ...string) FilterOption {
+func WithProductCategoryIDs(productCategoryIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.ProductCategoryIDs = productCategoryIDs
 	}
 }
 
-func WithCompanyIDs(companyIDs ...string) FilterOption {
+func WithCompanyIDs(companyIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.CompanyIDs = companyIDs
 	}

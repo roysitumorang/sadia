@@ -3,6 +3,7 @@ package presenter
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -71,7 +72,7 @@ func (q *sessionHTTPHandler) UserFindSessions(c fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindSessions")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	filter.CompanyIDs = []string{currentUser.CompanyID}
+	filter.CompanyIDs = []uint64{currentUser.CompanyID}
 	rows, pagination, err := q.sessionUseCase.FindSessions(ctx, filter)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindSessions")
@@ -208,7 +209,7 @@ func (q *sessionHTTPHandler) userIndex(c fiber.Ctx) error {
 			"path":           c.Route().Path,
 		})
 	}
-	filter.CompanyIDs = []string{currentUser.CompanyID}
+	filter.CompanyIDs = []uint64{currentUser.CompanyID}
 	if rows, pagination, err = q.sessionUseCase.FindSessions(ctx, filter); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindSessions")
 		c.Response().SetStatusCode(fiber.StatusBadRequest)
@@ -366,6 +367,11 @@ func (q *sessionHTTPHandler) userShow(c fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
+	sessionID, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
+		return flash.Danger("session not found").Redirect(c, sess.Session, "/session")
+	}
 	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	session := new(sessionModel.Session)
 	request := new(sessionModel.Spending)
@@ -373,7 +379,7 @@ func (q *sessionHTTPHandler) userShow(c fiber.Ctx) error {
 		ctx,
 		sessionModel.NewFilter(
 			sessionModel.WithCompanyIDs(currentUser.CompanyID),
-			sessionModel.WithSessionIDs(c.Params("id")),
+			sessionModel.WithSessionIDs(sessionID),
 		),
 	)
 	if err != nil {
@@ -491,7 +497,7 @@ func (q *sessionHTTPHandler) userCreateSpending(c fiber.Ctx) error {
 			"path":           c.Route().Path,
 		})
 	}
-	return flash.Success("spending created successfully").Redirect(c, sess.Session, fmt.Sprintf("/session/%s", currentSession.ID))
+	return flash.Success("spending created successfully").Redirect(c, sess.Session, fmt.Sprintf("/session/%d", currentSession.ID))
 }
 
 func (q *sessionHTTPHandler) userClose(c fiber.Ctx) error {

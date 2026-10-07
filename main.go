@@ -26,6 +26,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -203,7 +204,17 @@ func main() {
 				return
 			}
 			helper.InitDbWrite(service.DbWrite)
-			if err := service.ProductUseCase.Import(ctx, args[0], args[1], args[2]); err != nil {
+			companyID, err := strconv.ParseUint(args[1], 10, 64)
+			if err != nil {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrParseUint")
+				return
+			}
+			adminID, err := strconv.ParseUint(args[2], 10, 64)
+			if err != nil {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrParseUint")
+				return
+			}
+			if err := service.ProductUseCase.Import(ctx, args[0], companyID, adminID); err != nil {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrImport")
 				return
 			}

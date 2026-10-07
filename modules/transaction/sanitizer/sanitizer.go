@@ -67,9 +67,9 @@ func ValidateCart(ctx context.Context, c fiber.Ctx) (*transactionModel.Transacti
 		return response, fiber.StatusBadRequest, err
 	}
 	if discounts := form["discount"]; len(discounts) > 0 {
-		discount, err := utils.ParseInt(discounts[0])
+		discount, err := strconv.ParseUint(discounts[0], 10, 64)
 		if err != nil {
-			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
 			return response, fiber.StatusBadRequest, err
 		}
 		response.Discount = discount
@@ -78,10 +78,15 @@ func ValidateCart(ctx context.Context, c fiber.Ctx) (*transactionModel.Transacti
 	quantities := form["line_items[][quantity]"]
 	for i, rawProductID := range productIDs {
 		lineItem := new(transactionModel.LineItem)
-		lineItem.ProductID = rawProductID
-		quantity, err := utils.ParseInt(quantities[i])
+		productID, err := strconv.ParseUint(rawProductID, 10, 64)
 		if err != nil {
-			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseInt")
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
+			return response, fiber.StatusBadRequest, err
+		}
+		lineItem.ProductID = productID
+		quantity, err := strconv.ParseUint(quantities[i], 10, 64)
+		if err != nil {
+			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
 			return response, fiber.StatusBadRequest, err
 		}
 		lineItem.Quantity = quantity

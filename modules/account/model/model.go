@@ -28,9 +28,9 @@ const (
 type (
 	Account struct {
 		RowNo                   uint64     `json:"row_no,omitempty"`
-		ID                      string     `json:"id"`
+		ID                      uint64     `json:"id,string"`
 		AccountType             uint8      `json:"account_type"`
-		Status                  int8       `json:"status"`
+		Status                  uint8      `json:"status"`
 		Name                    string     `json:"name"`
 		Username                string     `json:"username"`
 		ConfirmationToken       *string    `json:"-"`
@@ -57,10 +57,10 @@ type (
 		LoginFailedAttempts     int        `json:"login_failed_attempts"`
 		LoginUnlockToken        *string    `json:"-"`
 		LoginLockedAt           *time.Time `json:"login_locked_at"`
-		CreatedBy               *string    `json:"-"`
+		CreatedBy               *uint64    `json:"-"`
 		CreatedAt               time.Time  `json:"created_at"`
 		UpdatedAt               time.Time  `json:"updated_at"`
-		DeactivatedBy           *string    `json:"-"`
+		DeactivatedBy           *uint64    `json:"-"`
 		DeactivatedAt           *time.Time `json:"deactivated_at"`
 		DeactivationReason      *string    `json:"-"`
 	}
@@ -72,14 +72,14 @@ type (
 
 	User struct {
 		*Account
-		CompanyID string `json:"company_id"`
+		CompanyID uint64 `json:"company_id,string"`
 		UserLevel uint8  `json:"user_level"`
 	}
 
 	Filter struct {
 		AccountIDs,
-		CompanyIDs []string
-		StatusList []int
+		CompanyIDs []uint64
+		StatusList,
 		AccountTypes,
 		AdminLevels,
 		UserLevels []uint8
@@ -108,7 +108,7 @@ type (
 
 	NewUser struct {
 		*models.NewAccount
-		CompanyID string `json:"company_id"`
+		CompanyID uint64 `json:"company_id,string"`
 		UserLevel uint8  `json:"user_level"`
 	}
 
@@ -204,19 +204,19 @@ func NewFilter(options ...FilterOption) *Filter {
 	return filter
 }
 
-func WithAccountIDs(accountIDs ...string) FilterOption {
+func WithAccountIDs(accountIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.AccountIDs = accountIDs
 	}
 }
 
-func WithCompanyIDs(companyIDs ...string) FilterOption {
+func WithCompanyIDs(companyIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.CompanyIDs = companyIDs
 	}
 }
 
-func WithStatusList(statusList ...int) FilterOption {
+func WithStatusList(statusList ...uint8) FilterOption {
 	return func(q *Filter) {
 		q.StatusList = statusList
 	}
@@ -339,7 +339,7 @@ func (q *NewUser) Validate() error {
 	if err := q.NewAccount.Validate(); err != nil {
 		return err
 	}
-	if q.CompanyID == "" {
+	if q.CompanyID == 0 {
 		return errors.New("company_id: is required")
 	}
 	if q.UserLevel != UserLevelOwner && q.UserLevel != UserLevelStaff {

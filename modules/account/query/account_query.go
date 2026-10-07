@@ -397,7 +397,8 @@ func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *mo
 	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO accounts (
-			account_type
+			id
+			, account_type
 			, status
 			, name
 			, username
@@ -409,7 +410,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *mo
 			, created_by
 			, created_at
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)
 		RETURNING id
 			, account_type
 			, status
@@ -445,6 +446,7 @@ func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *mo
 			, deactivated_by
 			, deactivated_at
 			, deactivation_reason`,
+		helper.GenerateSnowflakeID(),
 		request.AccountType,
 		models.StatusUnconfirmed,
 		request.Name,
@@ -493,9 +495,6 @@ func (q *accountQuery) CreateAccount(ctx context.Context, tx pgx.Tx, request *mo
 		&response.DeactivatedAt,
 		&response.DeactivationReason,
 	); err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
@@ -662,9 +661,6 @@ func (q *accountQuery) UpdateAccount(ctx context.Context, tx pgx.Tx, request *ac
 		&request.DeactivationReason,
 	)
 	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
@@ -712,7 +708,7 @@ func (q *accountQuery) FindAdmins(ctx context.Context, filter *accountModel.Filt
 		WHERE account_id IN (`,
 	)
 	params := make([]any, n)
-	mapAdminOffsets := map[string]int{}
+	mapAdminOffsets := map[uint64]int{}
 	for i, account := range accounts {
 		response[i] = &accountModel.Admin{Account: account}
 		params[i] = account.ID
@@ -735,7 +731,7 @@ func (q *accountQuery) FindAdmins(ctx context.Context, filter *accountModel.Filt
 	defer rows.Close()
 	for rows.Next() {
 		var (
-			accountID  string
+			accountID  uint64
 			adminLevel uint8
 		)
 		if err = rows.Scan(&accountID, &adminLevel); err != nil {
@@ -768,9 +764,6 @@ func (q *accountQuery) CreateAdmin(ctx context.Context, tx pgx.Tx, request *acco
 		account.ID,
 		request.AdminLevel,
 	).Scan(&response.AdminLevel); err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		return nil, err
 	}
@@ -792,9 +785,6 @@ func (q *accountQuery) UpdateAdmin(ctx context.Context, tx pgx.Tx, request *acco
 		request.AdminLevel,
 		request.ID,
 	).Scan(&request.AdminLevel); err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 	}
 	return err
@@ -821,7 +811,7 @@ func (q *accountQuery) FindUsers(ctx context.Context, filter *accountModel.Filte
 		WHERE account_id IN (`,
 	)
 	params := make([]any, n)
-	mapUserOffsets := map[string]int{}
+	mapUserOffsets := map[uint64]int{}
 	for i, account := range accounts {
 		response[i] = &accountModel.User{Account: account}
 		params[i] = account.ID
@@ -845,7 +835,7 @@ func (q *accountQuery) FindUsers(ctx context.Context, filter *accountModel.Filte
 	for rows.Next() {
 		var (
 			accountID,
-			companyID string
+			companyID uint64
 			userLevel uint8
 		)
 		if err = rows.Scan(&accountID, &companyID, &userLevel); err != nil {
@@ -887,9 +877,6 @@ func (q *accountQuery) CreateUser(ctx context.Context, tx pgx.Tx, request *accou
 		&response.CompanyID,
 		&response.UserLevel,
 	); err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		return nil, err
 	}
@@ -915,9 +902,6 @@ func (q *accountQuery) UpdateUser(ctx context.Context, tx pgx.Tx, request *accou
 		&request.CompanyID,
 		&request.UserLevel,
 	); err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 	}
 	return err

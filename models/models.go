@@ -26,9 +26,9 @@ const (
 )
 
 const (
-	StatusUnconfirmed int8 = iota
+	StatusUnconfirmed uint8 = iota
 	StatusConfirmed
-	StatusDeactivated int8 = -1
+	StatusDeactivated
 )
 
 const (
@@ -65,7 +65,7 @@ type (
 		Username    string  `json:"username"`
 		Email       *string `json:"email"`
 		Phone       *string `json:"phone"`
-		CreatedBy   *string `json:"-"`
+		CreatedBy   *uint64 `json:"-"`
 	}
 
 	Message struct {

@@ -23,8 +23,8 @@ func UserSessionAuth(
 		ctx := c.Context()
 		sess := session.FromContext(c)
 		authenticated, authOk := sess.Get(models.Authenticated).(bool)
-		userID, userOk := sess.Get(models.UserID).(string)
-		if !authOk || !authenticated || !userOk || userID == "" {
+		userID, userOk := sess.Get(models.UserID).(uint64)
+		if !authOk || !authenticated || !userOk || userID == 0 {
 			return c.Redirect().To("/account/login")
 		}
 		users, _, err := accountUseCase.FindUsers(

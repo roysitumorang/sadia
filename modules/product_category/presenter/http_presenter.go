@@ -1,6 +1,7 @@
 package presenter
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -76,7 +77,7 @@ func (q *productCategoryHTTPHandler) UserFindProductCategories(c fiber.Ctx) erro
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProductCategories")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
-	filter.CompanyIDs = []string{currentUser.CompanyID}
+	filter.CompanyIDs = []uint64{currentUser.CompanyID}
 	rows, pagination, err := q.productCategoryUseCase.FindProductCategories(ctx, filter)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProductCategories")
@@ -137,10 +138,15 @@ func (q *productCategoryHTTPHandler) UserFindProductCategoryByID(c fiber.Ctx) er
 	ctx := c.Context()
 	ctxt := "ProductCategoryPresenter-UserFindProductCategoryByID"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
+	productCategoryID, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("category not found").WriteResponse(c)
+	}
 	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
 		ctx,
 		productCategoryModel.NewFilter(
-			productCategoryModel.WithProductCategoryIDs(c.Params("id")),
+			productCategoryModel.WithProductCategoryIDs(productCategoryID),
 			productCategoryModel.WithCompanyIDs(currentUser.CompanyID),
 		),
 	)
@@ -158,6 +164,11 @@ func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c fiber.Ctx) erro
 	ctx := c.Context()
 	ctxt := "ProductCategoryPresenter-UserUpdateProductCategory"
 	currentUser, _ := c.Locals(models.CurrentUser).(*accountModel.User)
+	productCategoryID, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("category not found").WriteResponse(c)
+	}
 	request, statusCode, err := sanitizer.ValidateProductCategory(ctx, c)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateProductCategory")
@@ -166,7 +177,7 @@ func (q *productCategoryHTTPHandler) UserUpdateProductCategory(c fiber.Ctx) erro
 	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
 		ctx,
 		productCategoryModel.NewFilter(
-			productCategoryModel.WithProductCategoryIDs(c.Params("id")),
+			productCategoryModel.WithProductCategoryIDs(productCategoryID),
 			productCategoryModel.WithCompanyIDs(currentUser.CompanyID),
 		),
 	)
@@ -257,7 +268,7 @@ func (q *productCategoryHTTPHandler) userIndex(c fiber.Ctx) error {
 			"path":          c.Route().Path,
 		})
 	}
-	filter.CompanyIDs = []string{currentUser.CompanyID}
+	filter.CompanyIDs = []uint64{currentUser.CompanyID}
 	if rows, pagination, err = q.productCategoryUseCase.FindProductCategories(ctx, filter); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindProductCategories")
 		c.Response().SetStatusCode(fiber.StatusBadRequest)
@@ -407,12 +418,17 @@ func (q *productCategoryHTTPHandler) userEdit(c fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
+	productCategoryID, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
+		return flash.Danger("category not found").Redirect(c, sess.Session, "/product_category")
+	}
 	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	request := new(productCategoryModel.ProductCategory)
 	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
 		ctx,
 		productCategoryModel.NewFilter(
-			productCategoryModel.WithProductCategoryIDs(c.Params("id")),
+			productCategoryModel.WithProductCategoryIDs(productCategoryID),
 			productCategoryModel.WithCompanyIDs(currentUser.CompanyID),
 		),
 	)
@@ -451,6 +467,11 @@ func (q *productCategoryHTTPHandler) userUpdate(c fiber.Ctx) error {
 	if !ok {
 		flash = helper.NewFlashMessage()
 	}
+	productCategoryID, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
+		return flash.Danger("category not found").Redirect(c, sess.Session, "/product_category")
+	}
 	cart := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
 	request, statusCode, err := sanitizer.ValidateProductCategory(ctx, c)
 	if err != nil {
@@ -468,7 +489,7 @@ func (q *productCategoryHTTPHandler) userUpdate(c fiber.Ctx) error {
 	productCategories, _, err := q.productCategoryUseCase.FindProductCategories(
 		ctx,
 		productCategoryModel.NewFilter(
-			productCategoryModel.WithProductCategoryIDs(c.Params("id")),
+			productCategoryModel.WithProductCategoryIDs(productCategoryID),
 			productCategoryModel.WithCompanyIDs(currentUser.CompanyID),
 		),
 	)

@@ -23,37 +23,37 @@ const (
 type (
 	Transaction struct {
 		RowNo         uint64      `json:"row_no,omitempty"`
-		ID            string      `json:"id"`
-		SessionID     string      `json:"session_id"`
+		ID            uint64      `json:"id,string"`
+		SessionID     uint64      `json:"session_id,string"`
 		ReferenceNo   string      `json:"reference_no"`
-		SubTotal      int64       `json:"subtotal"`
-		Discount      int64       `json:"discount"`
-		Total         int64       `json:"total"`
+		SubTotal      uint64      `json:"subtotal"`
+		Discount      uint64      `json:"discount"`
+		Total         uint64      `json:"total"`
 		PaymentMethod uint8       `json:"payment_method"`
 		LineItems     []*LineItem `json:"line_items"`
-		CreatedBy     string      `json:"created_by"`
+		CreatedBy     uint64      `json:"created_by"`
 		CreatedAt     time.Time   `json:"created_at"`
 	}
 
 	LineItem struct {
-		ID            string `json:"id" form:"-"`
-		TransactionID string `json:"-" form:"-"`
-		ProductID     string `json:"product_id" form:"product_id"`
+		ID            uint64 `json:"id,string" form:"-"`
+		TransactionID uint64 `json:"-" form:"-"`
+		ProductID     uint64 `json:"product_id,string" form:"product_id"`
 		ProductName   string `json:"product_name" form:"-"`
 		ProductCode   string `json:"product_code" form:"-"`
 		ProductUOM    string `json:"product_uom" form:"-"`
-		Stock         int64  `json:"-" form:"-"`
-		BasePrice     int64  `json:"base_price" form:"-"`
-		SellingPrice  int64  `json:"selling_price" form:"-"`
-		Weight        int64  `json:"weight" form:"-"`
-		Quantity      int64  `json:"quantity" form:"quantity"`
-		SubTotal      int64  `json:"subtotal" form:"-"`
+		Stock         uint64 `json:"-" form:"-"`
+		BasePrice     uint64 `json:"base_price" form:"-"`
+		SellingPrice  uint64 `json:"selling_price" form:"-"`
+		Weight        uint64 `json:"weight" form:"-"`
+		Quantity      uint64 `json:"quantity" form:"quantity"`
+		SubTotal      uint64 `json:"subtotal" form:"-"`
 	}
 
 	Filter struct {
 		TransactionIDs,
 		SessionIDs,
-		CompanyIDs []string
+		CompanyIDs []uint64
 		Keyword,
 		PaginationURL string
 		Limit,
@@ -72,15 +72,15 @@ func (q *Transaction) Validate() error {
 	if len(q.LineItems) == 0 {
 		return errors.New("line_items: cannot be empty")
 	}
-	mapProductIDs := map[string]int{}
+	mapProductIDs := map[uint64]struct{}{}
 	for i, lineItem := range q.LineItems {
-		if lineItem.ProductID == "" {
+		if lineItem.ProductID == 0 {
 			return fmt.Errorf("line_items[%d].product_id: is required", i)
 		}
 		if _, ok := mapProductIDs[lineItem.ProductID]; ok {
 			return fmt.Errorf("line_items[%d].product_id: cannot be reused for other line items", i)
 		}
-		mapProductIDs[lineItem.ProductID] = i
+		mapProductIDs[lineItem.ProductID] = struct{}{}
 		if lineItem.Quantity == 0 {
 			return fmt.Errorf("line_items[%d].quantity: cannot be empty", i)
 		}
@@ -93,7 +93,7 @@ func (q *Transaction) Validate() error {
 }
 
 func (q *LineItem) Validate() error {
-	if q.ProductID == "" {
+	if q.ProductID == 0 {
 		return errors.New("product_id: is required")
 	}
 	if q.Quantity == 0 {
@@ -102,15 +102,15 @@ func (q *LineItem) Validate() error {
 	return nil
 }
 
-func (q *Transaction) Calculate(products map[string]*productModel.Product) error {
+func (q *Transaction) Calculate(products map[uint64]*productModel.Product) error {
 	q.SubTotal = 0
 	for i, lineItem := range q.LineItems {
 		product, ok := products[lineItem.ProductID]
 		if !ok {
-			return fmt.Errorf("line_items[%d].product_id %s not found", i, lineItem.ProductID)
+			return fmt.Errorf("line_items[%d].product_id %d not found", i, lineItem.ProductID)
 		}
 		if product.Stock == 0 {
-			return fmt.Errorf("line_items[%d].product_id %s is out of stock", i, lineItem.ProductID)
+			return fmt.Errorf("line_items[%d].product_id %d is out of stock", i, lineItem.ProductID)
 		}
 		lineItem.ProductName = product.Name
 		lineItem.ProductCode = product.Code
@@ -141,19 +141,19 @@ func NewFilter(options ...FilterOption) *Filter {
 	return filter
 }
 
-func WithTransactionIDs(transactionIDs ...string) FilterOption {
+func WithTransactionIDs(transactionIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.TransactionIDs = transactionIDs
 	}
 }
 
-func WithSessionIDs(sessionIDs ...string) FilterOption {
+func WithSessionIDs(sessionIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.SessionIDs = sessionIDs
 	}
 }
 
-func WithCompanyIDs(companyIDs ...string) FilterOption {
+func WithCompanyIDs(companyIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.CompanyIDs = companyIDs
 	}

@@ -14,29 +14,29 @@ const (
 type (
 	Product struct {
 		RowNo        uint64    `json:"row_no,omitempty" form:"-"`
-		ID           string    `json:"id" form:"-"`
-		CompanyID    string    `json:"-" form:"-"`
-		CategoryID   *string   `json:"category_id" form:"category_id"`
+		ID           uint64    `json:"id,string" form:"-"`
+		CompanyID    uint64    `json:"-" form:"-"`
+		CategoryID   *uint64   `json:"category_id" form:"category_id"`
 		CategoryName *string   `json:"category_name" form:"-"`
 		Name         string    `json:"name" form:"name"`
 		Code         string    `json:"code" form:"code"`
 		UOM          string    `json:"uom" form:"uom"`
-		MinimumStock int64     `json:"minimum_stock" form:"minimum_stock"`
-		Stock        int64     `json:"stock" form:"stock"`
-		BasePrice    int64     `json:"base_price" form:"base_price"`
-		SellingPrice int64     `json:"selling_price" form:"selling_price"`
-		Weight       int64     `json:"weight" form:"weight"`
+		MinimumStock uint64    `json:"minimum_stock" form:"minimum_stock"`
+		Stock        uint64    `json:"stock" form:"stock"`
+		BasePrice    uint64    `json:"base_price" form:"base_price"`
+		SellingPrice uint64    `json:"selling_price" form:"selling_price"`
+		Weight       uint64    `json:"weight" form:"weight"`
 		RackPosition string    `json:"rack_position" form:"rack_position"`
-		CreatedBy    string    `json:"-" form:"-"`
+		CreatedBy    uint64    `json:"-" form:"-"`
 		CreatedAt    time.Time `json:"-" form:"-"`
-		UpdatedBy    string    `json:"-" form:"-"`
+		UpdatedBy    uint64    `json:"-" form:"-"`
 		UpdatedAt    time.Time `json:"-" form:"-"`
 	}
 
 	Filter struct {
 		ProductIDs,
 		ProductCategoryIDs,
-		CompanyIDs []string
+		CompanyIDs []uint64
 		Keyword,
 		PaginationURL string
 		Limit,
@@ -53,7 +53,7 @@ var (
 )
 
 func (q *Product) Validate() error {
-	if q.CategoryID != nil && *q.CategoryID == "" {
+	if q.CategoryID != nil && *q.CategoryID == 0 {
 		q.CategoryID = nil
 	}
 	if q.Name = strings.TrimSpace(q.Name); q.Name == "" {
@@ -63,21 +63,6 @@ func (q *Product) Validate() error {
 		return errors.New("code: is required")
 	}
 	q.UOM = strings.TrimSpace(q.UOM)
-	if q.MinimumStock < 0 {
-		return errors.New("minimum_stock: requires a positive integer")
-	}
-	if q.Stock < 0 {
-		return errors.New("stock: requires a positive integer")
-	}
-	if q.BasePrice < 0 {
-		return errors.New("base_price: requires a positive integer")
-	}
-	if q.SellingPrice < 0 {
-		return errors.New("selling_price: requires a positive integer")
-	}
-	if q.Weight < 0 {
-		return errors.New("weight: requires a positive integer")
-	}
 	q.RackPosition = strings.TrimSpace(q.RackPosition)
 	return nil
 }
@@ -90,19 +75,19 @@ func NewFilter(options ...FilterOption) *Filter {
 	return filter
 }
 
-func WithProductIDs(productIDs ...string) FilterOption {
+func WithProductIDs(productIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.ProductIDs = productIDs
 	}
 }
 
-func WithProductCategoryIDs(productCategoryIDs ...string) FilterOption {
+func WithProductCategoryIDs(productCategoryIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.ProductCategoryIDs = productCategoryIDs
 	}
 }
 
-func WithCompanyIDs(companyIDs ...string) FilterOption {
+func WithCompanyIDs(companyIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.CompanyIDs = companyIDs
 	}

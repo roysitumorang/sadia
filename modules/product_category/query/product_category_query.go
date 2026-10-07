@@ -184,14 +184,15 @@ func (q *productCategoryQuery) CreateProductCategory(ctx context.Context, tx pgx
 	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO product_categories (
-			company_id
+			id
+			, company_id
 			, name
 			, slug
 			, created_by
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $4, $5)
+		) VALUES ($1, $2, $3, $4, $5, $6, $5, $6)
 		RETURNING id
 			, company_id
 			, name
@@ -200,6 +201,7 @@ func (q *productCategoryQuery) CreateProductCategory(ctx context.Context, tx pgx
 			, created_at
 			, updated_by
 			, updated_at`,
+		helper.GenerateSnowflakeID(),
 		request.CompanyID,
 		request.Name,
 		request.Slug,
@@ -215,9 +217,6 @@ func (q *productCategoryQuery) CreateProductCategory(ctx context.Context, tx pgx
 		&response.UpdatedBy,
 		&response.UpdatedAt,
 	); err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
@@ -269,9 +268,6 @@ func (q *productCategoryQuery) UpdateProductCategory(ctx context.Context, tx pgx
 		&response.UpdatedAt,
 	)
 	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {

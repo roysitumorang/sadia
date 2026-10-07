@@ -195,14 +195,15 @@ func (q *logQuery) CreateLog(ctx context.Context, tx pgx.Tx, request *logModel.L
 	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO logs (
-			company_id
+			id
+			, company_id
 			, table_id
 			, table_name
 			, action
 			, changes
 			, created_by
 			, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id
 			, company_id
 			, table_id
@@ -211,6 +212,7 @@ func (q *logQuery) CreateLog(ctx context.Context, tx pgx.Tx, request *logModel.L
 			, changes
 			, created_by
 			, created_at`,
+		helper.GenerateSnowflakeID(),
 		request.CompanyID,
 		request.TableID,
 		request.TableName,
@@ -228,9 +230,6 @@ func (q *logQuery) CreateLog(ctx context.Context, tx pgx.Tx, request *logModel.L
 		&response.CreatedBy,
 		&response.CreatedAt,
 	); err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		return nil, err
 	}

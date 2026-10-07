@@ -46,9 +46,14 @@ func FindProductCategories(ctx context.Context, c fiber.Ctx) (*productCategoryMo
 
 func ValidateProductCategory(ctx context.Context, c fiber.Ctx) (*productCategoryModel.ProductCategory, int, error) {
 	ctxt := "ProductCategorySanitizer-ValidateProductCategory"
-	response := new(productCategoryModel.ProductCategory)
-	response.ID = c.Params("id")
-	err := c.Bind().Body(response)
+	response := &productCategoryModel.ProductCategory{}
+	productCategoryID, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
+		return response, fiber.StatusNotFound, errors.New("category not found")
+	}
+	response.ID = productCategoryID
+	err = c.Bind().Body(response)
 	if fiberErr, ok := errors.AsType[*fiber.Error](err); ok {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBody")
 		return response, fiberErr.Code, err

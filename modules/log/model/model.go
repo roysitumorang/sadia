@@ -14,13 +14,13 @@ const (
 type (
 	Log struct {
 		RowNo     uint64            `json:"row_no,omitempty" form:"-"`
-		ID        string            `json:"id" form:"-"`
-		CompanyID string            `json:"-" form:"-"`
+		ID        uint64            `json:"id,string" form:"-"`
+		CompanyID uint64            `json:"-" form:"-"`
 		TableName string            `json:"-" form:"-"`
-		TableID   string            `json:"-" form:"-"`
+		TableID   uint64            `json:"-" form:"-"`
 		Action    string            `json:"activity" form:"-"`
 		Changes   map[string]Change `json:"changes" form:"-"`
-		CreatedBy string            `json:"-" form:"-"`
+		CreatedBy uint64            `json:"-" form:"-"`
 		CreatedAt time.Time         `json:"-" form:"-"`
 	}
 
@@ -32,8 +32,8 @@ type (
 	Filter struct {
 		LogIDs,
 		CompanyIDs,
-		TableIDs,
-		TableNames []string
+		TableIDs []uint64
+		TableNames    []string
 		PaginationURL string
 		Limit,
 		Page int64
@@ -51,19 +51,19 @@ func NewFilter(options ...FilterOption) *Filter {
 	return filter
 }
 
-func WithLogIDs(logIDs ...string) FilterOption {
+func WithLogIDs(logIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.LogIDs = logIDs
 	}
 }
 
-func WithCompanyIDs(companyIDs ...string) FilterOption {
+func WithCompanyIDs(companyIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.CompanyIDs = companyIDs
 	}
 }
 
-func WithTableIDs(tableIDs ...string) FilterOption {
+func WithTableIDs(tableIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.TableIDs = tableIDs
 	}

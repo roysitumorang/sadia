@@ -218,7 +218,8 @@ func (q *productQuery) CreateProduct(ctx context.Context, tx pgx.Tx, request *pr
 	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO products (
-			company_id
+			id
+			, company_id
 			, category_id
 			, name
 			, code
@@ -233,7 +234,7 @@ func (q *productQuery) CreateProduct(ctx context.Context, tx pgx.Tx, request *pr
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $12, $13)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $13, $14)
 		RETURNING id
 			, company_id
 			, category_id
@@ -250,6 +251,7 @@ func (q *productQuery) CreateProduct(ctx context.Context, tx pgx.Tx, request *pr
 			, created_at
 			, updated_by
 			, updated_at`,
+		helper.GenerateSnowflakeID(),
 		request.CompanyID,
 		request.CategoryID,
 		request.Name,
@@ -281,9 +283,6 @@ func (q *productQuery) CreateProduct(ctx context.Context, tx pgx.Tx, request *pr
 		&response.UpdatedBy,
 		&response.UpdatedAt,
 	); err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
@@ -367,9 +366,6 @@ func (q *productQuery) UpdateProduct(ctx context.Context, tx pgx.Tx, request *pr
 		&response.UpdatedAt,
 	)
 	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
@@ -386,7 +382,7 @@ func (q *productQuery) UpdateProduct(ctx context.Context, tx pgx.Tx, request *pr
 	return &response, nil
 }
 
-func (q *productQuery) Import(ctx context.Context, products []productModel.Product, companyID, adminID string) (err error) {
+func (q *productQuery) Import(ctx context.Context, products []productModel.Product, companyID, adminID uint64) (err error) {
 	ctxt := "ProductQuery-Import"
 	var now time.Time
 	tx, err := q.dbWrite.Begin(ctx)
@@ -408,7 +404,8 @@ func (q *productQuery) Import(ctx context.Context, products []productModel.Produ
 		if _, err = tx.Exec(
 			ctx,
 			`INSERT INTO products (
-				company_id
+				id
+				, company_id
 				, category_id
 				, name
 				, code
@@ -423,7 +420,8 @@ func (q *productQuery) Import(ctx context.Context, products []productModel.Produ
 				, created_at
 				, updated_by
 				, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $12, $13)`,
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $13, $14)`,
+			helper.GenerateSnowflakeID(),
 			companyID,
 			product.CategoryID,
 			product.Name,
@@ -438,9 +436,6 @@ func (q *productQuery) Import(ctx context.Context, products []productModel.Produ
 			adminID,
 			now,
 		); err != nil {
-			if errRollback := tx.Rollback(ctx); errRollback != nil {
-				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-			}
 			if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 				pgxErr.Code == pgerrcode.UniqueViolation {
 				switch pgxErr.ConstraintName {

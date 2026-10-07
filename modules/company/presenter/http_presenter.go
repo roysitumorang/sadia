@@ -2,6 +2,7 @@ package presenter
 
 import (
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -126,7 +127,12 @@ func (q *companyHTTPHandler) AdminCreateCompany(c fiber.Ctx) error {
 func (q *companyHTTPHandler) AdminFindCompanyByID(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "CompanyPresenter-AdminFindCompanyByID"
-	companies, _, err := q.companyUseCase.FindCompanies(ctx, companyModel.NewFilter(companyModel.WithCompanyIDs(c.Params("id"))))
+	companyID, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("company not found").WriteResponse(c)
+	}
+	companies, _, err := q.companyUseCase.FindCompanies(ctx, companyModel.NewFilter(companyModel.WithCompanyIDs(companyID)))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindCompanies")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
@@ -141,6 +147,11 @@ func (q *companyHTTPHandler) AdminDeactivateCompany(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "CompanyPresenter-AdminDeactivateCompany"
 	currentAdmin, _ := c.Locals(models.CurrentAdmin).(*accountModel.Admin)
+	companyID, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("company not found").WriteResponse(c)
+	}
 	request, statusCode, err := sanitizer.ValidateDeactivation(ctx, c)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrValidateDeactivation")
@@ -148,7 +159,7 @@ func (q *companyHTTPHandler) AdminDeactivateCompany(c fiber.Ctx) error {
 	}
 	companies, _, err := q.companyUseCase.FindCompanies(
 		ctx,
-		companyModel.NewFilter(companyModel.WithCompanyIDs(c.Params("id"))),
+		companyModel.NewFilter(companyModel.WithCompanyIDs(companyID)),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindCompanies")

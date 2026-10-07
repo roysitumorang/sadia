@@ -33,19 +33,19 @@ func FindAccounts(ctx context.Context, c fiber.Ctx) (*accountModel.Filter, error
 		options = append(options, accountModel.WithKeyword(keyword))
 	}
 	if rawStatusList, ok := urlValues["status"]; ok {
-		mapStatus := map[string]int{}
-		var statusList []int
+		mapStatus := map[string]struct{}{}
+		var statusList []uint8
 		for _, rawStatus := range rawStatusList {
 			rawStatus = strings.TrimSpace(rawStatus)
 			if _, ok := mapStatus[rawStatus]; rawStatus == "" || ok {
 				continue
 			}
-			status, err := strconv.Atoi(rawStatus)
+			status, err := strconv.ParseUint(rawStatus, 10, 8)
 			if err != nil {
 				continue
 			}
-			statusList = append(statusList, status)
-			mapStatus[rawStatus] = 1
+			statusList = append(statusList, uint8(status))
+			mapStatus[rawStatus] = struct{}{}
 		}
 		options = append(options, accountModel.WithStatusList(statusList...))
 	}
@@ -258,19 +258,19 @@ func FindAdmins(ctx context.Context, c fiber.Ctx) (*accountModel.Filter, error) 
 		options = append(options, accountModel.WithKeyword(keyword))
 	}
 	if rawStatusList, ok := urlValues["status"]; ok {
-		mapStatus := map[string]int{}
-		var statusList []int
+		mapStatus := map[string]struct{}{}
+		var statusList []uint8
 		for _, rawStatus := range rawStatusList {
 			rawStatus = strings.TrimSpace(rawStatus)
 			if _, ok := mapStatus[rawStatus]; rawStatus == "" || ok {
 				continue
 			}
-			status, err := strconv.Atoi(rawStatus)
+			status, err := strconv.ParseUint(rawStatus, 10, 8)
 			if err != nil {
 				continue
 			}
-			statusList = append(statusList, status)
-			mapStatus[rawStatus] = 1
+			statusList = append(statusList, uint8(status))
+			mapStatus[rawStatus] = struct{}{}
 		}
 		options = append(options, accountModel.WithStatusList(statusList...))
 	}
@@ -302,19 +302,19 @@ func FindUsers(ctx context.Context, c fiber.Ctx) (*accountModel.Filter, error) {
 		options = append(options, accountModel.WithKeyword(keyword))
 	}
 	if rawStatusList, ok := urlValues["status"]; ok {
-		mapStatus := map[string]int{}
-		var statusList []int
+		mapStatus := map[string]struct{}{}
+		var statusList []uint8
 		for _, rawStatus := range rawStatusList {
 			rawStatus = strings.TrimSpace(rawStatus)
 			if _, ok := mapStatus[rawStatus]; rawStatus == "" || ok {
 				continue
 			}
-			status, err := strconv.Atoi(rawStatus)
+			status, err := strconv.ParseUint(rawStatus, 10, 8)
 			if err != nil {
 				continue
 			}
-			statusList = append(statusList, status)
-			mapStatus[rawStatus] = 1
+			statusList = append(statusList, uint8(status))
+			mapStatus[rawStatus] = struct{}{}
 		}
 		options = append(options, accountModel.WithStatusList(statusList...))
 	}

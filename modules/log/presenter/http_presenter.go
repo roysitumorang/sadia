@@ -76,7 +76,7 @@ func (q *logHTTPHandler) userIndex(c fiber.Ctx) error {
 			"cart":          cart,
 		})
 	}
-	filter.CompanyIDs = []string{currentUser.CompanyID}
+	filter.CompanyIDs = []uint64{currentUser.CompanyID}
 	if rows, pagination, err = q.logUseCase.FindLogs(ctx, filter); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindLogs")
 		c.Response().SetStatusCode(fiber.StatusBadRequest)

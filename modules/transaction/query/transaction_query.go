@@ -194,7 +194,7 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 	)
 	params = make([]any, 0)
 	var response []*transactionModel.Transaction
-	mapTransactionOffsets := map[string]int{}
+	mapTransactionOffsets := map[uint64]int{}
 	for rows.Next() {
 		transaction := transactionModel.Transaction{
 			LineItems: []*transactionModel.LineItem{},
@@ -275,7 +275,8 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO transactions (
-			session_id
+			id
+			, session_id
 			, reference_no
 			, subtotal
 			, discount
@@ -283,7 +284,7 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			, payment_method
 			, created_by
 			, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id
 			, session_id
 			, reference_no
@@ -293,6 +294,7 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			, payment_method
 			, created_by
 			, created_at`,
+		helper.GenerateSnowflakeID(),
 		request.SessionID,
 		request.ReferenceNo,
 		request.SubTotal,
@@ -312,9 +314,6 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 		&response.CreatedBy,
 		&response.CreatedAt,
 	); err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation &&
 			pgxErr.ConstraintName == "transactions_reference_no_key" {
@@ -331,7 +330,8 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 	var builder strings.Builder
 	_, _ = builder.WriteString(
 		`INSERT INTO transaction_line_items (
-			transaction_id
+			id
+			, transaction_id
 			, product_id
 			, product_name
 			, product_code
@@ -353,14 +353,12 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			lineItem.Quantity,
 			lineItem.ProductID,
 		); err != nil {
-			if errRollback := tx.Rollback(ctx); errRollback != nil {
-				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-			}
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return nil, err
 		}
 		params = append(
 			params,
+			helper.GenerateSnowflakeID(),
 			response.ID,
 			lineItem.ProductID,
 			lineItem.ProductName,
@@ -378,6 +376,8 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			_, _ = builder.WriteString(",")
 		}
 		_, _ = builder.WriteString("($")
+		_, _ = builder.WriteString(strconv.Itoa(n - 11))
+		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 10))
 		_, _ = builder.WriteString(",$")
 		_, _ = builder.WriteString(strconv.Itoa(n - 9))
@@ -420,9 +420,6 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 		err = nil
 	}
 	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrQuery")
 		return nil, err
 	}
@@ -442,9 +439,6 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			&lineItem.Quantity,
 			&lineItem.SubTotal,
 		); err != nil {
-			if errRollback := tx.Rollback(ctx); errRollback != nil {
-				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-			}
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return nil, err
 		}
@@ -466,9 +460,6 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 		WHERE id = s.session_id`,
 		request.SessionID,
 	); err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		return nil, err
 	}

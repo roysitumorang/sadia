@@ -2,6 +2,7 @@ package presenter
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
@@ -63,9 +64,14 @@ func (q *jwtHTTPHandler) AdminDeleteJWT(c fiber.Ctx) error {
 	ctx := c.Context()
 	ctxt := "JwtPresenter-AdminDeleteJWT"
 	currentJwt, _ := c.Locals(models.CurrentJwt).(*jwt.RegisteredClaims)
+	jwtID, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrParseUint")
+		return helper.NewResponse(fiber.StatusNotFound).SetMessage("JWT not found").WriteResponse(c)
+	}
 	jsonWebTokens, _, err := q.jwtUseCase.FindJWTs(
 		ctx,
-		jwtModel.NewFilter(jwtModel.WithJwtIDs(c.Params("id"))),
+		jwtModel.NewFilter(jwtModel.WithJwtIDs(jwtID)),
 	)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrFindJWTs")
@@ -88,7 +94,7 @@ func (q *jwtHTTPHandler) AdminDeleteJWT(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithDeleteJwtIDs(c.Params("id")))); err != nil {
+	if _, err = q.jwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithDeleteJwtIDs(jwtID))); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}

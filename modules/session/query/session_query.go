@@ -181,7 +181,7 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 	)
 	params = make([]any, 0)
 	var response []*sessionModel.Session
-	mapSessionOffsets := map[string]int{}
+	mapSessionOffsets := map[uint64]int{}
 	for rows.Next() {
 		session := sessionModel.Session{
 			Spendings: []*sessionModel.Spending{},
@@ -259,7 +259,8 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 	if err := tx.QueryRow(
 		ctx,
 		`INSERT INTO sessions (
-			company_id
+			id
+			, company_id
 			, date
 			, status
 			, cashbox_value
@@ -268,7 +269,7 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 			, spending_value
 			, created_by
 			, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		ON CONFLICT (date, company_id) DO UPDATE SET
 			date = EXCLUDED.date
 			, company_id = EXCLUDED.company_id
@@ -284,6 +285,7 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 			, created_at
 			, closed_by
 			, closed_at`,
+		helper.GenerateSnowflakeID(),
 		request.CompanyID,
 		now.In(helper.LoadTimeZone()).Format(time.DateOnly),
 		sessionModel.StatusOnGoing,
@@ -307,9 +309,6 @@ func (q *sessionQuery) CreateSession(ctx context.Context, tx pgx.Tx, request *se
 		&response.ClosedBy,
 		&response.ClosedAt,
 	); err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation &&
 			pgxErr.ConstraintName == "sessions_date_company_id_idx" {
@@ -365,9 +364,6 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 		&request.ClosedBy,
 		&request.ClosedAt,
 	); err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		return err
 	}
@@ -390,9 +386,6 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 		err = nil
 	}
 	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrQuery")
 		return err
 	}
@@ -406,9 +399,6 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 			&spending.CreatedBy,
 			&spending.CreatedAt,
 		); err != nil {
-			if errRollback := tx.Rollback(ctx); errRollback != nil {
-				helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-			}
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return err
 		}
@@ -423,12 +413,14 @@ func (q *sessionQuery) CreateSpending(ctx context.Context, tx pgx.Tx, request *s
 	_, err := tx.Exec(
 		ctx,
 		`INSERT INTO spendings (
-			session_id
+			id
+			, session_id
 			, description
 			, value
 			, created_by
 			, created_at
-		) VALUES ($1, $2, $3, $4, $5)`,
+		) VALUES ($1, $2, $3, $4, $5, $6)`,
+		helper.GenerateSnowflakeID(),
 		request.SessionID,
 		request.Description,
 		request.Value,
@@ -436,9 +428,6 @@ func (q *sessionQuery) CreateSpending(ctx context.Context, tx pgx.Tx, request *s
 		now,
 	)
 	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		return err
 	}
@@ -458,9 +447,6 @@ func (q *sessionQuery) CreateSpending(ctx context.Context, tx pgx.Tx, request *s
 		WHERE id = s.session_id`,
 		request.SessionID,
 	); err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		return err
 	}

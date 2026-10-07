@@ -196,14 +196,15 @@ func (q *companyQuery) CreateCompany(ctx context.Context, tx pgx.Tx, request *co
 	err := tx.QueryRow(
 		ctx,
 		`INSERT INTO companies (
-			name
+			id
+			, name
 			, slug
 			, status
 			, created_by
 			, created_at
 			, updated_by
 			, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $4, $5)
+		) VALUES ($1, $2, $3, $4, $5, $6, $5, $6)
 		RETURNING id
 			, name
 			, slug
@@ -216,6 +217,7 @@ func (q *companyQuery) CreateCompany(ctx context.Context, tx pgx.Tx, request *co
 			, deactivated_at
 			, deactivation_reason
 			, session_id`,
+		helper.GenerateSnowflakeID(),
 		request.Name,
 		slug,
 		models.StatusUnconfirmed,
@@ -236,9 +238,6 @@ func (q *companyQuery) CreateCompany(ctx context.Context, tx pgx.Tx, request *co
 		&response.SessionID,
 	)
 	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation &&
 			pgxErr.ConstraintName == "companies_slug_key" {
@@ -297,9 +296,6 @@ func (q *companyQuery) UpdateCompany(ctx context.Context, tx pgx.Tx, request *co
 		&request.SessionID,
 	)
 	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation &&
 			pgxErr.ConstraintName == "companies_slug_key" {

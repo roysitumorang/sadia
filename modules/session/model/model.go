@@ -15,33 +15,33 @@ const (
 type (
 	Session struct {
 		RowNo            uint64      `json:"row_no,omitempty" form:"-"`
-		ID               string      `json:"id" form:"-"`
-		CompanyID        string      `json:"company_id" form:"-"`
+		ID               uint64      `json:"id,string" form:"-"`
+		CompanyID        uint64      `json:"company_id,string" form:"-"`
 		Date             string      `json:"date" form:"date"`
 		Status           uint8       `json:"status" form:"-"`
-		CashboxValue     int64       `json:"cashbox_value" form:"cashbox_value"`
+		CashboxValue     uint64      `json:"cashbox_value" form:"cashbox_value"`
 		CashboxNote      string      `json:"cashbox_note" form:"cashbox_note"`
-		TransactionValue int64       `json:"transaction_value" form:"-"`
-		SpendingValue    int64       `json:"spending_value" form:"-"`
+		TransactionValue uint64      `json:"transaction_value" form:"-"`
+		SpendingValue    uint64      `json:"spending_value" form:"-"`
 		Spendings        []*Spending `json:"spendings" form:"-"`
-		CreatedBy        string      `json:"created_by" form:"-"`
+		CreatedBy        uint64      `json:"created_by,string" form:"-"`
 		CreatedAt        time.Time   `json:"created_at" form:"-"`
-		ClosedBy         *string     `json:"closed_by" form:"-"`
+		ClosedBy         *uint64     `json:"closed_by,string" form:"-"`
 		ClosedAt         *time.Time  `json:"closed_at" form:"-"`
 	}
 
 	Spending struct {
-		ID          string    `json:"id" form:"-"`
-		SessionID   string    `json:"-" form:"-"`
+		ID          uint64    `json:"id,string" form:"-"`
+		SessionID   uint64    `json:"-" form:"-"`
 		Description string    `json:"description" form:"description"`
-		Value       int64     `json:"value" form:"value"`
-		CreatedBy   string    `json:"created_by"`
+		Value       uint64    `json:"value" form:"value"`
+		CreatedBy   uint64    `json:"created_by,string"`
 		CreatedAt   time.Time `json:"-" form:"-"`
 	}
 
 	Filter struct {
 		SessionIDs,
-		CompanyIDs []string
+		CompanyIDs []uint64
 		Date,
 		Keyword,
 		PaginationURL string
@@ -61,13 +61,8 @@ func (q *Session) Validate() error {
 	if q.Date == "" {
 		return errors.New("date: is required")
 	}
-	if _, err := time.Parse(time.DateOnly, q.Date); err != nil {
-		return err
-	}
-	if q.CashboxValue < 0 {
-		return errors.New("cashbox_value: requires a positive integer")
-	}
-	return nil
+	_, err := time.Parse(time.DateOnly, q.Date)
+	return err
 }
 
 func (q *Session) CalculateTotalSpendings() {
@@ -81,9 +76,6 @@ func (q *Spending) Validate() error {
 	if q.Description = strings.TrimSpace(q.Description); q.Description == "" {
 		return errors.New("description: is required")
 	}
-	if q.Value < 0 {
-		return errors.New("value: requires a positive integer")
-	}
 	return nil
 }
 
@@ -95,13 +87,13 @@ func NewFilter(options ...FilterOption) *Filter {
 	return filter
 }
 
-func WithSessionIDs(sessionIDs ...string) FilterOption {
+func WithSessionIDs(sessionIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.SessionIDs = sessionIDs
 	}
 }
 
-func WithCompanyIDs(companyIDs ...string) FilterOption {
+func WithCompanyIDs(companyIDs ...uint64) FilterOption {
 	return func(q *Filter) {
 		q.CompanyIDs = companyIDs
 	}
