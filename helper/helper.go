@@ -18,11 +18,11 @@ import (
 	"time"
 	"unicode"
 	"unsafe"
+	"uuid"
 
 	"github.com/bwmarrin/snowflake"
 	"github.com/goccy/go-json"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/keys"
@@ -157,12 +157,8 @@ func DecodeSqids(id string) int64 {
 	return int64(unsignedNumbers[0])
 }
 
-func GenerateUniqueID() (string, error) {
-	uuidV4, err := uuid.NewRandom()
-	if err != nil {
-		return "", err
-	}
-	return uuidV4.String(), nil
+func GenerateUniqueID() string {
+	return uuid.NewV4().String()
 }
 
 func LoadTimeZone() *time.Location {

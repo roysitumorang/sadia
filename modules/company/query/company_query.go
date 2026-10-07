@@ -190,17 +190,10 @@ func (q *companyQuery) FindCompanies(ctx context.Context, filter *companyModel.F
 
 func (q *companyQuery) CreateCompany(ctx context.Context, tx pgx.Tx, request *companyModel.NewCompany) (*companyModel.Company, error) {
 	ctxt := "CompanyQuery-CreateCompany"
-	slug, err := helper.GenerateUniqueID()
-	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
-		return nil, err
-	}
+	slug := helper.GenerateUniqueID()
 	now := time.Now()
 	var response companyModel.Company
-	if err = tx.QueryRow(
+	err := tx.QueryRow(
 		ctx,
 		`INSERT INTO companies (
 			name
@@ -241,7 +234,8 @@ func (q *companyQuery) CreateCompany(ctx context.Context, tx pgx.Tx, request *co
 		&response.DeactivatedAt,
 		&response.DeactivationReason,
 		&response.SessionID,
-	); err != nil {
+	)
+	if err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
 		}

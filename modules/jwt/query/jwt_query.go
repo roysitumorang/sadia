@@ -36,16 +36,9 @@ func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, accountID string) (
 	ctxt := "JwtQuery-CreateJWT"
 	now := time.Now()
 	expiredAt := now.Add(helper.GetAccessTokenAge())
-	token, err := helper.GenerateUniqueID()
-	if err != nil {
-		if errRollback := tx.Rollback(ctx); errRollback != nil {
-			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
-		}
-		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrGenerateUniqueID")
-		return nil, err
-	}
+	token := helper.GenerateUniqueID()
 	var response jwtModel.JsonWebToken
-	if err = tx.QueryRow(
+	err := tx.QueryRow(
 		ctx,
 		`INSERT INTO json_web_tokens (
 			token
@@ -68,7 +61,8 @@ func (q *jwtQuery) CreateJWT(ctx context.Context, tx pgx.Tx, accountID string) (
 		&response.AccountID,
 		&response.CreatedAt,
 		&response.ExpiredAt,
-	); err != nil {
+	)
+	if err != nil {
 		if errRollback := tx.Rollback(ctx); errRollback != nil {
 			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
 		}

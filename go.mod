@@ -16,7 +16,6 @@ require (
 	github.com/gofiber/template/jet/v3 v3.0.9
 	github.com/gofiber/utils/v2 v2.6.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/google/uuid v1.6.0
 	github.com/govalues/decimal v0.1.36
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/jackc/pgx/v5 v5.11.0
@@ -51,6 +50,7 @@ require (
 	github.com/go-openapi/swag/yamlutils v0.29.2 // indirect
 	github.com/gofiber/schema v1.8.8 // indirect
 	github.com/gofiber/template/v2 v2.1.2 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
