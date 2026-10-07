@@ -209,6 +209,10 @@ func (q *productQuery) FindProducts(ctx context.Context, filter *productModel.Fi
 		}
 		response = append(response, &product)
 	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return nil, 0, 0, err
+	}
 	return response, total, pages, nil
 }
 

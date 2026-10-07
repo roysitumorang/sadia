@@ -65,6 +65,10 @@ func (m *Migration) Migrate(ctx context.Context) error {
 		}
 		mapVersions[version] = struct{}{}
 	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return err
+	}
 	sortedVersions := slices.Collect(maps.Keys(Migrations))
 	slices.Sort(sortedVersions)
 	tx, err := m.dbWrite.BeginTx(ctx, pgx.TxOptions{

@@ -198,6 +198,10 @@ func (q *jwtQuery) FindJWTs(ctx context.Context, filter *jwtModel.Filter) ([]*jw
 		}
 		response = append(response, &jwt)
 	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return nil, 0, 0, err
+	}
 	return response, total, pages, nil
 }
 

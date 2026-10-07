@@ -185,6 +185,10 @@ func (q *companyQuery) FindCompanies(ctx context.Context, filter *companyModel.F
 		}
 		response = append(response, &company)
 	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return nil, 0, 0, err
+	}
 	return response, total, pages, nil
 }
 

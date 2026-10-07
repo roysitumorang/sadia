@@ -214,6 +214,10 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 		_, _ = builder.WriteString("$")
 		_, _ = builder.WriteString(strconv.Itoa(n))
 	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return nil, 0, 0, err
+	}
 	_, _ = builder.WriteString(") ORDER BY id")
 	if len(response) == 0 {
 		return nil, 0, 0, nil
@@ -246,6 +250,10 @@ func (q *sessionQuery) FindSessions(ctx context.Context, filter *sessionModel.Fi
 				&spending,
 			)
 		}
+	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return nil, 0, 0, err
 	}
 	return response, total, pages, nil
 }
@@ -389,6 +397,7 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrQuery")
 		return err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var spending sessionModel.Spending
 		if err = rows.Scan(
@@ -403,6 +412,10 @@ func (q *sessionQuery) UpdateSession(ctx context.Context, tx pgx.Tx, request *se
 			return err
 		}
 		request.Spendings = append(request.Spendings, &spending)
+	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return err
 	}
 	return nil
 }

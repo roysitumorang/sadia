@@ -186,6 +186,10 @@ func (q *logQuery) FindLogs(ctx context.Context, filter *logModel.Filter) ([]*lo
 		}
 		response = append(response, &log)
 	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return nil, 0, 0, err
+	}
 	return response, total, pages, nil
 }
 

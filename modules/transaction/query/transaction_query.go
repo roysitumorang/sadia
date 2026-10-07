@@ -224,6 +224,10 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 		_, _ = builder.WriteString("$")
 		_, _ = builder.WriteString(strconv.Itoa(n))
 	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return nil, 0, 0, err
+	}
 	_, _ = builder.WriteString(") ORDER BY id")
 	if len(response) == 0 {
 		return nil, 0, 0, nil
@@ -262,6 +266,10 @@ func (q *transactionQuery) FindTransactions(ctx context.Context, filter *transac
 				&lineItem,
 			)
 		}
+	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return nil, 0, 0, err
 	}
 	return response, total, pages, nil
 }
@@ -423,6 +431,7 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrQuery")
 		return nil, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var lineItem transactionModel.LineItem
 		if err = rows.Scan(
@@ -443,6 +452,10 @@ func (q *transactionQuery) CreateTransaction(ctx context.Context, tx pgx.Tx, req
 			return nil, err
 		}
 		response.LineItems = append(response.LineItems, &lineItem)
+	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return nil, err
 	}
 	if _, err = tx.Exec(
 		ctx,

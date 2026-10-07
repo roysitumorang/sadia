@@ -378,6 +378,10 @@ func (q *accountQuery) FindAccounts(ctx context.Context, filter *accountModel.Fi
 		}
 		response = append(response, &account)
 	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return nil, 0, 0, err
+	}
 	return response, total, pages, nil
 }
 
@@ -742,6 +746,10 @@ func (q *accountQuery) FindAdmins(ctx context.Context, filter *accountModel.Filt
 			response[offset].AdminLevel = adminLevel
 		}
 	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return nil, 0, 0, err
+	}
 	return response, total, pages, nil
 }
 
@@ -848,6 +856,10 @@ func (q *accountQuery) FindUsers(ctx context.Context, filter *accountModel.Filte
 			user.UserLevel = userLevel
 			response[offset] = user
 		}
+	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return nil, 0, 0, err
 	}
 	return response, total, pages, nil
 }
