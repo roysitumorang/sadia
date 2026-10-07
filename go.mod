@@ -1,9 +1,10 @@
 module github.com/roysitumorang/sadia
 
-go 1.27
+go 1.27.1
 
 require (
 	github.com/bwmarrin/snowflake v0.3.0
+	github.com/coregx/coregex v0.12.25
 	github.com/dustin/go-humanize v1.1.0
 	github.com/getsentry/sentry-go v0.49.0
 	github.com/goccy/go-json v0.11.2
@@ -36,6 +37,7 @@ require (
 	github.com/CloudyKit/fastprinter v0.0.0-20251202014920-1725d2651bd4 // indirect
 	github.com/CloudyKit/jet/v6 v6.3.3 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
+	github.com/coregx/ahocorasick v0.3.1 // indirect
 	github.com/ebitengine/purego v0.11.1 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v1.0.2 // indirect

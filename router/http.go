@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coregx/coregex"
 	"github.com/dustin/go-humanize"
 	"github.com/getsentry/sentry-go"
 	"github.com/goccy/go-json"
@@ -27,7 +28,6 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/rewrite"
 	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/gofiber/template/jet/v3"
-	"github.com/gofiber/utils/v2"
 	"github.com/joho/godotenv"
 	"github.com/roysitumorang/sadia/config"
 	_ "github.com/roysitumorang/sadia/docs"
@@ -73,9 +73,10 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	sessionStore.RegisterType(&transactionModel.Transaction{})
 	sessionStore.RegisterType(&helper.FlashMessage{})
 	app := fiber.New(fiber.Config{
-		JSONEncoder: json.Marshal,
-		JSONDecoder: json.Unmarshal,
-		Views:       engine,
+		RegexHandler: coregex.MustCompile,
+		JSONEncoder:  json.Marshal,
+		JSONDecoder:  json.Unmarshal,
+		Views:        engine,
 		ErrorHandler: func(ctx fiber.Ctx, err error) error {
 			statusCode := fiber.StatusInternalServerError
 			if e, ok := errors.AsType[*fiber.Error](err); ok {
@@ -94,7 +95,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		requestid.New(requestid.Config{
 			Next:      nil,
 			Header:    fiber.HeaderXRequestID,
-			Generator: utils.UUIDv4,
+			Generator: helper.GenerateUniqueID,
 		}),
 		compress.New(),
 		rewrite.New(rewrite.Config{
