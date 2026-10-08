@@ -14,7 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/config"
 	"github.com/roysitumorang/sadia/helper"
-	"github.com/roysitumorang/sadia/migration"
+	"github.com/roysitumorang/sadia/migrations"
 	"github.com/roysitumorang/sadia/models"
 	accountQuery "github.com/roysitumorang/sadia/modules/account/query"
 	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
@@ -38,23 +38,21 @@ import (
 	"go.uber.org/zap"
 )
 
-type (
-	Service struct {
-		DbWrite                *pgxpool.Pool
-		Migration              *migration.Migration
-		KafkaService           *kafka.KafkaService
-		Storage                fiber.Storage
-		AccountUseCase         accountUseCase.AccountUseCase
-		JwtUseCase             jwtUseCase.JwtUseCase
-		CompanyUseCase         companyUseCase.CompanyUseCase
-		LogUseCase             logUseCase.LogUseCase
-		ProductCategoryUseCase productCategoryUseCase.ProductCategoryUseCase
-		ProductUseCase         productUseCase.ProductUseCase
-		SessionUseCase         sessionUseCase.SessionUseCase
-		SequenceUseCase        sequenceUseCase.SequenceUseCase
-		TransactionUseCase     transactionUseCase.TransactionUseCase
-	}
-)
+type Service struct {
+	DbWrite                *pgxpool.Pool
+	Migration              *migrations.Migration
+	KafkaService           *kafka.KafkaService
+	Storage                fiber.Storage
+	AccountUseCase         accountUseCase.AccountUseCase
+	JwtUseCase             jwtUseCase.JwtUseCase
+	CompanyUseCase         companyUseCase.CompanyUseCase
+	LogUseCase             logUseCase.LogUseCase
+	ProductCategoryUseCase productCategoryUseCase.ProductCategoryUseCase
+	ProductUseCase         productUseCase.ProductUseCase
+	SessionUseCase         sessionUseCase.SessionUseCase
+	SequenceUseCase        sequenceUseCase.SequenceUseCase
+	TransactionUseCase     transactionUseCase.TransactionUseCase
+}
 
 func MakeHandler(ctx context.Context) (*Service, error) {
 	ctxt := "Router-MakeHandler"
@@ -80,7 +78,7 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrCreateDbConnection")
 		return nil, err
 	}
-	migration := migration.New(dbRead, dbWrite)
+	migration := migrations.New(dbRead, dbWrite)
 	kafkaService, err := kafka.New(ctx, strings.Split(os.Getenv("KAFKA_BROKERS"), ","))
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")

@@ -1,4 +1,4 @@
-package migration
+package migrations
 
 import (
 	"context"
@@ -15,16 +15,12 @@ import (
 	"go.uber.org/zap"
 )
 
-type (
-	Migration struct {
-		dbRead,
-		dbWrite *pgxpool.Pool
-	}
-)
+type Migration struct {
+	dbRead,
+	dbWrite *pgxpool.Pool
+}
 
-var (
-	Migrations = map[uint64]func(ctx context.Context, tx pgx.Tx) error{}
-)
+var Migrations = map[uint64]func(ctx context.Context, tx pgx.Tx) error{}
 
 func New(
 	dbRead,
@@ -111,9 +107,9 @@ func (m *Migration) Migrate(ctx context.Context) error {
 
 func (m *Migration) CreateMigrationFile() error {
 	now := time.Now().UTC().UnixNano()
-	filepath := fmt.Sprintf("./migration/%d.go", now)
+	filepath := fmt.Sprintf("./migrations/%d.go", now)
 	content := fmt.Sprintf(
-		`package migration
+		`package migrations
 
 import (
 	"context"
@@ -123,7 +119,7 @@ import (
 
 func init() {
 	Migrations[%d] = func(ctx context.Context, tx pgx.Tx) (err error) {
-		ctxt := "Migration-%d"
+		ctxt := "Migrations-%d"
 		return
 	}
 }`,

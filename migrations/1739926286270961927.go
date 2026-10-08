@@ -1,4 +1,4 @@
-package migration
+package migrations
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 
 func init() {
 	Migrations[1739926286270961927] = func(ctx context.Context, tx pgx.Tx) (err error) {
-		ctxt := "Migration-1739926286270961927"
+		ctxt := "Migrations-1739926286270961927"
 		if _, err = tx.Exec(
 			ctx,
 			`CREATE TABLE accounts (
