@@ -5,7 +5,7 @@ go 1.27.1
 require (
 	github.com/coregx/coregex v0.12.25
 	github.com/dustin/go-humanize v1.1.0
-	github.com/getsentry/sentry-go v0.49.0
+	github.com/getsentry/sentry-go v0.50.0
 	github.com/goccy/go-json v0.11.2
 	github.com/godruoyi/go-snowflake v0.0.2
 	github.com/gofiber/contrib/v3/monitor v1.2.2
