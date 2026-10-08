@@ -11,19 +11,12 @@ import (
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/keys"
 	"github.com/roysitumorang/sadia/models"
-	accountModel "github.com/roysitumorang/sadia/modules/account/model"
-	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
-	companyModel "github.com/roysitumorang/sadia/modules/company/model"
-	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
-	jwtModel "github.com/roysitumorang/sadia/modules/jwt/model"
-	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
-	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
-	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
+	"github.com/roysitumorang/sadia/services"
 )
 
 func AdminKeyAuth(
-	jwtUseCase jwtUseCase.JwtUseCase,
-	accountUseCase accountUseCase.AccountUseCase,
+	jwtService services.JwtService,
+	accountService services.AccountService,
 	adminLevels ...uint8,
 ) fiber.Handler {
 	var builder strings.Builder
@@ -45,21 +38,21 @@ func AdminKeyAuth(
 				return false, err
 			}
 			ctx := c.Context()
-			jsonWebTokens, _, err := jwtUseCase.FindJWTs(
+			jsonWebTokens, _, err := jwtService.FindJWTs(
 				ctx,
-				jwtModel.NewFilter(
-					jwtModel.WithTokens(claims.Subject),
+				models.NewJwtFilter(
+					models.JwtWithTokens(claims.Subject),
 				),
 			)
 			if err != nil || len(jsonWebTokens) == 0 {
 				return false, err
 			}
 			jwt := jsonWebTokens[0]
-			admins, _, err := accountUseCase.FindAdmins(
+			admins, _, err := accountService.FindAdmins(
 				ctx,
-				accountModel.NewFilter(
-					accountModel.WithAccountIDs(jwt.AccountID),
-					accountModel.WithAdminLevels(adminLevels...),
+				models.NewAccountFilter(
+					models.AccountWithAccountIDs(jwt.AccountID),
+					models.AccountWithAdminLevels(adminLevels...),
 				),
 			)
 			if err != nil || len(admins) == 0 {
@@ -74,10 +67,10 @@ func AdminKeyAuth(
 }
 
 func UserKeyAuth(
-	jwtUseCase jwtUseCase.JwtUseCase,
-	accountUseCase accountUseCase.AccountUseCase,
-	companyUseCase companyUseCase.CompanyUseCase,
-	sessionUseCase sessionUseCase.SessionUseCase,
+	jwtService services.JwtService,
+	accountService services.AccountService,
+	companyService services.CompanyService,
+	sessionService services.SessionService,
 	userLevels ...uint8,
 ) fiber.Handler {
 	var builder strings.Builder
@@ -99,31 +92,31 @@ func UserKeyAuth(
 				return false, err
 			}
 			ctx := c.Context()
-			jsonWebTokens, _, err := jwtUseCase.FindJWTs(
+			jsonWebTokens, _, err := jwtService.FindJWTs(
 				ctx,
-				jwtModel.NewFilter(
-					jwtModel.WithTokens(claims.Subject),
+				models.NewJwtFilter(
+					models.JwtWithTokens(claims.Subject),
 				),
 			)
 			if err != nil || len(jsonWebTokens) == 0 {
 				return false, err
 			}
 			jwt := jsonWebTokens[0]
-			users, _, err := accountUseCase.FindUsers(
+			users, _, err := accountService.FindUsers(
 				ctx,
-				accountModel.NewFilter(
-					accountModel.WithAccountIDs(jwt.AccountID),
-					accountModel.WithUserLevels(userLevels...),
+				models.NewAccountFilter(
+					models.AccountWithAccountIDs(jwt.AccountID),
+					models.AccountWithUserLevels(userLevels...),
 				),
 			)
 			if err != nil || len(users) == 0 {
 				return false, err
 			}
 			currentUser := users[0]
-			companies, _, err := companyUseCase.FindCompanies(
+			companies, _, err := companyService.FindCompanies(
 				ctx,
-				companyModel.NewFilter(
-					companyModel.WithCompanyIDs(currentUser.CompanyID),
+				models.NewCompanyFilter(
+					models.CompanyWithCompanyIDs(currentUser.CompanyID),
 				),
 			)
 			if err != nil || len(companies) == 0 {
@@ -131,10 +124,10 @@ func UserKeyAuth(
 			}
 			currentCompany := companies[0]
 			if currentCompany.SessionID != nil {
-				sessions, _, err := sessionUseCase.FindSessions(
+				sessions, _, err := sessionService.FindSessions(
 					ctx,
-					sessionModel.NewFilter(
-						sessionModel.WithSessionIDs(*currentCompany.SessionID),
+					models.NewSessionFilter(
+						models.SessionWithSessionIDs(*currentCompany.SessionID),
 					),
 				)
 				if err != nil || len(sessions) == 0 {

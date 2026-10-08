@@ -2,15 +2,12 @@ package helper
 
 import (
 	"bytes"
-	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"maps"
 	"math"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -23,100 +20,84 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/godruoyi/go-snowflake"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/keys"
-	"github.com/roysitumorang/sadia/models"
 	"github.com/sqids/sqids-go"
 	"golang.org/x/crypto/bcrypt"
 )
 
-const (
-	numbers             = "0123456789"
-	base58alphabets     = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-	lowerCasedAlphabets = "123456789abcdefghijkmnopqrstuvwxyz"
-)
+const numbers = "0123456789"
+const base58alphabets = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+const lowerCasedAlphabets = "123456789abcdefghijkmnopqrstuvwxyz"
 
-var (
-	timeZone *time.Location
-	env,
-	jwtIssuer string
-	kafkaBrokers           []string
-	loginMaxFailedAttempts int
-	loginLockoutDuration,
-	accessTokenAge time.Duration
-	sqIDs      *sqids.Sqids
-	dbWrite    *pgxpool.Pool
-	privateKey *rsa.PrivateKey
-	InitHelper = sync.OnceValue(func() (err error) {
-		location, ok := os.LookupEnv("TIME_ZONE")
-		if !ok || location == "" {
-			return errors.New("env TIME_ZONE is required")
-		}
-		if timeZone, err = time.LoadLocation(location); err != nil {
-			return
-		}
-		if env, ok = os.LookupEnv("ENV"); !ok {
-			return errors.New("env ENV is required")
-		}
-		if env == "" {
-			env = "development"
-		}
-		if jwtIssuer, ok = os.LookupEnv("JWT_ISSUER"); !ok || jwtIssuer == "" {
-			return errors.New("env JWT_ISSUER is required")
-		}
-		envKafkaBrokers, ok := os.LookupEnv("KAFKA_BROKERS")
-		if !ok || envKafkaBrokers == "" {
-			return errors.New("env KAFKA_BROKERS is required")
-		}
-		kafkaBrokers = strings.Split(envKafkaBrokers, ";")
-		envLoginMaxFailedAttempts, ok := os.LookupEnv("LOGIN_MAX_FAILED_ATTEMPTS")
-		if !ok || envLoginMaxFailedAttempts == "" {
-			return errors.New("env LOGIN_MAX_FAILED_ATTEMPTS is required")
-		}
-		if loginMaxFailedAttempts, err = strconv.Atoi(envLoginMaxFailedAttempts); err != nil || loginMaxFailedAttempts < 1 {
-			return errors.New("env LOGIN_MAX_FAILED_ATTEMPS requires a positive integer")
-		}
-		envLoginLockoutDuration, ok := os.LookupEnv("LOGIN_LOCKOUT_DURATION")
-		if !ok || envLoginLockoutDuration == "" {
-			return errors.New("env LOGIN_LOCKOUT_DURATION is required")
-		}
-		if loginLockoutDuration, err = time.ParseDuration(envLoginLockoutDuration); err != nil {
-			return
-		}
-		envSqidsMinLength, ok := os.LookupEnv("SQIDS_MIN_LENGTH")
-		if !ok || envSqidsMinLength == "" {
-			return errors.New("env SQIDS_MIN_LENGTH is required")
-		}
-		sqidsMinLength, err := strconv.Atoi(envSqidsMinLength)
-		if err != nil || sqidsMinLength < 1 || sqidsMinLength > math.MaxUint8 {
-			return fmt.Errorf("env SQIDS_MIN_LENGTH requires a positive integer, min. 1, max %d", math.MaxUint8)
-		}
-		if sqIDs, err = sqids.New(sqids.Options{
-			Alphabet:  lowerCasedAlphabets,
-			MinLength: uint8(sqidsMinLength),
-		}); err != nil {
-			return
-		}
-		envAccesTokenAge, ok := os.LookupEnv("ACCESS_TOKEN_AGE")
-		if !ok || envAccesTokenAge == "" {
-			return errors.New("env ACCESS_TOKEN_AGE is required")
-		}
-		if accessTokenAge, err = time.ParseDuration(envAccesTokenAge); err != nil {
-			return
-		}
-		privateKey, err = keys.InitPrivateKey()
+var timeZone *time.Location
+var env string
+var jwtIssuer string
+var kafkaBrokers []string
+var loginMaxFailedAttempts int
+var loginLockoutDuration time.Duration
+var accessTokenAge time.Duration
+var sqIDs *sqids.Sqids
+var privateKey *rsa.PrivateKey
+var InitHelper = sync.OnceValue(func() (err error) {
+	location, ok := os.LookupEnv("TIME_ZONE")
+	if !ok || location == "" {
+		return errors.New("env TIME_ZONE is required")
+	}
+	if timeZone, err = time.LoadLocation(location); err != nil {
 		return
-	})
-)
-
-func InitDbWrite(dbWriteOnly *pgxpool.Pool) {
-	dbWrite = dbWriteOnly
-}
-
-func BeginTx(ctx context.Context) (pgx.Tx, error) {
-	return dbWrite.Begin(ctx)
-}
+	}
+	if env, ok = os.LookupEnv("ENV"); !ok {
+		return errors.New("env ENV is required")
+	}
+	if env == "" {
+		env = "development"
+	}
+	if jwtIssuer, ok = os.LookupEnv("JWT_ISSUER"); !ok || jwtIssuer == "" {
+		return errors.New("env JWT_ISSUER is required")
+	}
+	envKafkaBrokers, ok := os.LookupEnv("KAFKA_BROKERS")
+	if !ok || envKafkaBrokers == "" {
+		return errors.New("env KAFKA_BROKERS is required")
+	}
+	kafkaBrokers = strings.Split(envKafkaBrokers, ";")
+	envLoginMaxFailedAttempts, ok := os.LookupEnv("LOGIN_MAX_FAILED_ATTEMPTS")
+	if !ok || envLoginMaxFailedAttempts == "" {
+		return errors.New("env LOGIN_MAX_FAILED_ATTEMPTS is required")
+	}
+	if loginMaxFailedAttempts, err = strconv.Atoi(envLoginMaxFailedAttempts); err != nil || loginMaxFailedAttempts < 1 {
+		return errors.New("env LOGIN_MAX_FAILED_ATTEMPS requires a positive integer")
+	}
+	envLoginLockoutDuration, ok := os.LookupEnv("LOGIN_LOCKOUT_DURATION")
+	if !ok || envLoginLockoutDuration == "" {
+		return errors.New("env LOGIN_LOCKOUT_DURATION is required")
+	}
+	if loginLockoutDuration, err = time.ParseDuration(envLoginLockoutDuration); err != nil {
+		return
+	}
+	envSqidsMinLength, ok := os.LookupEnv("SQIDS_MIN_LENGTH")
+	if !ok || envSqidsMinLength == "" {
+		return errors.New("env SQIDS_MIN_LENGTH is required")
+	}
+	sqidsMinLength, err := strconv.Atoi(envSqidsMinLength)
+	if err != nil || sqidsMinLength < 1 || sqidsMinLength > math.MaxUint8 {
+		return fmt.Errorf("env SQIDS_MIN_LENGTH requires a positive integer, min. 1, max %d", math.MaxUint8)
+	}
+	if sqIDs, err = sqids.New(sqids.Options{
+		Alphabet:  lowerCasedAlphabets,
+		MinLength: uint8(sqidsMinLength),
+	}); err != nil {
+		return
+	}
+	envAccesTokenAge, ok := os.LookupEnv("ACCESS_TOKEN_AGE")
+	if !ok || envAccesTokenAge == "" {
+		return errors.New("env ACCESS_TOKEN_AGE is required")
+	}
+	if accessTokenAge, err = time.ParseDuration(envAccesTokenAge); err != nil {
+		return
+	}
+	privateKey, err = keys.InitPrivateKey()
+	return
+})
 
 func String2ByteSlice(str string) []byte {
 	return unsafe.Slice(unsafe.StringData(str), len(str))
@@ -158,87 +139,6 @@ func LoadTimeZone() *time.Location {
 
 func GetEnv() string {
 	return env
-}
-
-func SetPagination(total, pages, limit, page int64, baseURL string, urlValues url.Values) (*models.Pagination, error) {
-	var (
-		response    models.Pagination
-		err         error
-		builder     strings.Builder
-		u           url.Values
-		queryString string
-	)
-	response.Info.Total = total
-	response.Info.Page = page
-	response.Info.Pages = pages
-	response.Info.Limit = limit
-	response.Links.First = baseURL
-	response.Links.Current = baseURL
-	if len(urlValues) > 0 {
-		u = maps.Clone(urlValues)
-		if queryString, err = url.QueryUnescape(u.Encode()); err != nil {
-			return nil, err
-		}
-		builder.Reset()
-		_, _ = builder.WriteString(baseURL)
-		_, _ = builder.WriteString("?")
-		_, _ = builder.WriteString(queryString)
-		response.Links.Current = builder.String()
-		u.Del("page")
-		if queryString, err = url.QueryUnescape(u.Encode()); err != nil {
-			return nil, err
-		}
-		builder.Reset()
-		_, _ = builder.WriteString(baseURL)
-		_, _ = builder.WriteString("?")
-		_, _ = builder.WriteString(queryString)
-		response.Links.First = builder.String()
-	}
-	if n := pages - 1; page < n {
-		u = maps.Clone(urlValues)
-		u.Set("page", strconv.FormatInt(n, 10))
-		if queryString, err = url.QueryUnescape(u.Encode()); err != nil {
-			return nil, err
-		}
-		builder.Reset()
-		_, _ = builder.WriteString(baseURL)
-		_, _ = builder.WriteString("?")
-		_, _ = builder.WriteString(queryString)
-		response.Links.Last = builder.String()
-		u.Set("page", strconv.FormatInt(page+1, 10))
-		if queryString, err = url.QueryUnescape(u.Encode()); err != nil {
-			return nil, err
-		}
-		builder.Reset()
-		_, _ = builder.WriteString(baseURL)
-		_, _ = builder.WriteString("?")
-		_, _ = builder.WriteString(queryString)
-		response.Links.Next = builder.String()
-	}
-	if page > 0 {
-		u = maps.Clone(urlValues)
-		u.Set("page", strconv.FormatInt(page, 10))
-		if queryString, err = url.QueryUnescape(u.Encode()); err != nil {
-			return nil, err
-		}
-		builder.Reset()
-		_, _ = builder.WriteString(baseURL)
-		_, _ = builder.WriteString("?")
-		_, _ = builder.WriteString(queryString)
-		response.Links.Current = builder.String()
-		if page > 1 {
-			u.Set("page", strconv.FormatInt(page-1, 10))
-			if queryString, err = url.QueryUnescape(u.Encode()); err != nil {
-				return nil, err
-			}
-			builder.Reset()
-			_, _ = builder.WriteString(baseURL)
-			_, _ = builder.WriteString("?")
-			_, _ = builder.WriteString(queryString)
-			response.Links.Previous = builder.String()
-		}
-	}
-	return &response, nil
 }
 
 func Transcode(input, output any) error {

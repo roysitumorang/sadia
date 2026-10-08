@@ -4,19 +4,13 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/roysitumorang/sadia/models"
-	accountModel "github.com/roysitumorang/sadia/modules/account/model"
-	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
-	companyModel "github.com/roysitumorang/sadia/modules/company/model"
-	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
-	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
-	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
-	transactionModel "github.com/roysitumorang/sadia/modules/transaction/model"
+	"github.com/roysitumorang/sadia/services"
 )
 
 func UserSessionAuth(
-	accountUseCase accountUseCase.AccountUseCase,
-	companyUseCase companyUseCase.CompanyUseCase,
-	sessionUseCase sessionUseCase.SessionUseCase,
+	accountService services.AccountService,
+	companyService services.CompanyService,
+	sessionService services.SessionService,
 	userLevels ...uint8,
 ) fiber.Handler {
 	return func(c fiber.Ctx) error {
@@ -27,11 +21,11 @@ func UserSessionAuth(
 		if !authOk || !authenticated || !userOk || userID == 0 {
 			return c.Redirect().To("/account/login")
 		}
-		users, _, err := accountUseCase.FindUsers(
+		users, _, err := accountService.FindUsers(
 			ctx,
-			accountModel.NewFilter(
-				accountModel.WithAccountIDs(userID),
-				accountModel.WithUserLevels(userLevels...),
+			models.NewAccountFilter(
+				models.AccountWithAccountIDs(userID),
+				models.AccountWithUserLevels(userLevels...),
 			),
 		)
 		if err != nil || len(users) == 0 {
@@ -41,10 +35,10 @@ func UserSessionAuth(
 		}
 		currentUser := users[0]
 		sess.Set(models.CurrentUser, currentUser)
-		companies, _, err := companyUseCase.FindCompanies(
+		companies, _, err := companyService.FindCompanies(
 			ctx,
-			companyModel.NewFilter(
-				companyModel.WithCompanyIDs(currentUser.CompanyID),
+			models.NewCompanyFilter(
+				models.CompanyWithCompanyIDs(currentUser.CompanyID),
 			),
 		)
 		if err != nil || len(companies) == 0 {
@@ -55,10 +49,10 @@ func UserSessionAuth(
 		currentCompany := companies[0]
 		sess.Set(models.CurrentCompany, currentCompany)
 		if currentCompany.SessionID != nil {
-			sessions, _, err := sessionUseCase.FindSessions(
+			sessions, _, err := sessionService.FindSessions(
 				ctx,
-				sessionModel.NewFilter(
-					sessionModel.WithSessionIDs(*currentCompany.SessionID),
+				models.NewSessionFilter(
+					models.SessionWithSessionIDs(*currentCompany.SessionID),
 				),
 			)
 			if err != nil || len(sessions) == 0 {
@@ -68,13 +62,13 @@ func UserSessionAuth(
 			}
 			sess.Set(models.CurrentSession, sessions[0])
 		}
-		cart, ok := sess.Get(transactionModel.CurrentCart).(*transactionModel.Transaction)
+		cart, ok := sess.Get(models.CurrentCart).(*models.Transaction)
 		if !ok {
-			cart = &transactionModel.Transaction{
-				LineItems: []*transactionModel.LineItem{},
+			cart = &models.Transaction{
+				LineItems: []*models.LineItem{},
 			}
 		}
-		sess.Set(transactionModel.CurrentCart, cart)
+		sess.Set(models.CurrentCart, cart)
 		_ = sess.Session.Save()
 		return c.Next()
 	}

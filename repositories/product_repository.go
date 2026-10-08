@@ -1,0 +1,466 @@
+package repositories
+
+import (
+	"context"
+	"errors"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/govalues/decimal"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/roysitumorang/sadia/helper"
+	"github.com/roysitumorang/sadia/models"
+	"go.uber.org/zap"
+)
+
+type ProductRepository interface {
+	FindProducts(ctx context.Context, filter *models.ProductFilter) ([]*models.Product, int64, int64, error)
+	CreateProduct(ctx context.Context, tx pgx.Tx, request *models.Product) (*models.Product, error)
+	UpdateProduct(ctx context.Context, tx pgx.Tx, request *models.Product) (*models.Product, error)
+	Import(ctx context.Context, products []models.Product, companyID, adminID uint64) error
+}
+
+type productRepository struct {
+	dbRead,
+	dbWrite *pgxpool.Pool
+}
+
+func NewProductRepository(
+	dbRead,
+	dbWrite *pgxpool.Pool,
+) ProductRepository {
+	return &productRepository{
+		dbRead:  dbRead,
+		dbWrite: dbWrite,
+	}
+}
+
+func (q *productRepository) FindProducts(ctx context.Context, filter *models.ProductFilter) ([]*models.Product, int64, int64, error) {
+	ctxt := "ProductRepository-FindProducts"
+	var (
+		params     []any
+		conditions []string
+		builder    strings.Builder
+	)
+	if len(filter.ProductIDs) > 0 {
+		builder.Reset()
+		_, _ = builder.WriteString("p.id IN (")
+		for i, productID := range filter.ProductIDs {
+			params = append(params, productID)
+			if i > 0 {
+				_, _ = builder.WriteString(",")
+			}
+			_, _ = builder.WriteString("$")
+			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		}
+		_, _ = builder.WriteString(")")
+		conditions = append(conditions, builder.String())
+	}
+	if len(filter.ProductCategoryIDs) > 0 {
+		builder.Reset()
+		_, _ = builder.WriteString("p.product_category_id IN (")
+		for i, productCategoryID := range filter.ProductCategoryIDs {
+			params = append(params, productCategoryID)
+			if i > 0 {
+				_, _ = builder.WriteString(",")
+			}
+			_, _ = builder.WriteString("$")
+			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		}
+		_, _ = builder.WriteString(")")
+		conditions = append(conditions, builder.String())
+	}
+	if len(filter.CompanyIDs) > 0 {
+		builder.Reset()
+		_, _ = builder.WriteString("p.company_id IN (")
+		for i, companyID := range filter.CompanyIDs {
+			params = append(params, companyID)
+			if i > 0 {
+				_, _ = builder.WriteString(",")
+			}
+			_, _ = builder.WriteString("$")
+			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		}
+		_, _ = builder.WriteString(")")
+		conditions = append(conditions, builder.String())
+	}
+	if filter.Keyword != "" {
+		builder.Reset()
+		_, _ = builder.WriteString("%%")
+		_, _ = builder.WriteString(strings.ToLower(filter.Keyword))
+		_, _ = builder.WriteString("%%")
+		params = append(params, builder.String())
+		n := strconv.Itoa(len(params))
+		builder.Reset()
+		_, _ = builder.WriteString("(LOWER(p.name) LIKE $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(" OR LOWER(p.code) LIKE $")
+		_, _ = builder.WriteString(n)
+		_, _ = builder.WriteString(")")
+		conditions = append(conditions, builder.String())
+	}
+	builder.Reset()
+	_, _ = builder.WriteString(
+		`SELECT COUNT(1)
+		FROM products p
+		LEFT JOIN product_categories c ON p.category_id = c.id`,
+	)
+	if len(conditions) > 0 {
+		_, _ = builder.WriteString(" WHERE")
+		for i, condition := range conditions {
+			if i > 0 {
+				_, _ = builder.WriteString(" AND")
+			}
+			_, _ = builder.WriteString(" ")
+			_, _ = builder.WriteString(condition)
+		}
+	}
+	query := builder.String()
+	var total int64
+	err := q.dbRead.QueryRow(ctx, query, params...).Scan(&total)
+	if err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+		return nil, 0, 0, err
+	}
+	if total == 0 {
+		return nil, 0, 0, nil
+	}
+	query = strings.ReplaceAll(
+		query,
+		"COUNT(1)",
+		`ROW_NUMBER() OVER (ORDER BY p.id DESC) AS row_no
+		, p.id
+		, p.company_id
+		, p.category_id
+		, c.name
+		, p.name
+		, p.code
+		, p.uom
+		, p.minimum_stock
+		, p.stock
+		, p.base_price
+		, p.selling_price
+		, p.weight
+		, p.rack_position
+		, p.created_by
+		, p.created_at
+		, p.updated_by
+		, p.updated_at`,
+	)
+	builder.Reset()
+	_, _ = builder.WriteString(query)
+	pages := int64(1)
+	if filter.Limit > 0 {
+		totalDecimal, err := decimal.New(total, 0)
+		if err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrNew")
+			return nil, 0, 0, err
+		}
+		perPageDecimal, err := decimal.New(filter.Limit, 0)
+		if err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrNew")
+			return nil, 0, 0, err
+		}
+		pagesDecimal, err := totalDecimal.Quo(perPageDecimal)
+		if err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrQuo")
+			return nil, 0, 0, err
+		}
+		pages, _, _ = pagesDecimal.Ceil(0).Int64(0)
+		offset := filter.Page * filter.Limit
+		_, _ = builder.WriteString(" LIMIT ")
+		_, _ = builder.WriteString(strconv.FormatInt(filter.Limit, 10))
+		_, _ = builder.WriteString(" OFFSET ")
+		_, _ = builder.WriteString(strconv.FormatInt(offset, 10))
+	}
+	rows, err := q.dbRead.Query(ctx, builder.String(), params...)
+	if errors.Is(err, pgx.ErrNoRows) {
+		err = nil
+	}
+	if err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrQuery")
+		return nil, 0, 0, err
+	}
+	defer rows.Close()
+	var response []*models.Product
+	for rows.Next() {
+		var product models.Product
+		if err = rows.Scan(
+			&product.RowNo,
+			&product.ID,
+			&product.CompanyID,
+			&product.CategoryID,
+			&product.CategoryName,
+			&product.Name,
+			&product.Code,
+			&product.UOM,
+			&product.MinimumStock,
+			&product.Stock,
+			&product.BasePrice,
+			&product.SellingPrice,
+			&product.Weight,
+			&product.RackPosition,
+			&product.CreatedBy,
+			&product.CreatedAt,
+			&product.UpdatedBy,
+			&product.UpdatedAt,
+		); err != nil {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+			return nil, 0, 0, err
+		}
+		response = append(response, &product)
+	}
+	if err = rows.Err(); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrErr")
+		return nil, 0, 0, err
+	}
+	return response, total, pages, nil
+}
+
+func (q *productRepository) CreateProduct(ctx context.Context, tx pgx.Tx, request *models.Product) (*models.Product, error) {
+	ctxt := "ProductRepository-CreateProduct"
+	var response models.Product
+	if err := tx.QueryRow(
+		ctx,
+		`INSERT INTO products (
+			id
+			, company_id
+			, category_id
+			, name
+			, code
+			, uom
+			, minimum_stock
+			, stock
+			, base_price
+			, selling_price
+			, weight
+			, rack_position
+			, created_by
+			, created_at
+			, updated_by
+			, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $13, $14)
+		RETURNING id
+			, company_id
+			, category_id
+			, name
+			, code
+			, uom
+			, minimum_stock
+			, stock
+			, base_price
+			, selling_price
+			, weight
+			, rack_position
+			, created_by
+			, created_at
+			, updated_by
+			, updated_at`,
+		helper.GenerateSnowflakeID(),
+		request.CompanyID,
+		request.CategoryID,
+		request.Name,
+		request.Code,
+		request.UOM,
+		request.MinimumStock,
+		request.Stock,
+		request.BasePrice,
+		request.SellingPrice,
+		request.Weight,
+		request.RackPosition,
+		request.CreatedBy,
+		request.CreatedAt,
+	).Scan(
+		&response.ID,
+		&response.CompanyID,
+		&response.CategoryID,
+		&response.Name,
+		&response.Code,
+		&response.UOM,
+		&response.MinimumStock,
+		&response.Stock,
+		&response.BasePrice,
+		&response.SellingPrice,
+		&response.Weight,
+		&response.RackPosition,
+		&response.CreatedBy,
+		&response.CreatedAt,
+		&response.UpdatedBy,
+		&response.UpdatedAt,
+	); err != nil {
+		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
+			pgxErr.Code == pgerrcode.UniqueViolation {
+			switch pgxErr.ConstraintName {
+			case "products_lower_company_id_idx":
+				err = models.ErrUniqueProductNameViolation
+			case "products_code_company_id_idx":
+				err = models.ErrUniqueProductCodeViolation
+			}
+		} else {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+		}
+		return nil, err
+	}
+	return &response, nil
+}
+
+func (q *productRepository) UpdateProduct(ctx context.Context, tx pgx.Tx, request *models.Product) (*models.Product, error) {
+	ctxt := "ProductRepository-UpdateProduct"
+	var response models.Product
+	err := tx.QueryRow(
+		ctx,
+		`UPDATE products SET
+			category_id = $1
+			, name = $2
+			, code = $3
+			, uom = $4
+			, minimum_stock = $5
+			, stock = $6
+			, base_price = $7
+			, selling_price = $8
+			, weight = $9
+			, rack_position = $10
+			, updated_by = $11
+			, updated_at = $12
+		WHERE id = $13
+		RETURNING id
+			, company_id
+			, category_id
+			, name
+			, code
+			, uom
+			, minimum_stock
+			, stock
+			, base_price
+			, selling_price
+			, weight
+			, rack_position
+			, created_by
+			, created_at
+			, updated_by
+			, updated_at`,
+		request.CategoryID,
+		request.Name,
+		request.Code,
+		request.UOM,
+		request.MinimumStock,
+		request.Stock,
+		request.BasePrice,
+		request.SellingPrice,
+		request.Weight,
+		request.RackPosition,
+		request.UpdatedBy,
+		request.UpdatedAt,
+		request.ID,
+	).Scan(
+		&response.ID,
+		&response.CompanyID,
+		&response.CategoryID,
+		&response.Name,
+		&response.Code,
+		&response.UOM,
+		&response.MinimumStock,
+		&response.Stock,
+		&response.BasePrice,
+		&response.SellingPrice,
+		&response.Weight,
+		&response.RackPosition,
+		&response.CreatedBy,
+		&response.CreatedAt,
+		&response.UpdatedBy,
+		&response.UpdatedAt,
+	)
+	if err != nil {
+		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
+			pgxErr.Code == pgerrcode.UniqueViolation {
+			switch pgxErr.ConstraintName {
+			case "products_lower_company_id_idx":
+				err = models.ErrUniqueProductNameViolation
+			case "products_code_company_id_idx":
+				err = models.ErrUniqueProductCodeViolation
+			}
+		} else {
+			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+		}
+		return nil, err
+	}
+	return &response, nil
+}
+
+func (q *productRepository) Import(ctx context.Context, products []models.Product, companyID, adminID uint64) (err error) {
+	ctxt := "ProductRepository-Import"
+	var now time.Time
+	tx, err := q.dbWrite.Begin(ctx)
+	if err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrBegin")
+		return
+	}
+	defer func() {
+		errRollback := tx.Rollback(ctx)
+		if errRollback == pgx.ErrTxClosed {
+			errRollback = nil
+		}
+		if errRollback != nil {
+			helper.Capture(ctx, zap.ErrorLevel, errRollback, ctxt, "ErrRollback")
+		}
+	}()
+	for _, product := range products {
+		now = time.Now()
+		if _, err = tx.Exec(
+			ctx,
+			`INSERT INTO products (
+				id
+				, company_id
+				, category_id
+				, name
+				, code
+				, uom
+				, minimum_stock
+				, stock
+				, base_price
+				, selling_price
+				, weight
+				, rack_position
+				, created_by
+				, created_at
+				, updated_by
+				, updated_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $13, $14)`,
+			helper.GenerateSnowflakeID(),
+			companyID,
+			product.CategoryID,
+			product.Name,
+			product.Code,
+			product.UOM,
+			product.MinimumStock,
+			product.Stock,
+			product.BasePrice,
+			product.SellingPrice,
+			product.Weight,
+			product.RackPosition,
+			adminID,
+			now,
+		); err != nil {
+			if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
+				pgxErr.Code == pgerrcode.UniqueViolation {
+				switch pgxErr.ConstraintName {
+				case "products_lower_company_id_idx":
+					err = models.ErrUniqueProductNameViolation
+				case "products_code_company_id_idx":
+					err = models.ErrUniqueProductCodeViolation
+				}
+			} else {
+				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+			}
+			return err
+		}
+	}
+	if err = tx.Commit(ctx); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrCommit")
+	}
+	return err
+}

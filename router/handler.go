@@ -11,47 +11,29 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/storage/valkey"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/config"
 	"github.com/roysitumorang/sadia/externals"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/migrations"
 	"github.com/roysitumorang/sadia/models"
-	accountQuery "github.com/roysitumorang/sadia/modules/account/query"
-	accountUseCase "github.com/roysitumorang/sadia/modules/account/usecase"
-	companyQuery "github.com/roysitumorang/sadia/modules/company/query"
-	companyUseCase "github.com/roysitumorang/sadia/modules/company/usecase"
-	jwtQuery "github.com/roysitumorang/sadia/modules/jwt/query"
-	jwtUseCase "github.com/roysitumorang/sadia/modules/jwt/usecase"
-	logQuery "github.com/roysitumorang/sadia/modules/log/query"
-	logUseCase "github.com/roysitumorang/sadia/modules/log/usecase"
-	productQuery "github.com/roysitumorang/sadia/modules/product/query"
-	productUseCase "github.com/roysitumorang/sadia/modules/product/usecase"
-	productCategoryQuery "github.com/roysitumorang/sadia/modules/product_category/query"
-	productCategoryUseCase "github.com/roysitumorang/sadia/modules/product_category/usecase"
-	sequenceQuery "github.com/roysitumorang/sadia/modules/sequence/query"
-	sequenceUseCase "github.com/roysitumorang/sadia/modules/sequence/usecase"
-	sessionQuery "github.com/roysitumorang/sadia/modules/session/query"
-	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
-	transactionQuery "github.com/roysitumorang/sadia/modules/transaction/query"
-	transactionUseCase "github.com/roysitumorang/sadia/modules/transaction/usecase"
+	"github.com/roysitumorang/sadia/repositories"
+	"github.com/roysitumorang/sadia/services"
 	"go.uber.org/zap"
 )
 
 type Service struct {
-	DbWrite                *pgxpool.Pool
 	Migration              *migrations.Migration
 	KafkaClient            *externals.KafkaClient
 	Storage                fiber.Storage
-	AccountUseCase         accountUseCase.AccountUseCase
-	JwtUseCase             jwtUseCase.JwtUseCase
-	CompanyUseCase         companyUseCase.CompanyUseCase
-	LogUseCase             logUseCase.LogUseCase
-	ProductCategoryUseCase productCategoryUseCase.ProductCategoryUseCase
-	ProductUseCase         productUseCase.ProductUseCase
-	SessionUseCase         sessionUseCase.SessionUseCase
-	SequenceUseCase        sequenceUseCase.SequenceUseCase
-	TransactionUseCase     transactionUseCase.TransactionUseCase
+	AccountService         services.AccountService
+	JwtService             services.JwtService
+	CompanyService         services.CompanyService
+	LogService             services.LogService
+	ProductCategoryService services.ProductCategoryService
+	ProductService         services.ProductService
+	SessionService         services.SessionService
+	SequenceService        services.SequenceService
+	TransactionService     services.TransactionService
 }
 
 func MakeHandler(ctx context.Context) (*Service, error) {
@@ -78,6 +60,7 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrCreateDbConnection")
 		return nil, err
 	}
+	repositories.SetDbWrite(dbWrite)
 	migration := migrations.New(dbRead, dbWrite)
 	kafkaClient, err := externals.NewKafkaClient(ctx, strings.Split(os.Getenv("KAFKA_BROKERS"), ","))
 	if err != nil {
@@ -99,38 +82,37 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 	storage := valkey.New(valkey.Config{
 		URL: os.Getenv("REDIS_URL"),
 	})
-	accountQuery := accountQuery.New(dbRead, dbWrite)
-	jwtQuery := jwtQuery.New(dbRead, dbWrite)
-	companyQuery := companyQuery.New(dbRead, dbWrite)
-	logQuery := logQuery.New(dbRead, dbWrite)
-	productCategoryQuery := productCategoryQuery.New(dbRead, dbWrite)
-	productQuery := productQuery.New(dbRead, dbWrite)
-	sessionQuery := sessionQuery.New(dbRead, dbWrite)
-	sequenceQuery := sequenceQuery.New(dbRead, dbWrite)
-	transactionQuery := transactionQuery.New(dbRead, dbWrite)
-	accountUseCase := accountUseCase.New(accountQuery)
-	jwtUseCase := jwtUseCase.New(jwtQuery)
-	companyUseCase := companyUseCase.New(companyQuery)
-	logUseCase := logUseCase.New(logQuery)
-	productCategoryUseCase := productCategoryUseCase.New(productCategoryQuery)
-	productUseCase := productUseCase.New(productQuery)
-	sessionUseCase := sessionUseCase.New(sessionQuery)
-	sequenceUseCase := sequenceUseCase.New(sequenceQuery)
-	transactionUseCase := transactionUseCase.New(transactionQuery)
+	accountRepository := repositories.NewAccountRepository(dbRead, dbWrite)
+	jwtRepository := repositories.NewJwtRepository(dbRead, dbWrite)
+	companyRepository := repositories.NewCompanyRepository(dbRead, dbWrite)
+	logRepository := repositories.NewLogRepository(dbRead, dbWrite)
+	productCategoryRepository := repositories.NewProductCategoryRepository(dbRead, dbWrite)
+	productRepository := repositories.NewProductRepository(dbRead, dbWrite)
+	sessionRepository := repositories.NewSessionRepository(dbRead, dbWrite)
+	sequenceRepository := repositories.NewSequenceRepository(dbRead, dbWrite)
+	transactionRepository := repositories.NewTransactionRepository(dbRead, dbWrite)
+	accountService := services.NewAccountService(accountRepository)
+	jwtService := services.NewJwtService(jwtRepository)
+	companyService := services.NewCompanyService(companyRepository)
+	logService := services.NewLogService(logRepository)
+	productCategoryService := services.NewProductCategoryService(productCategoryRepository)
+	productService := services.NewProductService(productRepository)
+	sessionService := services.NewSessionService(sessionRepository)
+	sequenceService := services.NewSequenceService(sequenceRepository)
+	transactionService := services.NewTransactionService(transactionRepository)
 	return &Service{
-		DbWrite:                dbWrite,
 		Migration:              migration,
 		KafkaClient:            kafkaClient,
 		Storage:                storage,
-		AccountUseCase:         accountUseCase,
-		JwtUseCase:             jwtUseCase,
-		LogUseCase:             logUseCase,
-		CompanyUseCase:         companyUseCase,
-		ProductCategoryUseCase: productCategoryUseCase,
-		ProductUseCase:         productUseCase,
-		SessionUseCase:         sessionUseCase,
-		SequenceUseCase:        sequenceUseCase,
-		TransactionUseCase:     transactionUseCase,
+		AccountService:         accountService,
+		JwtService:             jwtService,
+		LogService:             logService,
+		CompanyService:         companyService,
+		ProductCategoryService: productCategoryService,
+		ProductService:         productService,
+		SessionService:         sessionService,
+		SequenceService:        sequenceService,
+		TransactionService:     transactionService,
 	}, nil
 }
 
@@ -163,25 +145,25 @@ func (q *Service) Consume(ctx context.Context) error {
 		q.KafkaClient.AllowRebalance()
 		for _, record := range records {
 			now := time.Now()
-			if err := q.AccountUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+			if err := q.AccountService.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
 			}
-			if err := q.CompanyUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+			if err := q.CompanyService.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
 			}
-			if err := q.JwtUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+			if err := q.JwtService.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
 			}
-			if err := q.ProductUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+			if err := q.ProductService.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
 			}
-			if err := q.ProductCategoryUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+			if err := q.ProductCategoryService.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
 			}
-			if err := q.SessionUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+			if err := q.SessionService.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
 			}
-			if err := q.TransactionUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
+			if err := q.TransactionService.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
 			}
 			duration := time.Since(now)

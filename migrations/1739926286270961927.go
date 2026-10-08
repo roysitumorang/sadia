@@ -7,7 +7,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
-	accountModel "github.com/roysitumorang/sadia/modules/account/model"
 	"go.uber.org/zap"
 )
 
@@ -234,7 +233,7 @@ func init() {
 				, admin_level
 			) VALUES ($1, $2)`,
 			adminID,
-			accountModel.AdminLevelSuperAdmin,
+			models.AdminLevelSuperAdmin,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 			return
@@ -429,7 +428,7 @@ func init() {
 			) VALUES ($1, $2, $3)`,
 			userID,
 			companyID,
-			accountModel.UserLevelOwner,
+			models.UserLevelOwner,
 		); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
 		}

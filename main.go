@@ -34,7 +34,8 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/roysitumorang/sadia/config"
 	"github.com/roysitumorang/sadia/helper"
-	jwtModel "github.com/roysitumorang/sadia/modules/jwt/model"
+	"github.com/roysitumorang/sadia/models"
+	"github.com/roysitumorang/sadia/repositories"
 	"github.com/roysitumorang/sadia/router"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -69,7 +70,6 @@ func main() {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrMakeHandler")
 				return
 			}
-			helper.InitDbWrite(service.DbWrite)
 			if err := service.Migration.Migrate(ctx); err != nil {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrMigrate")
 				return
@@ -87,7 +87,7 @@ func main() {
 				))
 				// run every minute
 				entryID, err := c.AddFunc("* * * * *", func() {
-					tx, err := helper.BeginTx(ctx)
+					tx, err := repositories.BeginTx(ctx)
 					if err != nil {
 						helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
 						return
@@ -101,7 +101,7 @@ func main() {
 							helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 						}
 					}()
-					rowsAffected, err := service.JwtUseCase.DeleteJWTs(ctx, tx, jwtModel.NewDeleteFilter(jwtModel.WithDeleteMaxExpiredAt(time.Now())))
+					rowsAffected, err := service.JwtService.DeleteJWTs(ctx, tx, models.NewJwtDeleteFilter(models.JwtWithDeleteMaxExpiredAt(time.Now())))
 					if err != nil {
 						helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 						return
@@ -156,7 +156,6 @@ func main() {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrMakeHandler")
 				return
 			}
-			helper.InitDbWrite(service.DbWrite)
 			var activity string
 			switch args[0] {
 			case "new":
@@ -203,7 +202,6 @@ func main() {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrMakeHandler")
 				return
 			}
-			helper.InitDbWrite(service.DbWrite)
 			companyID, err := strconv.ParseUint(args[1], 10, 64)
 			if err != nil {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrParseUint")
@@ -214,7 +212,7 @@ func main() {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrParseUint")
 				return
 			}
-			if err := service.ProductUseCase.Import(ctx, args[0], companyID, adminID); err != nil {
+			if err := service.ProductService.Import(ctx, args[0], companyID, adminID); err != nil {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrImport")
 				return
 			}

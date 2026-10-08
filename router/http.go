@@ -30,21 +30,11 @@ import (
 	"github.com/gofiber/template/jet/v3"
 	"github.com/joho/godotenv"
 	"github.com/roysitumorang/sadia/config"
+	"github.com/roysitumorang/sadia/controllers"
 	_ "github.com/roysitumorang/sadia/docs"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/middleware"
-	accountModel "github.com/roysitumorang/sadia/modules/account/model"
-	accountPresenter "github.com/roysitumorang/sadia/modules/account/presenter"
-	companyModel "github.com/roysitumorang/sadia/modules/company/model"
-	companyPresenter "github.com/roysitumorang/sadia/modules/company/presenter"
-	jwtPresenter "github.com/roysitumorang/sadia/modules/jwt/presenter"
-	logPresenter "github.com/roysitumorang/sadia/modules/log/presenter"
-	productPresenter "github.com/roysitumorang/sadia/modules/product/presenter"
-	productCategoryPresenter "github.com/roysitumorang/sadia/modules/product_category/presenter"
-	sessionModel "github.com/roysitumorang/sadia/modules/session/model"
-	sessionPresenter "github.com/roysitumorang/sadia/modules/session/presenter"
-	transactionModel "github.com/roysitumorang/sadia/modules/transaction/model"
-	transactionPresenter "github.com/roysitumorang/sadia/modules/transaction/presenter"
+	"github.com/roysitumorang/sadia/models"
 	"go.uber.org/zap"
 )
 
@@ -67,10 +57,10 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	sessionMiddleware, sessionStore := session.NewWithStore(session.Config{
 		Storage: q.Storage,
 	})
-	sessionStore.RegisterType(&accountModel.User{})
-	sessionStore.RegisterType(&companyModel.Company{})
-	sessionStore.RegisterType(&sessionModel.Session{})
-	sessionStore.RegisterType(&transactionModel.Transaction{})
+	sessionStore.RegisterType(&models.User{})
+	sessionStore.RegisterType(&models.Company{})
+	sessionStore.RegisterType(&models.Session{})
+	sessionStore.RegisterType(&models.Transaction{})
 	sessionStore.RegisterType(&helper.FlashMessage{})
 	app := fiber.New(fiber.Config{
 		RegexHandler: coregex.MustCompile,
@@ -158,14 +148,14 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 			envMap["GO_VERSION"] = runtime.Version()
 			return helper.NewResponse(fiber.StatusOK).SetData(envMap).WriteResponse(c)
 		})
-	jwtPresenter.New(q.JwtUseCase, q.AccountUseCase).Mount(app.Group("/jwt"))
-	accountPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/account"))
-	companyPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/company"))
-	logPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.LogUseCase).Mount(app.Group("/log"))
-	productCategoryPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductCategoryUseCase, q.LogUseCase).Mount(app.Group("/product_category"))
-	productPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductCategoryUseCase, q.ProductUseCase, q.LogUseCase).Mount(app.Group("/product"))
-	sessionPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase).Mount(app.Group("/session"))
-	transactionPresenter.New(q.JwtUseCase, q.AccountUseCase, q.CompanyUseCase, q.SessionUseCase, q.ProductUseCase, q.SequenceUseCase, q.TransactionUseCase).Mount(app.Group("/transaction"))
+	controllers.NewJwtController(q.JwtService, q.AccountService).Mount(app.Group("/jwt"))
+	controllers.NewAccountController(q.JwtService, q.AccountService, q.CompanyService, q.SessionService).Mount(app.Group("/account"))
+	controllers.NewCompanyController(q.JwtService, q.AccountService, q.CompanyService, q.SessionService).Mount(app.Group("/company"))
+	controllers.NewLogController(q.JwtService, q.AccountService, q.CompanyService, q.SessionService, q.LogService).Mount(app.Group("/log"))
+	controllers.NewProductCategoryController(q.JwtService, q.AccountService, q.CompanyService, q.SessionService, q.ProductCategoryService, q.LogService).Mount(app.Group("/product_category"))
+	controllers.NewProductController(q.JwtService, q.AccountService, q.CompanyService, q.SessionService, q.ProductCategoryService, q.ProductService, q.LogService).Mount(app.Group("/product"))
+	controllers.NewSessionController(q.JwtService, q.AccountService, q.CompanyService, q.SessionService).Mount(app.Group("/session"))
+	controllers.NewTransactionController(q.JwtService, q.AccountService, q.CompanyService, q.SessionService, q.ProductService, q.SequenceService, q.TransactionService).Mount(app.Group("/transaction"))
 	app.Use(func(c fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).WriteResponse(c)
 	})

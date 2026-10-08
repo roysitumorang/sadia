@@ -1,0 +1,182 @@
+package models
+
+import (
+	"errors"
+	"fmt"
+	"net/url"
+	"time"
+)
+
+const (
+	PaymentMethodCash uint8 = iota
+	PaymentMethodBankTransfer
+)
+
+const TransactionTableName = "transactions"
+const ReferenceNoFormat = "APL/%s/%d"
+const CurrentCart = "cart"
+
+type Transaction struct {
+	RowNo         uint64      `json:"row_no,omitempty"`
+	ID            uint64      `json:"id,string"`
+	SessionID     uint64      `json:"session_id,string"`
+	ReferenceNo   string      `json:"reference_no"`
+	SubTotal      uint64      `json:"subtotal"`
+	Discount      uint64      `json:"discount"`
+	Total         uint64      `json:"total"`
+	PaymentMethod uint8       `json:"payment_method"`
+	LineItems     []*LineItem `json:"line_items"`
+	CreatedBy     uint64      `json:"created_by"`
+	CreatedAt     time.Time   `json:"created_at"`
+}
+
+func (q *Transaction) Validate() error {
+	if len(q.LineItems) == 0 {
+		return errors.New("line_items: cannot be empty")
+	}
+	mapProductIDs := map[uint64]struct{}{}
+	for i, lineItem := range q.LineItems {
+		if lineItem.ProductID == 0 {
+			return fmt.Errorf("line_items[%d].product_id: is required", i)
+		}
+		if _, ok := mapProductIDs[lineItem.ProductID]; ok {
+			return fmt.Errorf("line_items[%d].product_id: cannot be reused for other line items", i)
+		}
+		mapProductIDs[lineItem.ProductID] = struct{}{}
+		if lineItem.Quantity == 0 {
+			return fmt.Errorf("line_items[%d].quantity: cannot be empty", i)
+		}
+	}
+	if q.PaymentMethod != PaymentMethodCash &&
+		q.PaymentMethod != PaymentMethodBankTransfer {
+		return fmt.Errorf("payment_method: should be either %d (cash) / %d (bank transfer)", PaymentMethodCash, PaymentMethodBankTransfer)
+	}
+	return nil
+}
+
+func (q *Transaction) Calculate(products map[uint64]*Product) error {
+	q.SubTotal = 0
+	for i, lineItem := range q.LineItems {
+		product, ok := products[lineItem.ProductID]
+		if !ok {
+			return fmt.Errorf("line_items[%d].product_id %d not found", i, lineItem.ProductID)
+		}
+		if product.Stock == 0 {
+			return fmt.Errorf("line_items[%d].product_id %d is out of stock", i, lineItem.ProductID)
+		}
+		lineItem.ProductName = product.Name
+		lineItem.ProductCode = product.Code
+		lineItem.ProductUOM = product.UOM
+		lineItem.Stock = product.Stock
+		lineItem.BasePrice = product.BasePrice
+		lineItem.SellingPrice = product.SellingPrice
+		lineItem.Weight = product.Weight
+		if lineItem.Quantity > product.Stock {
+			return fmt.Errorf("line_items[%d]:quantity %d cannot exceed stock %d", i, lineItem.Quantity, product.Stock)
+		}
+		lineItem.SubTotal = lineItem.SellingPrice * lineItem.Quantity
+		q.SubTotal += lineItem.SubTotal
+		q.LineItems[i] = lineItem
+	}
+	if q.Discount > q.SubTotal {
+		return errors.New("discount cannot exceed subtotal")
+	}
+	q.Total = q.SubTotal - q.Discount
+	return nil
+}
+
+type LineItem struct {
+	ID            uint64 `json:"id,string" form:"-"`
+	TransactionID uint64 `json:"-" form:"-"`
+	ProductID     uint64 `json:"product_id,string" form:"product_id"`
+	ProductName   string `json:"product_name" form:"-"`
+	ProductCode   string `json:"product_code" form:"-"`
+	ProductUOM    string `json:"product_uom" form:"-"`
+	Stock         uint64 `json:"-" form:"-"`
+	BasePrice     uint64 `json:"base_price" form:"-"`
+	SellingPrice  uint64 `json:"selling_price" form:"-"`
+	Weight        uint64 `json:"weight" form:"-"`
+	Quantity      uint64 `json:"quantity" form:"quantity"`
+	SubTotal      uint64 `json:"subtotal" form:"-"`
+}
+
+func (q *LineItem) Validate() error {
+	if q.ProductID == 0 {
+		return errors.New("product_id: is required")
+	}
+	if q.Quantity == 0 {
+		return fmt.Errorf("quantity: is required, minimum 1")
+	}
+	return nil
+}
+
+type TransactionFilter struct {
+	TransactionIDs,
+	SessionIDs,
+	CompanyIDs []uint64
+	Keyword,
+	PaginationURL string
+	Limit,
+	Page int64
+	UrlValues url.Values
+}
+
+type TransactionFilterOption func(q *TransactionFilter)
+
+func NewTransactionFilter(options ...TransactionFilterOption) *TransactionFilter {
+	filter := &TransactionFilter{UrlValues: url.Values{}}
+	for _, option := range options {
+		option(filter)
+	}
+	return filter
+}
+
+func TransactionWithTransactionIDs(transactionIDs ...uint64) TransactionFilterOption {
+	return func(q *TransactionFilter) {
+		q.TransactionIDs = transactionIDs
+	}
+}
+
+func TransactionWithSessionIDs(sessionIDs ...uint64) TransactionFilterOption {
+	return func(q *TransactionFilter) {
+		q.SessionIDs = sessionIDs
+	}
+}
+
+func TransactionWithCompanyIDs(companyIDs ...uint64) TransactionFilterOption {
+	return func(q *TransactionFilter) {
+		q.CompanyIDs = companyIDs
+	}
+}
+
+func TransactionWithKeyword(keyword string) TransactionFilterOption {
+	return func(q *TransactionFilter) {
+		q.Keyword = keyword
+	}
+}
+
+func TransactionWithPaginationURL(paginationURL string) TransactionFilterOption {
+	return func(q *TransactionFilter) {
+		q.PaginationURL = paginationURL
+	}
+}
+
+func TransactionWithLimit(limit int64) TransactionFilterOption {
+	return func(q *TransactionFilter) {
+		q.Limit = limit
+	}
+}
+
+func TransactionWithPage(page int64) TransactionFilterOption {
+	return func(q *TransactionFilter) {
+		q.Page = page
+	}
+}
+
+func TransactionWithUrlValues(urlValues url.Values) TransactionFilterOption {
+	return func(q *TransactionFilter) {
+		q.UrlValues = urlValues
+	}
+}
+
+var ErrUniqueTransactionReferenceNoViolation = errors.New("reference_no: already exists")
