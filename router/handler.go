@@ -13,6 +13,7 @@ import (
 	"github.com/gofiber/storage/valkey"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/config"
+	"github.com/roysitumorang/sadia/externals"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/migrations"
 	"github.com/roysitumorang/sadia/models"
@@ -34,14 +35,13 @@ import (
 	sessionUseCase "github.com/roysitumorang/sadia/modules/session/usecase"
 	transactionQuery "github.com/roysitumorang/sadia/modules/transaction/query"
 	transactionUseCase "github.com/roysitumorang/sadia/modules/transaction/usecase"
-	"github.com/roysitumorang/sadia/services/kafka"
 	"go.uber.org/zap"
 )
 
 type Service struct {
 	DbWrite                *pgxpool.Pool
 	Migration              *migrations.Migration
-	KafkaService           *kafka.KafkaService
+	KafkaClient            *externals.KafkaClient
 	Storage                fiber.Storage
 	AccountUseCase         accountUseCase.AccountUseCase
 	JwtUseCase             jwtUseCase.JwtUseCase
@@ -79,23 +79,23 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		return nil, err
 	}
 	migration := migrations.New(dbRead, dbWrite)
-	kafkaService, err := kafka.New(ctx, strings.Split(os.Getenv("KAFKA_BROKERS"), ","))
+	kafkaClient, err := externals.NewKafkaClient(ctx, strings.Split(os.Getenv("KAFKA_BROKERS"), ","))
 	if err != nil {
-		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNew")
+		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrNewKafkaClient")
 		return nil, err
 	}
-	if err = kafkaService.Ping(ctx); err != nil {
+	if err = kafkaClient.Ping(ctx); err != nil {
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrPing")
 		return nil, err
 	}
-	topics := make([]kafka.Topic, len(models.SliceTopics))
+	topics := make([]externals.KafkaTopic, len(models.SliceTopics))
 	for i, topic := range models.SliceTopics {
-		topics[i] = kafka.Topic{
+		topics[i] = externals.KafkaTopic{
 			Name:     topic,
 			Payloads: []map[string]any{},
 		}
 	}
-	_ = kafkaService.Publish(ctx, topics...)
+	_ = kafkaClient.Publish(ctx, topics...)
 	storage := valkey.New(valkey.Config{
 		URL: os.Getenv("REDIS_URL"),
 	})
@@ -120,7 +120,7 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 	return &Service{
 		DbWrite:                dbWrite,
 		Migration:              migration,
-		KafkaService:           kafkaService,
+		KafkaClient:            kafkaClient,
 		Storage:                storage,
 		AccountUseCase:         accountUseCase,
 		JwtUseCase:             jwtUseCase,
@@ -146,7 +146,7 @@ func (q *Service) Consume(ctx context.Context) error {
 		}
 	}()
 	for {
-		fetches := q.KafkaService.PollFetches(ctx)
+		fetches := q.KafkaClient.PollFetches(ctx)
 		if fetches.IsClientClosed() {
 			return nil
 		}
@@ -156,11 +156,11 @@ func (q *Service) Consume(ctx context.Context) error {
 			return err
 		}
 		records := fetches.Records()
-		if err := q.KafkaService.CommitUncommittedOffsets(ctx); err != nil {
+		if err := q.KafkaClient.CommitUncommittedOffsets(ctx); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrCommitUncommittedOffsets")
 			return err
 		}
-		q.KafkaService.AllowRebalance()
+		q.KafkaClient.AllowRebalance()
 		for _, record := range records {
 			now := time.Now()
 			if err := q.AccountUseCase.ConsumeMessage(ctx, record.Topic, record.Value); err != nil {

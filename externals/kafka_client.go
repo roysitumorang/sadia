@@ -1,4 +1,4 @@
-package kafka
+package externals
 
 import (
 	"context"
@@ -14,19 +14,17 @@ import (
 	"go.uber.org/zap"
 )
 
-type (
-	KafkaService struct {
-		client *kgo.Client
-	}
+type KafkaClient struct {
+	client *kgo.Client
+}
 
-	Topic struct {
-		Name     string
-		Payloads []map[string]any
-	}
-)
+type KafkaTopic struct {
+	Name     string
+	Payloads []map[string]any
+}
 
-func New(ctx context.Context, brokers []string) (*KafkaService, error) {
-	ctxt := "KafkaService-New"
+func NewKafkaClient(ctx context.Context, brokers []string) (*KafkaClient, error) {
+	ctxt := "KafkaClient-NewKafkaClient"
 	client, err := kgo.NewClient(
 		kgo.SeedBrokers(brokers...),
 		kgo.ConsumerGroup(config.AppName),
@@ -41,19 +39,19 @@ func New(ctx context.Context, brokers []string) (*KafkaService, error) {
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrNewClient")
 		return nil, err
 	}
-	return &KafkaService{client: client}, nil
+	return &KafkaClient{client: client}, nil
 }
 
-func (s *KafkaService) Ping(ctx context.Context) (err error) {
-	ctxt := "KafkaService-Ping"
+func (s *KafkaClient) Ping(ctx context.Context) (err error) {
+	ctxt := "KafkaClient-Ping"
 	if err = s.client.Ping(ctx); err != nil {
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrPing")
 	}
 	return
 }
 
-func (s *KafkaService) Publish(ctx context.Context, request ...Topic) (err error) {
-	ctxt := "KafkaService-Publish"
+func (s *KafkaClient) Publish(ctx context.Context, request ...KafkaTopic) (err error) {
+	ctxt := "KafkaClient-Publish"
 	n := len(request)
 	if n == 0 {
 		return
@@ -89,18 +87,18 @@ func (s *KafkaService) Publish(ctx context.Context, request ...Topic) (err error
 	return
 }
 
-func (s *KafkaService) PollFetches(ctx context.Context) kgo.Fetches {
+func (s *KafkaClient) PollFetches(ctx context.Context) kgo.Fetches {
 	return s.client.PollFetches(ctx)
 }
 
-func (s *KafkaService) CommitUncommittedOffsets(ctx context.Context) (err error) {
-	ctxt := "KafkaService-CommitUncommittedOffsets"
+func (s *KafkaClient) CommitUncommittedOffsets(ctx context.Context) (err error) {
+	ctxt := "KafkaClient-CommitUncommittedOffsets"
 	if err = s.client.CommitUncommittedOffsets(ctx); err != nil {
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrCommitUncommittedOffsets")
 	}
 	return
 }
 
-func (s *KafkaService) AllowRebalance() {
+func (s *KafkaClient) AllowRebalance() {
 	s.client.AllowRebalance()
 }
