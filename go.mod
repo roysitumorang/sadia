@@ -3,7 +3,7 @@ module github.com/roysitumorang/sadia
 go 1.27.1
 
 require (
-	github.com/coregx/coregex v0.12.25
+	github.com/coregx/coregex v0.12.26
 	github.com/dustin/go-humanize v1.1.0
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/goccy/go-json v0.11.2
@@ -86,7 +86,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/tools v0.51.0 // indirect
