@@ -133,34 +133,34 @@ func (q *accountController) AdminConfirmAccount(c fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
 	}
 	now := time.Now()
-	admin := admins[0]
-	admin.Status = models.StatusConfirmed
-	admin.Name = request.Name
-	admin.Username = request.Username
-	admin.ConfirmationToken = nil
-	admin.ConfirmedAt = &now
+	oldAdmin := admins[0]
+	oldAdmin.Status = models.StatusConfirmed
+	oldAdmin.Name = request.Name
+	oldAdmin.Username = request.Username
+	oldAdmin.ConfirmationToken = nil
+	oldAdmin.ConfirmedAt = &now
 	emailConfirmationToken, phoneConfirmationToken := helper.RandomString(32), helper.RandomNumber(6)
 	if request.Email != nil &&
-		(admin.UnconfirmedEmail == nil ||
-			*admin.UnconfirmedEmail != *request.Email) {
-		admin.UnconfirmedEmail = request.Email
-		admin.EmailConfirmationToken = &emailConfirmationToken
-		admin.EmailConfirmationSentAt = &now
+		(oldAdmin.UnconfirmedEmail == nil ||
+			*oldAdmin.UnconfirmedEmail != *request.Email) {
+		oldAdmin.UnconfirmedEmail = request.Email
+		oldAdmin.EmailConfirmationToken = &emailConfirmationToken
+		oldAdmin.EmailConfirmationSentAt = &now
 	}
 	if request.Phone != nil &&
-		(admin.UnconfirmedPhone == nil ||
-			*admin.UnconfirmedPhone != *request.Phone) {
-		admin.UnconfirmedPhone = request.Phone
-		admin.PhoneConfirmationToken = &phoneConfirmationToken
-		admin.PhoneConfirmationSentAt = &now
+		(oldAdmin.UnconfirmedPhone == nil ||
+			*oldAdmin.UnconfirmedPhone != *request.Phone) {
+		oldAdmin.UnconfirmedPhone = request.Phone
+		oldAdmin.PhoneConfirmationToken = &phoneConfirmationToken
+		oldAdmin.PhoneConfirmationSentAt = &now
 	}
 	encryptedPassword, err := helper.HashPassword(request.Password)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrHashPassword")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	admin.EncryptedPassword = encryptedPassword
-	admin.LastPasswordChange = &now
+	oldAdmin.EncryptedPassword = encryptedPassword
+	oldAdmin.LastPasswordChange = &now
 	tx, err := repositories.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
@@ -175,23 +175,24 @@ func (q *accountController) AdminConfirmAccount(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	jwt, err := q.jwtService.CreateJWT(ctx, tx, admin.ID)
+	jwt, err := q.jwtService.CreateJWT(ctx, tx, oldAdmin.ID)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	tokenString, err := helper.GenerateAccessToken(strconv.FormatUint(admin.ID, 10), jwt.Token, admin.Username, jwt.CreatedAt, jwt.ExpiredAt)
+	tokenString, err := helper.GenerateAccessToken(strconv.FormatUint(oldAdmin.ID, 10), jwt.Token, oldAdmin.Username, jwt.CreatedAt, jwt.ExpiredAt)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
 	}
 	ipAddress := c.IP()
-	admin.LoginCount++
-	admin.LastLoginAt = admin.CurrentLoginAt
-	admin.LastLoginIP = admin.CurrentLoginIP
-	admin.CurrentLoginAt = &now
-	admin.CurrentLoginIP = &ipAddress
-	if err = q.accountService.UpdateAdmin(ctx, tx, admin); err != nil {
+	oldAdmin.LoginCount++
+	oldAdmin.LastLoginAt = oldAdmin.CurrentLoginAt
+	oldAdmin.LastLoginIP = oldAdmin.CurrentLoginIP
+	oldAdmin.CurrentLoginAt = &now
+	oldAdmin.CurrentLoginIP = &ipAddress
+	newAdmin, err := q.accountService.UpdateAdmin(ctx, tx, oldAdmin)
+	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -202,7 +203,7 @@ func (q *accountController) AdminConfirmAccount(c fiber.Ctx) error {
 	response := models.AdminLoginResponse{
 		IDToken:   tokenString,
 		ExpiredAt: jwt.ExpiredAt,
-		Account:   admin,
+		Account:   newAdmin,
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
@@ -243,7 +244,7 @@ func (q *accountController) AdminConfirmEmail(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateAdmin(ctx, tx, admin); err != nil {
+	if _, err = q.accountService.UpdateAdmin(ctx, tx, admin); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -290,7 +291,7 @@ func (q *accountController) AdminConfirmPhone(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateAdmin(ctx, tx, admin); err != nil {
+	if _, err = q.accountService.UpdateAdmin(ctx, tx, admin); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -333,7 +334,7 @@ func (q *accountController) AdminUnlockAccount(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateAdmin(ctx, tx, admin); err != nil {
+	if _, err = q.accountService.UpdateAdmin(ctx, tx, admin); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -388,7 +389,7 @@ func (q *accountController) AdminForgotPassword(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateAdmin(ctx, tx, admin); err != nil {
+	if _, err = q.accountService.UpdateAdmin(ctx, tx, admin); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -435,24 +436,24 @@ func (q *accountController) AdminResetPassword(c fiber.Ctx) error {
 	if len(admins) == 0 {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
 	}
-	admin := admins[0]
-	if admin.EncryptedPassword != nil &&
+	oldAdmin := admins[0]
+	if oldAdmin.EncryptedPassword != nil &&
 		helper.MatchedHashAndPassword(
-			helper.String2ByteSlice(*admin.EncryptedPassword),
+			helper.String2ByteSlice(*oldAdmin.EncryptedPassword),
 			helper.String2ByteSlice(request.Password),
 		) {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password reuse prohibited").WriteResponse(c)
 	}
 	now := time.Now()
-	admin.ResetPasswordToken = nil
-	admin.ResetPasswordSentAt = nil
+	oldAdmin.ResetPasswordToken = nil
+	oldAdmin.ResetPasswordSentAt = nil
 	encryptedPassword, err := helper.HashPassword(request.Password)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrHashPassword")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	admin.EncryptedPassword = encryptedPassword
-	admin.LastPasswordChange = &now
+	oldAdmin.EncryptedPassword = encryptedPassword
+	oldAdmin.LastPasswordChange = &now
 	tx, err := repositories.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
@@ -467,17 +468,18 @@ func (q *accountController) AdminResetPassword(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	jwt, err := q.jwtService.CreateJWT(ctx, tx, admin.ID)
+	jwt, err := q.jwtService.CreateJWT(ctx, tx, oldAdmin.ID)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	tokenString, err := helper.GenerateAccessToken(strconv.FormatUint(admin.ID, 10), jwt.Token, admin.Username, jwt.CreatedAt, jwt.ExpiredAt)
+	tokenString, err := helper.GenerateAccessToken(strconv.FormatUint(oldAdmin.ID, 10), jwt.Token, oldAdmin.Username, jwt.CreatedAt, jwt.ExpiredAt)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if err = q.accountService.UpdateAdmin(ctx, tx, admin); err != nil {
+	newAdmin, err := q.accountService.UpdateAdmin(ctx, tx, oldAdmin)
+	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -488,7 +490,7 @@ func (q *accountController) AdminResetPassword(c fiber.Ctx) error {
 	response := models.AdminLoginResponse{
 		IDToken:   tokenString,
 		ExpiredAt: jwt.ExpiredAt,
-		Account:   admin,
+		Account:   newAdmin,
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
@@ -514,11 +516,11 @@ func (q *accountController) AdminLogin(c fiber.Ctx) error {
 		admins[0].EncryptedPassword == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
 	}
-	admin := admins[0]
-	if admin.LoginLockedAt != nil {
+	oldAdmin := admins[0]
+	if oldAdmin.LoginLockedAt != nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login locked out, max. failed attempts exceeded").WriteResponse(c)
 	}
-	encryptedPassword := helper.String2ByteSlice(*admin.EncryptedPassword)
+	encryptedPassword := helper.String2ByteSlice(*oldAdmin.EncryptedPassword)
 	now := time.Now()
 	tx, err := repositories.BeginTx(ctx)
 	if err != nil {
@@ -535,17 +537,18 @@ func (q *accountController) AdminLogin(c fiber.Ctx) error {
 		}
 	}()
 	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
-		if admin.LoginFailedAttempts++; admin.LoginFailedAttempts >= helper.GetLoginMaxFailedAttempts() {
+		if oldAdmin.LoginFailedAttempts++; oldAdmin.LoginFailedAttempts >= helper.GetLoginMaxFailedAttempts() {
 			loginLockoutToken := helper.RandomString(32)
-			admin.LoginLockedAt = &now
-			admin.LoginUnlockToken = &loginLockoutToken
+			oldAdmin.LoginLockedAt = &now
+			oldAdmin.LoginUnlockToken = &loginLockoutToken
 		}
-		if err = q.accountService.UpdateAdmin(ctx, tx, admin); err != nil {
+		newAdmin, err := q.accountService.UpdateAdmin(ctx, tx, oldAdmin)
+		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 			return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 		}
-		if admin.LoginLockedAt != nil {
-			if _, err = q.jwtService.DeleteJWTs(ctx, tx, models.NewJwtDeleteFilter(models.JwtWithDeleteAccountID(admin.ID))); err != nil {
+		if newAdmin.LoginLockedAt != nil {
+			if _, err = q.jwtService.DeleteJWTs(ctx, tx, models.NewJwtDeleteFilter(models.JwtWithDeleteAccountID(newAdmin.ID))); err != nil {
 				helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 				return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 			}
@@ -554,29 +557,30 @@ func (q *accountController) AdminLogin(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 			return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 		}
-		if admin.LoginLockedAt != nil {
+		if newAdmin.LoginLockedAt != nil {
 			return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login locked out, max. failed attempts exceeded").WriteResponse(c)
 		}
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
 	}
-	jwt, err := q.jwtService.CreateJWT(ctx, tx, admin.ID)
+	jwt, err := q.jwtService.CreateJWT(ctx, tx, oldAdmin.ID)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	tokenString, err := helper.GenerateAccessToken(strconv.FormatUint(admin.ID, 10), jwt.Token, admin.Username, jwt.CreatedAt, jwt.ExpiredAt)
+	tokenString, err := helper.GenerateAccessToken(strconv.FormatUint(oldAdmin.ID, 10), jwt.Token, oldAdmin.Username, jwt.CreatedAt, jwt.ExpiredAt)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
 	}
 	ipAddress := c.IP()
-	admin.LoginCount++
-	admin.LastLoginAt = admin.CurrentLoginAt
-	admin.LastLoginIP = admin.CurrentLoginIP
-	admin.CurrentLoginAt = &now
-	admin.CurrentLoginIP = &ipAddress
-	admin.LoginFailedAttempts = 0
-	if err = q.accountService.UpdateAdmin(ctx, tx, admin); err != nil {
+	oldAdmin.LoginCount++
+	oldAdmin.LastLoginAt = oldAdmin.CurrentLoginAt
+	oldAdmin.LastLoginIP = oldAdmin.CurrentLoginIP
+	oldAdmin.CurrentLoginAt = &now
+	oldAdmin.CurrentLoginIP = &ipAddress
+	oldAdmin.LoginFailedAttempts = 0
+	newAdmin, err := q.accountService.UpdateAdmin(ctx, tx, oldAdmin)
+	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -585,10 +589,10 @@ func (q *accountController) AdminLogin(c fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
 	response := models.AdminLoginResponse{
-		Account: admin,
+		IDToken:   tokenString,
+		ExpiredAt: jwt.ExpiredAt,
+		Account:   newAdmin,
 	}
-	response.IDToken = tokenString
-	response.ExpiredAt = jwt.ExpiredAt
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
 
@@ -697,15 +701,15 @@ func (q *accountController) AdminDeactivateAdmin(c fiber.Ctx) error {
 	if len(admins) == 0 {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("admin not found").WriteResponse(c)
 	}
-	admin := admins[0]
-	if admin.Status != models.StatusConfirmed {
+	oldAdmin := admins[0]
+	if oldAdmin.Status != models.StatusConfirmed {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("cannot deactivate unconfirmed & deactivated account").WriteResponse(c)
 	}
 	now := time.Now()
-	admin.Status = models.StatusDeactivated
-	admin.DeactivatedBy = &currentAdmin.ID
-	admin.DeactivatedAt = &now
-	admin.DeactivationReason = &request.Reason
+	oldAdmin.Status = models.StatusDeactivated
+	oldAdmin.DeactivatedBy = &currentAdmin.ID
+	oldAdmin.DeactivatedAt = &now
+	oldAdmin.DeactivationReason = &request.Reason
 	tx, err := repositories.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
@@ -720,11 +724,12 @@ func (q *accountController) AdminDeactivateAdmin(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateAdmin(ctx, tx, admin); err != nil {
+	newAdmin, err := q.accountService.UpdateAdmin(ctx, tx, oldAdmin)
+	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if _, err = q.jwtService.DeleteJWTs(ctx, tx, models.NewJwtDeleteFilter(models.JwtWithDeleteAccountID(admin.ID))); err != nil {
+	if _, err = q.jwtService.DeleteJWTs(ctx, tx, models.NewJwtDeleteFilter(models.JwtWithDeleteAccountID(newAdmin.ID))); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -732,7 +737,7 @@ func (q *accountController) AdminDeactivateAdmin(c fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	return helper.NewResponse(fiber.StatusOK).SetData(admin).WriteResponse(c)
+	return helper.NewResponse(fiber.StatusOK).SetData(newAdmin).WriteResponse(c)
 }
 
 func (q *accountController) AdminFindUsers(c fiber.Ctx) error {
@@ -801,15 +806,15 @@ func (q *accountController) AdminDeactivateUser(c fiber.Ctx) error {
 	if len(users) == 0 {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("user not found").WriteResponse(c)
 	}
-	user := users[0]
-	if user.Status != models.StatusConfirmed {
+	oldUser := users[0]
+	if oldUser.Status != models.StatusConfirmed {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("cannot deactivate unconfirmed & deactivated user").WriteResponse(c)
 	}
 	now := time.Now()
-	user.Status = models.StatusDeactivated
-	user.DeactivatedBy = &currentAdmin.ID
-	user.DeactivatedAt = &now
-	user.DeactivationReason = &request.Reason
+	oldUser.Status = models.StatusDeactivated
+	oldUser.DeactivatedBy = &currentAdmin.ID
+	oldUser.DeactivatedAt = &now
+	oldUser.DeactivationReason = &request.Reason
 	tx, err := repositories.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
@@ -824,11 +829,12 @@ func (q *accountController) AdminDeactivateUser(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateUser(ctx, tx, user); err != nil {
+	newUser, err := q.accountService.UpdateUser(ctx, tx, oldUser)
+	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if _, err = q.jwtService.DeleteJWTs(ctx, tx, models.NewJwtDeleteFilter(models.JwtWithDeleteAccountID(user.ID))); err != nil {
+	if _, err = q.jwtService.DeleteJWTs(ctx, tx, models.NewJwtDeleteFilter(models.JwtWithDeleteAccountID(newUser.ID))); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -836,7 +842,7 @@ func (q *accountController) AdminDeactivateUser(c fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	return helper.NewResponse(fiber.StatusOK).SetData(user).WriteResponse(c)
+	return helper.NewResponse(fiber.StatusOK).SetData(newUser).WriteResponse(c)
 }
 
 func (q *accountController) AdminProfile(c fiber.Ctx) error {
@@ -882,7 +888,7 @@ func (q *accountController) AdminChangePassword(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateAdmin(ctx, tx, currentAdmin); err != nil {
+	if _, err = q.accountService.UpdateAdmin(ctx, tx, currentAdmin); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -939,7 +945,7 @@ func (q *accountController) AdminChangeUsername(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateAdmin(ctx, tx, currentAdmin); err != nil {
+	if _, err = q.accountService.UpdateAdmin(ctx, tx, currentAdmin); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -1004,7 +1010,7 @@ func (q *accountController) AdminChangeEmail(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateAdmin(ctx, tx, currentAdmin); err != nil {
+	if _, err = q.accountService.UpdateAdmin(ctx, tx, currentAdmin); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -1069,7 +1075,7 @@ func (q *accountController) AdminChangePhone(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateAdmin(ctx, tx, currentAdmin); err != nil {
+	if _, err = q.accountService.UpdateAdmin(ctx, tx, currentAdmin); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -1117,34 +1123,34 @@ func (q *accountController) UserConfirmAccount(c fiber.Ctx) error {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
 	}
 	now := time.Now()
-	user := users[0]
-	user.Status = models.StatusConfirmed
-	user.Name = request.Name
-	user.Username = request.Username
-	user.ConfirmationToken = nil
-	user.ConfirmedAt = &now
+	oldUser := users[0]
+	oldUser.Status = models.StatusConfirmed
+	oldUser.Name = request.Name
+	oldUser.Username = request.Username
+	oldUser.ConfirmationToken = nil
+	oldUser.ConfirmedAt = &now
 	emailConfirmationToken, phoneConfirmationToken := helper.RandomString(32), helper.RandomNumber(6)
 	if request.Email != nil &&
-		(user.UnconfirmedEmail == nil ||
-			*user.UnconfirmedEmail != *request.Email) {
-		user.UnconfirmedEmail = request.Email
-		user.EmailConfirmationToken = &emailConfirmationToken
-		user.EmailConfirmationSentAt = &now
+		(oldUser.UnconfirmedEmail == nil ||
+			*oldUser.UnconfirmedEmail != *request.Email) {
+		oldUser.UnconfirmedEmail = request.Email
+		oldUser.EmailConfirmationToken = &emailConfirmationToken
+		oldUser.EmailConfirmationSentAt = &now
 	}
 	if request.Phone != nil &&
-		(user.UnconfirmedPhone == nil ||
-			*user.UnconfirmedPhone != *request.Phone) {
-		user.UnconfirmedPhone = request.Phone
-		user.PhoneConfirmationToken = &phoneConfirmationToken
-		user.PhoneConfirmationSentAt = &now
+		(oldUser.UnconfirmedPhone == nil ||
+			*oldUser.UnconfirmedPhone != *request.Phone) {
+		oldUser.UnconfirmedPhone = request.Phone
+		oldUser.PhoneConfirmationToken = &phoneConfirmationToken
+		oldUser.PhoneConfirmationSentAt = &now
 	}
 	encryptedPassword, err := helper.HashPassword(request.Password)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrHashPassword")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	user.EncryptedPassword = encryptedPassword
-	user.LastPasswordChange = &now
+	oldUser.EncryptedPassword = encryptedPassword
+	oldUser.LastPasswordChange = &now
 	tx, err := repositories.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
@@ -1159,23 +1165,24 @@ func (q *accountController) UserConfirmAccount(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	jwt, err := q.jwtService.CreateJWT(ctx, tx, user.ID)
+	jwt, err := q.jwtService.CreateJWT(ctx, tx, oldUser.ID)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	tokenString, err := helper.GenerateAccessToken(strconv.FormatUint(user.ID, 10), jwt.Token, user.Username, jwt.CreatedAt, jwt.ExpiredAt)
+	tokenString, err := helper.GenerateAccessToken(strconv.FormatUint(oldUser.ID, 10), jwt.Token, oldUser.Username, jwt.CreatedAt, jwt.ExpiredAt)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
 	}
 	ipAddress := c.IP()
-	user.LoginCount++
-	user.LastLoginAt = user.CurrentLoginAt
-	user.LastLoginIP = user.CurrentLoginIP
-	user.CurrentLoginAt = &now
-	user.CurrentLoginIP = &ipAddress
-	if err = q.accountService.UpdateUser(ctx, tx, user); err != nil {
+	oldUser.LoginCount++
+	oldUser.LastLoginAt = oldUser.CurrentLoginAt
+	oldUser.LastLoginIP = oldUser.CurrentLoginIP
+	oldUser.CurrentLoginAt = &now
+	oldUser.CurrentLoginIP = &ipAddress
+	newUser, err := q.accountService.UpdateUser(ctx, tx, oldUser)
+	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -1186,7 +1193,7 @@ func (q *accountController) UserConfirmAccount(c fiber.Ctx) error {
 	response := models.UserLoginResponse{
 		IDToken:   tokenString,
 		ExpiredAt: jwt.ExpiredAt,
-		Account:   user,
+		Account:   newUser,
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
@@ -1227,7 +1234,7 @@ func (q *accountController) UserConfirmEmail(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateUser(ctx, tx, user); err != nil {
+	if _, err = q.accountService.UpdateUser(ctx, tx, user); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -1274,7 +1281,7 @@ func (q *accountController) UserConfirmPhone(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateUser(ctx, tx, user); err != nil {
+	if _, err = q.accountService.UpdateUser(ctx, tx, user); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -1317,7 +1324,7 @@ func (q *accountController) UserUnlockAccount(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateUser(ctx, tx, account); err != nil {
+	if _, err = q.accountService.UpdateUser(ctx, tx, account); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -1372,7 +1379,7 @@ func (q *accountController) UserForgotPassword(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateUser(ctx, tx, user); err != nil {
+	if _, err = q.accountService.UpdateUser(ctx, tx, user); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -1419,24 +1426,24 @@ func (q *accountController) UserResetPassword(c fiber.Ctx) error {
 	if len(users) == 0 {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("token not found").WriteResponse(c)
 	}
-	user := users[0]
-	if user.EncryptedPassword != nil &&
+	oldUser := users[0]
+	if oldUser.EncryptedPassword != nil &&
 		helper.MatchedHashAndPassword(
-			helper.String2ByteSlice(*user.EncryptedPassword),
+			helper.String2ByteSlice(*oldUser.EncryptedPassword),
 			helper.String2ByteSlice(request.Password),
 		) {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("password reuse prohibited").WriteResponse(c)
 	}
 	now := time.Now()
-	user.ResetPasswordToken = nil
-	user.ResetPasswordSentAt = nil
+	oldUser.ResetPasswordToken = nil
+	oldUser.ResetPasswordSentAt = nil
 	encryptedPassword, err := helper.HashPassword(request.Password)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrHashPassword")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	user.EncryptedPassword = encryptedPassword
-	user.LastPasswordChange = &now
+	oldUser.EncryptedPassword = encryptedPassword
+	oldUser.LastPasswordChange = &now
 	tx, err := repositories.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
@@ -1451,17 +1458,18 @@ func (q *accountController) UserResetPassword(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	jwt, err := q.jwtService.CreateJWT(ctx, tx, user.ID)
+	jwt, err := q.jwtService.CreateJWT(ctx, tx, oldUser.ID)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	tokenString, err := helper.GenerateAccessToken(strconv.FormatUint(user.ID, 10), jwt.Token, user.Username, jwt.CreatedAt, jwt.ExpiredAt)
+	tokenString, err := helper.GenerateAccessToken(strconv.FormatUint(oldUser.ID, 10), jwt.Token, oldUser.Username, jwt.CreatedAt, jwt.ExpiredAt)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if err = q.accountService.UpdateUser(ctx, tx, user); err != nil {
+	newUser, err := q.accountService.UpdateUser(ctx, tx, oldUser)
+	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -1472,7 +1480,7 @@ func (q *accountController) UserResetPassword(c fiber.Ctx) error {
 	response := models.UserLoginResponse{
 		IDToken:   tokenString,
 		ExpiredAt: jwt.ExpiredAt,
-		Account:   user,
+		Account:   newUser,
 	}
 	return helper.NewResponse(fiber.StatusOK).SetData(response).WriteResponse(c)
 }
@@ -1498,11 +1506,11 @@ func (q *accountController) UserLogin(c fiber.Ctx) error {
 		users[0].EncryptedPassword == nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
 	}
-	user := users[0]
-	if user.LoginLockedAt != nil {
+	oldUser := users[0]
+	if oldUser.LoginLockedAt != nil {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login locked out, max. failed attempts exceeded").WriteResponse(c)
 	}
-	encryptedPassword := helper.String2ByteSlice(*user.EncryptedPassword)
+	encryptedPassword := helper.String2ByteSlice(*oldUser.EncryptedPassword)
 	now := time.Now()
 	tx, err := repositories.BeginTx(ctx)
 	if err != nil {
@@ -1519,17 +1527,18 @@ func (q *accountController) UserLogin(c fiber.Ctx) error {
 		}
 	}()
 	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
-		if user.LoginFailedAttempts++; user.LoginFailedAttempts >= helper.GetLoginMaxFailedAttempts() {
+		if oldUser.LoginFailedAttempts++; oldUser.LoginFailedAttempts >= helper.GetLoginMaxFailedAttempts() {
 			loginLockoutToken := helper.RandomString(32)
-			user.LoginLockedAt = &now
-			user.LoginUnlockToken = &loginLockoutToken
+			oldUser.LoginLockedAt = &now
+			oldUser.LoginUnlockToken = &loginLockoutToken
 		}
-		if err = q.accountService.UpdateUser(ctx, tx, user); err != nil {
+		newUser, err := q.accountService.UpdateUser(ctx, tx, oldUser)
+		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 			return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 		}
-		if user.LoginLockedAt != nil {
-			if _, err = q.jwtService.DeleteJWTs(ctx, tx, models.NewJwtDeleteFilter(models.JwtWithDeleteAccountID(user.ID))); err != nil {
+		if newUser.LoginLockedAt != nil {
+			if _, err = q.jwtService.DeleteJWTs(ctx, tx, models.NewJwtDeleteFilter(models.JwtWithDeleteAccountID(newUser.ID))); err != nil {
 				helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 				return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 			}
@@ -1538,29 +1547,30 @@ func (q *accountController) UserLogin(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 			return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 		}
-		if user.LoginLockedAt != nil {
+		if newUser.LoginLockedAt != nil {
 			return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login locked out, max. failed attempts exceeded").WriteResponse(c)
 		}
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
 	}
-	jwt, err := q.jwtService.CreateJWT(ctx, tx, user.ID)
+	jwt, err := q.jwtService.CreateJWT(ctx, tx, oldUser.ID)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCreateJWT")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	tokenString, err := helper.GenerateAccessToken(strconv.FormatUint(user.ID, 10), jwt.Token, user.Username, jwt.CreatedAt, jwt.ExpiredAt)
+	tokenString, err := helper.GenerateAccessToken(strconv.FormatUint(oldUser.ID, 10), jwt.Token, oldUser.Username, jwt.CreatedAt, jwt.ExpiredAt)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrGenerateAccessToken")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("login failed").WriteResponse(c)
 	}
 	ipAddress := c.IP()
-	user.LoginCount++
-	user.LastLoginAt = user.CurrentLoginAt
-	user.LastLoginIP = user.CurrentLoginIP
-	user.CurrentLoginAt = &now
-	user.CurrentLoginIP = &ipAddress
-	user.LoginFailedAttempts = 0
-	if err = q.accountService.UpdateUser(ctx, tx, user); err != nil {
+	oldUser.LoginCount++
+	oldUser.LastLoginAt = oldUser.CurrentLoginAt
+	oldUser.LastLoginIP = oldUser.CurrentLoginIP
+	oldUser.CurrentLoginAt = &now
+	oldUser.CurrentLoginIP = &ipAddress
+	oldUser.LoginFailedAttempts = 0
+	newUser, err := q.accountService.UpdateUser(ctx, tx, oldUser)
+	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -1571,7 +1581,7 @@ func (q *accountController) UserLogin(c fiber.Ctx) error {
 	response := models.UserLoginResponse{
 		IDToken:   tokenString,
 		ExpiredAt: jwt.ExpiredAt,
-		Account:   user,
+		Account:   newUser,
 	}
 	return helper.NewResponse(fiber.StatusCreated).SetData(response).WriteResponse(c)
 }
@@ -1682,15 +1692,15 @@ func (q *accountController) UserDeactivateUser(c fiber.Ctx) error {
 	if len(users) == 0 {
 		return helper.NewResponse(fiber.StatusNotFound).SetMessage("user not found").WriteResponse(c)
 	}
-	user := users[0]
-	if user.Status != models.StatusConfirmed {
+	oldUser := users[0]
+	if oldUser.Status != models.StatusConfirmed {
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage("cannot deactivate unconfirmed & deactivated user").WriteResponse(c)
 	}
 	now := time.Now()
-	user.Status = models.StatusDeactivated
-	user.DeactivatedBy = &currentUser.ID
-	user.DeactivatedAt = &now
-	user.DeactivationReason = &request.Reason
+	oldUser.Status = models.StatusDeactivated
+	oldUser.DeactivatedBy = &currentUser.ID
+	oldUser.DeactivatedAt = &now
+	oldUser.DeactivationReason = &request.Reason
 	tx, err := repositories.BeginTx(ctx)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrBeginTx")
@@ -1705,11 +1715,12 @@ func (q *accountController) UserDeactivateUser(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateUser(ctx, tx, user); err != nil {
+	newUser, err := q.accountService.UpdateUser(ctx, tx, oldUser)
+	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	if _, err = q.jwtService.DeleteJWTs(ctx, tx, models.NewJwtDeleteFilter(models.JwtWithDeleteAccountID(user.ID))); err != nil {
+	if _, err = q.jwtService.DeleteJWTs(ctx, tx, models.NewJwtDeleteFilter(models.JwtWithDeleteAccountID(newUser.ID))); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -1717,7 +1728,7 @@ func (q *accountController) UserDeactivateUser(c fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrCommit")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
-	return helper.NewResponse(fiber.StatusOK).SetData(user).WriteResponse(c)
+	return helper.NewResponse(fiber.StatusOK).SetData(newUser).WriteResponse(c)
 }
 
 func (q *accountController) UserProfile(c fiber.Ctx) error {
@@ -1763,7 +1774,7 @@ func (q *accountController) UserChangePassword(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateUser(ctx, tx, currentUser); err != nil {
+	if _, err = q.accountService.UpdateUser(ctx, tx, currentUser); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -1820,7 +1831,7 @@ func (q *accountController) UserChangeUsername(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateUser(ctx, tx, currentUser); err != nil {
+	if _, err = q.accountService.UpdateUser(ctx, tx, currentUser); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -1885,7 +1896,7 @@ func (q *accountController) UserChangeEmail(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateUser(ctx, tx, currentUser); err != nil {
+	if _, err = q.accountService.UpdateUser(ctx, tx, currentUser); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -1950,7 +1961,7 @@ func (q *accountController) UserChangePhone(c fiber.Ctx) error {
 			helper.Log(ctx, zap.ErrorLevel, errRollback.Error(), ctxt, "ErrRollback")
 		}
 	}()
-	if err = q.accountService.UpdateUser(ctx, tx, currentUser); err != nil {
+	if _, err = q.accountService.UpdateUser(ctx, tx, currentUser); err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		return helper.NewResponse(fiber.StatusUnprocessableEntity).SetMessage(err.Error()).WriteResponse(c)
 	}
@@ -2022,8 +2033,8 @@ func (q *accountController) userLogin(c fiber.Ctx) error {
 			"path":          c.Route().Path,
 		})
 	}
-	user := users[0]
-	if user.LoginLockedAt != nil {
+	oldUser := users[0]
+	if oldUser.LoginLockedAt != nil {
 		c.Response().SetStatusCode(fiber.StatusBadRequest)
 		return c.Render("account/login", fiber.Map{
 			"authenticated": authenticated,
@@ -2032,7 +2043,7 @@ func (q *accountController) userLogin(c fiber.Ctx) error {
 			"path":          c.Route().Path,
 		})
 	}
-	encryptedPassword := helper.String2ByteSlice(*user.EncryptedPassword)
+	encryptedPassword := helper.String2ByteSlice(*oldUser.EncryptedPassword)
 	now := time.Now()
 	tx, err := repositories.BeginTx(ctx)
 	if err != nil {
@@ -2055,12 +2066,13 @@ func (q *accountController) userLogin(c fiber.Ctx) error {
 		}
 	}()
 	if !helper.MatchedHashAndPassword(encryptedPassword, helper.String2ByteSlice(request.Password)) {
-		if user.LoginFailedAttempts++; user.LoginFailedAttempts >= helper.GetLoginMaxFailedAttempts() {
+		if oldUser.LoginFailedAttempts++; oldUser.LoginFailedAttempts >= helper.GetLoginMaxFailedAttempts() {
 			loginLockoutToken := helper.RandomString(32)
-			user.LoginLockedAt = &now
-			user.LoginUnlockToken = &loginLockoutToken
+			oldUser.LoginLockedAt = &now
+			oldUser.LoginUnlockToken = &loginLockoutToken
 		}
-		if err = q.accountService.UpdateUser(ctx, tx, user); err != nil {
+		newUser, err := q.accountService.UpdateUser(ctx, tx, oldUser)
+		if err != nil {
 			helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 			c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
 			return c.Render("account/login", fiber.Map{
@@ -2070,8 +2082,8 @@ func (q *accountController) userLogin(c fiber.Ctx) error {
 				"path":          c.Route().Path,
 			})
 		}
-		if user.LoginLockedAt != nil {
-			if _, err = q.jwtService.DeleteJWTs(ctx, tx, models.NewJwtDeleteFilter(models.JwtWithDeleteAccountID(user.ID))); err != nil {
+		if newUser.LoginLockedAt != nil {
+			if _, err = q.jwtService.DeleteJWTs(ctx, tx, models.NewJwtDeleteFilter(models.JwtWithDeleteAccountID(newUser.ID))); err != nil {
 				helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrDeleteJWTs")
 				c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
 				return c.Render("account/login", fiber.Map{
@@ -2092,7 +2104,7 @@ func (q *accountController) userLogin(c fiber.Ctx) error {
 				"path":          c.Route().Path,
 			})
 		}
-		if user.LoginLockedAt != nil {
+		if newUser.LoginLockedAt != nil {
 			c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
 			return c.Render("account/login", fiber.Map{
 				"authenticated": authenticated,
@@ -2110,13 +2122,14 @@ func (q *accountController) userLogin(c fiber.Ctx) error {
 		})
 	}
 	ipAddress := c.IP()
-	user.LoginCount++
-	user.LastLoginAt = user.CurrentLoginAt
-	user.LastLoginIP = user.CurrentLoginIP
-	user.CurrentLoginAt = &now
-	user.CurrentLoginIP = &ipAddress
-	user.LoginFailedAttempts = 0
-	if err = q.accountService.UpdateUser(ctx, tx, user); err != nil {
+	oldUser.LoginCount++
+	oldUser.LastLoginAt = oldUser.CurrentLoginAt
+	oldUser.LastLoginIP = oldUser.CurrentLoginIP
+	oldUser.CurrentLoginAt = &now
+	oldUser.CurrentLoginIP = &ipAddress
+	oldUser.LoginFailedAttempts = 0
+	newUser, err := q.accountService.UpdateUser(ctx, tx, oldUser)
+	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
 		return c.Render("account/login", fiber.Map{
@@ -2140,7 +2153,7 @@ func (q *accountController) userLogin(c fiber.Ctx) error {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrRegenerate")
 	}
 	sess.Set(models.Authenticated, true)
-	sess.Set(models.UserID, user.ID)
+	sess.Set(models.UserID, newUser.ID)
 	return flash.Redirect(c, sess.Session, "/account/me")
 }
 

@@ -3,7 +3,7 @@ package repositories
 import (
 	"context"
 	"errors"
-	"strconv"
+	"fmt"
 	"strings"
 	"time"
 
@@ -14,19 +14,20 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/roysitumorang/sadia/helper"
 	"github.com/roysitumorang/sadia/models"
+	"github.com/roysitumorang/sadia/pools"
 	"go.uber.org/zap"
 )
 
 type AccountRepository interface {
 	FindAccounts(ctx context.Context, filter *models.AccountFilter) ([]*models.Account, int64, int64, error)
 	CreateAccount(ctx context.Context, tx pgx.Tx, request *models.NewAccount) (*models.Account, error)
-	UpdateAccount(ctx context.Context, tx pgx.Tx, request *models.Account) error
+	UpdateAccount(ctx context.Context, tx pgx.Tx, request *models.Account) (*models.Account, error)
 	FindAdmins(ctx context.Context, filter *models.AccountFilter) ([]*models.Admin, int64, int64, error)
 	CreateAdmin(ctx context.Context, tx pgx.Tx, request *models.NewAdmin) (*models.Admin, error)
-	UpdateAdmin(ctx context.Context, tx pgx.Tx, request *models.Admin) error
+	UpdateAdmin(ctx context.Context, tx pgx.Tx, request *models.Admin) (*models.Admin, error)
 	FindUsers(ctx context.Context, filter *models.AccountFilter) ([]*models.User, int64, int64, error)
 	CreateUser(ctx context.Context, tx pgx.Tx, request *models.NewUser) (*models.User, error)
-	UpdateUser(ctx context.Context, tx pgx.Tx, request *models.User) error
+	UpdateUser(ctx context.Context, tx pgx.Tx, request *models.User) (*models.User, error)
 }
 
 type accountRepository struct {
@@ -46,11 +47,13 @@ func NewAccountRepository(
 
 func (q *accountRepository) FindAccounts(ctx context.Context, filter *models.AccountFilter) ([]*models.Account, int64, int64, error) {
 	ctxt := "AccountRepository-FindAccounts"
-	var (
-		params     []any
-		conditions []string
-		builder    strings.Builder
-	)
+	var params []any
+	var conditions []string
+	builder := pools.BuilderPool.Get()
+	defer func() {
+		builder.Reset()
+		pools.BuilderPool.Put(builder)
+	}()
 	if len(filter.AccountIDs) > 0 {
 		builder.Reset()
 		_, _ = builder.WriteString("a.id IN (")
@@ -59,8 +62,7 @@ func (q *accountRepository) FindAccounts(ctx context.Context, filter *models.Acc
 			if i > 0 {
 				_, _ = builder.WriteString(",")
 			}
-			_, _ = builder.WriteString("$")
-			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+			_, _ = fmt.Fprintf(builder, "$%d", len(params))
 		}
 		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
@@ -79,8 +81,7 @@ func (q *accountRepository) FindAccounts(ctx context.Context, filter *models.Acc
 			if i > 0 {
 				_, _ = builder.WriteString(",")
 			}
-			_, _ = builder.WriteString("$")
-			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+			_, _ = fmt.Fprintf(builder, "$%d", len(params))
 		}
 		_, _ = builder.WriteString("))")
 		conditions = append(conditions, builder.String())
@@ -93,8 +94,7 @@ func (q *accountRepository) FindAccounts(ctx context.Context, filter *models.Acc
 			if i > 0 {
 				_, _ = builder.WriteString(",")
 			}
-			_, _ = builder.WriteString("$")
-			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+			_, _ = fmt.Fprintf(builder, "$%d", len(params))
 		}
 		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
@@ -107,8 +107,7 @@ func (q *accountRepository) FindAccounts(ctx context.Context, filter *models.Acc
 			if i > 0 {
 				_, _ = builder.WriteString(",")
 			}
-			_, _ = builder.WriteString("$")
-			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+			_, _ = fmt.Fprintf(builder, "$%d", len(params))
 		}
 		_, _ = builder.WriteString(")")
 		conditions = append(conditions, builder.String())
@@ -127,8 +126,7 @@ func (q *accountRepository) FindAccounts(ctx context.Context, filter *models.Acc
 			if i > 0 {
 				_, _ = builder.WriteString(",")
 			}
-			_, _ = builder.WriteString("$")
-			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+			_, _ = fmt.Fprintf(builder, "$%d", len(params))
 		}
 		_, _ = builder.WriteString("))")
 		conditions = append(conditions, builder.String())
@@ -147,98 +145,73 @@ func (q *accountRepository) FindAccounts(ctx context.Context, filter *models.Acc
 			if i > 0 {
 				_, _ = builder.WriteString(",")
 			}
-			_, _ = builder.WriteString("$")
-			_, _ = builder.WriteString(strconv.Itoa(len(params)))
+			_, _ = fmt.Fprintf(builder, "$%d", len(params))
 		}
 		_, _ = builder.WriteString("))")
 		conditions = append(conditions, builder.String())
 	}
 	if filter.Login != "" {
 		params = append(params, filter.Login)
-		n := strconv.Itoa(len(params))
+		n := len(params)
 		builder.Reset()
-		_, _ = builder.WriteString("(a.username = $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(" OR a.email = $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(" OR a.phone = $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(")")
+		_, _ = fmt.Fprintf(builder, "(a.username = $%d OR a.email = $%d OR a.phone = $%d)", n, n, n)
 		conditions = append(conditions, builder.String())
 	}
 	if filter.Keyword != "" {
 		builder.Reset()
-		_, _ = builder.WriteString("%%")
-		_, _ = builder.WriteString(strings.ToLower(filter.Keyword))
-		_, _ = builder.WriteString("%%")
+		_, _ = fmt.Fprintf(builder, "%%%s%%", strings.ToLower(filter.Keyword))
 		params = append(params, builder.String())
-		n := strconv.Itoa(len(params))
+		n := len(params)
 		builder.Reset()
-		_, _ = builder.WriteString("(LOWER(a.name) LIKE $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(" OR a.username LIKE $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(" OR a.email LIKE $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(" OR a.phone LIKE $")
-		_, _ = builder.WriteString(n)
-		_, _ = builder.WriteString(")")
+		_, _ = fmt.Fprintf(builder, "(LOWER(a.name) LIKE $%d OR a.username LIKE $%d OR a.email LIKE $%d OR a.phone LIKE $%d)", n, n, n, n)
 		conditions = append(conditions, builder.String())
 	}
 	if filter.Username != "" {
 		params = append(params, filter.Username)
 		builder.Reset()
-		_, _ = builder.WriteString("a.username = $")
-		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		_, _ = fmt.Fprintf(builder, "a.username = $%d", len(params))
 		conditions = append(conditions, builder.String())
 	}
 	if filter.ConfirmationToken != "" {
 		params = append(params, filter.ConfirmationToken)
 		builder.Reset()
-		_, _ = builder.WriteString("a.confirmation_token = $")
-		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		_, _ = fmt.Fprintf(builder, "a.confirmation_token = $%d", len(params))
 		conditions = append(conditions, builder.String())
 	}
 	if filter.Email != "" {
 		params = append(params, filter.Email)
 		builder.Reset()
-		_, _ = builder.WriteString("a.email = $")
-		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		_, _ = fmt.Fprintf(builder, "a.email = $%d", len(params))
 		conditions = append(conditions, builder.String())
 	}
 	if filter.EmailConfirmationToken != "" {
 		params = append(params, filter.EmailConfirmationToken)
 		builder.Reset()
-		_, _ = builder.WriteString("a.email_confirmation_token = $")
-		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		_, _ = fmt.Fprintf(builder, "a.email_confirmation_token = $%d", len(params))
 		conditions = append(conditions, builder.String())
 	}
 	if filter.Phone != "" {
 		params = append(params, filter.Phone)
 		builder.Reset()
-		_, _ = builder.WriteString("a.phone = $")
-		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		_, _ = fmt.Fprintf(builder, "a.phone = $%d", len(params))
 		conditions = append(conditions, builder.String())
 	}
 	if filter.PhoneConfirmationToken != "" {
 		params = append(params, filter.PhoneConfirmationToken)
 		builder.Reset()
-		_, _ = builder.WriteString("a.phone_confirmation_token = $")
-		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		_, _ = fmt.Fprintf(builder, "a.phone_confirmation_token = $%d", len(params))
 		conditions = append(conditions, builder.String())
 	}
 	if filter.LoginUnlockToken != "" {
 		params = append(params, filter.LoginUnlockToken)
 		builder.Reset()
-		_, _ = builder.WriteString("a.login_unlock_token = $")
-		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		_, _ = fmt.Fprintf(builder, "a.login_unlock_token = $%d", len(params))
 		conditions = append(conditions, builder.String())
 	}
 	if filter.ResetPasswordToken != "" {
 		params = append(params, filter.ResetPasswordToken)
 		builder.Reset()
-		_, _ = builder.WriteString("a.reset_password_token = $")
-		_, _ = builder.WriteString(strconv.Itoa(len(params)))
+		_, _ = fmt.Fprintf(builder, "a.reset_password_token = $%d", len(params))
 		conditions = append(conditions, builder.String())
 	}
 	builder.Reset()
@@ -252,8 +225,7 @@ func (q *accountRepository) FindAccounts(ctx context.Context, filter *models.Acc
 			if i > 0 {
 				_, _ = builder.WriteString(" AND")
 			}
-			_, _ = builder.WriteString(" ")
-			_, _ = builder.WriteString(condition)
+			_, _ = fmt.Fprintf(builder, " %s", condition)
 		}
 	}
 	query := builder.String()
@@ -327,10 +299,7 @@ func (q *accountRepository) FindAccounts(ctx context.Context, filter *models.Acc
 		}
 		pages, _, _ = pagesDecimal.Ceil(0).Int64(0)
 		offset := filter.Page * filter.Limit
-		_, _ = builder.WriteString(" LIMIT ")
-		_, _ = builder.WriteString(strconv.FormatInt(filter.Limit, 10))
-		_, _ = builder.WriteString(" OFFSET ")
-		_, _ = builder.WriteString(strconv.FormatInt(offset, 10))
+		_, _ = fmt.Fprintf(builder, " LIMIT %d OFFSET %d", filter.Limit, offset)
 	}
 	rows, err := q.dbRead.Query(ctx, builder.String(), params...)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -397,8 +366,8 @@ func (q *accountRepository) FindAccounts(ctx context.Context, filter *models.Acc
 func (q *accountRepository) CreateAccount(ctx context.Context, tx pgx.Tx, request *models.NewAccount) (*models.Account, error) {
 	ctxt := "AccountRepository-CreateAccount"
 	confirmationToken, emailToken, phoneToken := helper.RandomString(32), helper.RandomString(32), helper.RandomNumber(6)
-	var emailConfirmationToken,
-		phoneConfirmationToken *string
+	var emailConfirmationToken *string
+	var phoneConfirmationToken *string
 	if request.Email != nil {
 		emailConfirmationToken = &emailToken
 	}
@@ -532,9 +501,96 @@ func (q *accountRepository) CreateAccount(ctx context.Context, tx pgx.Tx, reques
 	return &response, nil
 }
 
-func (q *accountRepository) UpdateAccount(ctx context.Context, tx pgx.Tx, request *models.Account) error {
+func (q *accountRepository) UpdateAccount(ctx context.Context, tx pgx.Tx, request *models.Account) (*models.Account, error) {
 	ctxt := "AccountRepository-UpdateAccount"
+	var response models.Account
 	err := tx.QueryRow(
+		ctx,
+		`SELECT
+			id
+			, account_type
+			, status
+			, name
+			, username
+			, confirmation_token
+			, confirmed_at
+			, email
+			, unconfirmed_email
+			, email_confirmation_token
+			, email_confirmation_sent_at
+			, email_confirmed_at
+			, phone
+			, unconfirmed_phone
+			, phone_confirmation_token
+			, phone_confirmation_sent_at
+			, phone_confirmed_at
+			, encrypted_password
+			, last_password_change
+			, reset_password_token
+			, reset_password_sent_at
+			, login_count
+			, current_login_at
+			, current_login_ip
+			, last_login_at
+			, last_login_ip
+			, login_failed_attempts
+			, login_unlock_token
+			, login_locked_at
+			, created_by
+			, created_at
+			, updated_at
+			, deactivated_by
+			, deactivated_at
+			, deactivation_reason
+		FROM accounts
+		WHERE id = $1
+		FOR UPDATE`,
+		request.ID,
+	).Scan(
+		&response.ID,
+		&response.AccountType,
+		&response.Status,
+		&response.Name,
+		&response.Username,
+		&response.ConfirmationToken,
+		&response.ConfirmedAt,
+		&response.Email,
+		&response.UnconfirmedEmail,
+		&response.EmailConfirmationToken,
+		&response.EmailConfirmationSentAt,
+		&response.EmailConfirmedAt,
+		&response.Phone,
+		&response.UnconfirmedPhone,
+		&response.PhoneConfirmationToken,
+		&response.PhoneConfirmationSentAt,
+		&response.PhoneConfirmedAt,
+		&response.EncryptedPassword,
+		&response.LastPasswordChange,
+		&response.ResetPasswordToken,
+		&response.ResetPasswordSentAt,
+		&response.LoginCount,
+		&response.CurrentLoginAt,
+		&response.CurrentLoginIP,
+		&response.LastLoginAt,
+		&response.LastLoginIP,
+		&response.LoginFailedAttempts,
+		&response.LoginUnlockToken,
+		&response.LoginLockedAt,
+		&response.CreatedBy,
+		&response.CreatedAt,
+		&response.UpdatedAt,
+		&response.DeactivatedBy,
+		&response.DeactivatedAt,
+		&response.DeactivationReason,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, models.ErrAccountNotFound
+	}
+	if err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+		return nil, err
+	}
+	if err = tx.QueryRow(
 		ctx,
 		`UPDATE accounts SET
 			account_type = $1
@@ -637,43 +693,42 @@ func (q *accountRepository) UpdateAccount(ctx context.Context, tx pgx.Tx, reques
 		request.DeactivationReason,
 		request.ID,
 	).Scan(
-		&request.ID,
-		&request.AccountType,
-		&request.Status,
-		&request.Name,
-		&request.Username,
-		&request.ConfirmationToken,
-		&request.ConfirmedAt,
-		&request.Email,
-		&request.UnconfirmedEmail,
-		&request.EmailConfirmationToken,
-		&request.EmailConfirmationSentAt,
-		&request.EmailConfirmedAt,
-		&request.Phone,
-		&request.UnconfirmedPhone,
-		&request.PhoneConfirmationToken,
-		&request.PhoneConfirmationSentAt,
-		&request.PhoneConfirmedAt,
-		&request.EncryptedPassword,
-		&request.LastPasswordChange,
-		&request.ResetPasswordToken,
-		&request.ResetPasswordSentAt,
-		&request.LoginCount,
-		&request.CurrentLoginAt,
-		&request.CurrentLoginIP,
-		&request.LastLoginAt,
-		&request.LastLoginIP,
-		&request.LoginFailedAttempts,
-		&request.LoginUnlockToken,
-		&request.LoginLockedAt,
-		&request.CreatedBy,
-		&request.CreatedAt,
-		&request.UpdatedAt,
-		&request.DeactivatedBy,
-		&request.DeactivatedAt,
-		&request.DeactivationReason,
-	)
-	if err != nil {
+		&response.ID,
+		&response.AccountType,
+		&response.Status,
+		&response.Name,
+		&response.Username,
+		&response.ConfirmationToken,
+		&response.ConfirmedAt,
+		&response.Email,
+		&response.UnconfirmedEmail,
+		&response.EmailConfirmationToken,
+		&response.EmailConfirmationSentAt,
+		&response.EmailConfirmedAt,
+		&response.Phone,
+		&response.UnconfirmedPhone,
+		&response.PhoneConfirmationToken,
+		&response.PhoneConfirmationSentAt,
+		&response.PhoneConfirmedAt,
+		&response.EncryptedPassword,
+		&response.LastPasswordChange,
+		&response.ResetPasswordToken,
+		&response.ResetPasswordSentAt,
+		&response.LoginCount,
+		&response.CurrentLoginAt,
+		&response.CurrentLoginIP,
+		&response.LastLoginAt,
+		&response.LastLoginIP,
+		&response.LoginFailedAttempts,
+		&response.LoginUnlockToken,
+		&response.LoginLockedAt,
+		&response.CreatedBy,
+		&response.CreatedAt,
+		&response.UpdatedAt,
+		&response.DeactivatedBy,
+		&response.DeactivatedAt,
+		&response.DeactivationReason,
+	); err != nil {
 		if pgxErr, ok := errors.AsType[*pgconn.PgError](err); ok &&
 			pgxErr.Code == pgerrcode.UniqueViolation {
 			switch pgxErr.ConstraintName {
@@ -697,8 +752,9 @@ func (q *accountRepository) UpdateAccount(ctx context.Context, tx pgx.Tx, reques
 		} else {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 		}
+		return nil, err
 	}
-	return err
+	return &response, err
 }
 
 func (q *accountRepository) FindAdmins(ctx context.Context, filter *models.AccountFilter) ([]*models.Admin, int64, int64, error) {
@@ -712,7 +768,11 @@ func (q *accountRepository) FindAdmins(ctx context.Context, filter *models.Accou
 	if n == 0 {
 		return response, total, pages, nil
 	}
-	var builder strings.Builder
+	builder := pools.BuilderPool.Get()
+	defer func() {
+		builder.Reset()
+		pools.BuilderPool.Put(builder)
+	}()
 	_, _ = builder.WriteString(
 		`SELECT
 			account_id
@@ -728,8 +788,7 @@ func (q *accountRepository) FindAdmins(ctx context.Context, filter *models.Accou
 		if i > 0 {
 			_, _ = builder.WriteString(",")
 		}
-		_, _ = builder.WriteString("$")
-		_, _ = builder.WriteString(strconv.Itoa(i + 1))
+		_, _ = fmt.Fprintf(builder, "$%d", i+1)
 		mapAdminOffsets[account.ID] = i
 	}
 	_, _ = builder.WriteString(")")
@@ -742,11 +801,9 @@ func (q *accountRepository) FindAdmins(ctx context.Context, filter *models.Accou
 		return nil, 0, 0, err
 	}
 	defer rows.Close()
+	var accountID uint64
+	var adminLevel uint8
 	for rows.Next() {
-		var (
-			accountID  uint64
-			adminLevel uint8
-		)
 		if err = rows.Scan(&accountID, &adminLevel); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return nil, 0, 0, err
@@ -764,13 +821,12 @@ func (q *accountRepository) FindAdmins(ctx context.Context, filter *models.Accou
 
 func (q *accountRepository) CreateAdmin(ctx context.Context, tx pgx.Tx, request *models.NewAdmin) (*models.Admin, error) {
 	ctxt := "AccountRepository-CreateAdmin"
+	var response models.Admin
 	account, err := q.CreateAccount(ctx, tx, request.NewAccount)
 	if err != nil {
 		return nil, err
 	}
-	response := models.Admin{
-		Account: account,
-	}
+	response.Account = account
 	if err = tx.QueryRow(
 		ctx,
 		`INSERT INTO admins (
@@ -787,11 +843,24 @@ func (q *accountRepository) CreateAdmin(ctx context.Context, tx pgx.Tx, request 
 	return &response, nil
 }
 
-func (q *accountRepository) UpdateAdmin(ctx context.Context, tx pgx.Tx, request *models.Admin) error {
+func (q *accountRepository) UpdateAdmin(ctx context.Context, tx pgx.Tx, request *models.Admin) (*models.Admin, error) {
 	ctxt := "AccountRepository-UpdateAdmin"
-	err := q.UpdateAccount(ctx, tx, request.Account)
+	var response models.Admin
+	account, err := q.UpdateAccount(ctx, tx, request.Account)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	response.Account = account
+	if err = tx.QueryRow(
+		ctx,
+		`SELECT admin_level
+		FROM admins
+		WHERE account_id = $1
+		FOR NO KEY UPDATE`,
+		request.ID,
+	).Scan(&response.AdminLevel); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+		return nil, err
 	}
 	if err = tx.QueryRow(
 		ctx,
@@ -801,10 +870,11 @@ func (q *accountRepository) UpdateAdmin(ctx context.Context, tx pgx.Tx, request 
 		RETURNING admin_level`,
 		request.AdminLevel,
 		request.ID,
-	).Scan(&request.AdminLevel); err != nil {
+	).Scan(&response.AdminLevel); err != nil {
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+		return nil, err
 	}
-	return err
+	return &response, err
 }
 
 func (q *accountRepository) FindUsers(ctx context.Context, filter *models.AccountFilter) ([]*models.User, int64, int64, error) {
@@ -818,7 +888,11 @@ func (q *accountRepository) FindUsers(ctx context.Context, filter *models.Accoun
 	if n == 0 {
 		return response, total, pages, nil
 	}
-	var builder strings.Builder
+	builder := pools.BuilderPool.Get()
+	defer func() {
+		builder.Reset()
+		pools.BuilderPool.Put(builder)
+	}()
 	_, _ = builder.WriteString(
 		`SELECT
 			account_id
@@ -835,8 +909,7 @@ func (q *accountRepository) FindUsers(ctx context.Context, filter *models.Accoun
 		if i > 0 {
 			_, _ = builder.WriteString(",")
 		}
-		_, _ = builder.WriteString("$")
-		_, _ = builder.WriteString(strconv.Itoa(i + 1))
+		_, _ = fmt.Fprintf(builder, "$%d", i+1)
 		mapUserOffsets[account.ID] = i
 	}
 	_, _ = builder.WriteString(")")
@@ -849,12 +922,10 @@ func (q *accountRepository) FindUsers(ctx context.Context, filter *models.Accoun
 		return nil, 0, 0, err
 	}
 	defer rows.Close()
+	var accountID uint64
+	var companyID uint64
+	var userLevel uint8
 	for rows.Next() {
-		var (
-			accountID,
-			companyID uint64
-			userLevel uint8
-		)
 		if err = rows.Scan(&accountID, &companyID, &userLevel); err != nil {
 			helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
 			return nil, 0, 0, err
@@ -875,13 +946,12 @@ func (q *accountRepository) FindUsers(ctx context.Context, filter *models.Accoun
 
 func (q *accountRepository) CreateUser(ctx context.Context, tx pgx.Tx, request *models.NewUser) (*models.User, error) {
 	ctxt := "AccountRepository-CreateUser"
+	var response models.User
 	account, err := q.CreateAccount(ctx, tx, request.NewAccount)
 	if err != nil {
 		return nil, err
 	}
-	response := models.User{
-		Account: account,
-	}
+	response.Account = account
 	if err = tx.QueryRow(
 		ctx,
 		`INSERT INTO users (
@@ -904,11 +974,29 @@ func (q *accountRepository) CreateUser(ctx context.Context, tx pgx.Tx, request *
 	return &response, nil
 }
 
-func (q *accountRepository) UpdateUser(ctx context.Context, tx pgx.Tx, request *models.User) error {
+func (q *accountRepository) UpdateUser(ctx context.Context, tx pgx.Tx, request *models.User) (*models.User, error) {
 	ctxt := "AccountRepository-UpdateUser"
-	err := q.UpdateAccount(ctx, tx, request.Account)
+	var response models.User
+	account, err := q.UpdateAccount(ctx, tx, request.Account)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	response.Account = account
+	if err = tx.QueryRow(
+		ctx,
+		`SELECT
+			company_id
+			, user_level
+		FROM users
+		WHERE account_id = $1
+		FOR NO KEY UPDATE`,
+		request.ID,
+	).Scan(
+		&response.CompanyID,
+		&response.UserLevel,
+	); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+		return nil, err
 	}
 	if err = tx.QueryRow(
 		ctx,
@@ -920,10 +1008,11 @@ func (q *accountRepository) UpdateUser(ctx context.Context, tx pgx.Tx, request *
 		request.UserLevel,
 		request.ID,
 	).Scan(
-		&request.CompanyID,
-		&request.UserLevel,
+		&response.CompanyID,
+		&response.UserLevel,
 	); err != nil {
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrScan")
+		return nil, err
 	}
-	return err
+	return &response, err
 }

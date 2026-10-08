@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/roysitumorang/sadia/helper"
@@ -13,13 +14,13 @@ import (
 type AccountService interface {
 	FindAccounts(ctx context.Context, filter *models.AccountFilter) ([]*models.Account, *models.Pagination, error)
 	CreateAccount(ctx context.Context, tx pgx.Tx, request *models.NewAccount) (*models.Account, error)
-	UpdateAccount(ctx context.Context, tx pgx.Tx, request *models.Account) error
+	UpdateAccount(ctx context.Context, tx pgx.Tx, request *models.Account) (*models.Account, error)
 	FindAdmins(ctx context.Context, filter *models.AccountFilter) ([]*models.Admin, *models.Pagination, error)
 	CreateAdmin(ctx context.Context, tx pgx.Tx, request *models.NewAdmin) (*models.Admin, error)
-	UpdateAdmin(ctx context.Context, tx pgx.Tx, request *models.Admin) error
+	UpdateAdmin(ctx context.Context, tx pgx.Tx, request *models.Admin) (*models.Admin, error)
 	FindUsers(ctx context.Context, filter *models.AccountFilter) ([]*models.User, *models.Pagination, error)
 	CreateUser(ctx context.Context, tx pgx.Tx, request *models.NewUser) (*models.User, error)
-	UpdateUser(ctx context.Context, tx pgx.Tx, request *models.User) error
+	UpdateUser(ctx context.Context, tx pgx.Tx, request *models.User) (*models.User, error)
 	ConsumeMessage(ctx context.Context, topic string, message []byte) error
 }
 
@@ -64,13 +65,13 @@ func (q *accountService) CreateAccount(ctx context.Context, tx pgx.Tx, request *
 	return response, err
 }
 
-func (q *accountService) UpdateAccount(ctx context.Context, tx pgx.Tx, request *models.Account) error {
+func (q *accountService) UpdateAccount(ctx context.Context, tx pgx.Tx, request *models.Account) (*models.Account, error) {
 	ctxt := "AccountService-UpdateAccount"
-	err := q.accountRepository.UpdateAccount(ctx, tx, request)
-	if err != nil {
+	response, err := q.accountRepository.UpdateAccount(ctx, tx, request)
+	if err != nil && !errors.Is(err, models.ErrAccountNotFound) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAccount")
 	}
-	return err
+	return response, err
 }
 
 func (q *accountService) FindAdmins(ctx context.Context, filter *models.AccountFilter) ([]*models.Admin, *models.Pagination, error) {
@@ -104,13 +105,13 @@ func (q *accountService) CreateAdmin(ctx context.Context, tx pgx.Tx, request *mo
 	return response, err
 }
 
-func (q *accountService) UpdateAdmin(ctx context.Context, tx pgx.Tx, request *models.Admin) error {
+func (q *accountService) UpdateAdmin(ctx context.Context, tx pgx.Tx, request *models.Admin) (*models.Admin, error) {
 	ctxt := "AccountService-UpdateAdmin"
-	err := q.accountRepository.UpdateAdmin(ctx, tx, request)
-	if err != nil {
+	response, err := q.accountRepository.UpdateAdmin(ctx, tx, request)
+	if err != nil && !errors.Is(err, models.ErrAccountNotFound) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateAdmin")
 	}
-	return err
+	return response, err
 }
 
 func (q *accountService) FindUsers(ctx context.Context, filter *models.AccountFilter) ([]*models.User, *models.Pagination, error) {
@@ -144,13 +145,13 @@ func (q *accountService) CreateUser(ctx context.Context, tx pgx.Tx, request *mod
 	return response, err
 }
 
-func (q *accountService) UpdateUser(ctx context.Context, tx pgx.Tx, request *models.User) error {
+func (q *accountService) UpdateUser(ctx context.Context, tx pgx.Tx, request *models.User) (*models.User, error) {
 	ctxt := "AccountService-UpdateUser"
-	err := q.accountRepository.UpdateUser(ctx, tx, request)
-	if err != nil {
+	response, err := q.accountRepository.UpdateUser(ctx, tx, request)
+	if err != nil && !errors.Is(err, models.ErrAccountNotFound) {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrUpdateUser")
 	}
-	return err
+	return response, err
 }
 
 func (q *accountService) ConsumeMessage(ctx context.Context, topic string, message []byte) error {

@@ -497,6 +497,7 @@ func (q *ChangePhone) Validate() error {
 	return nil
 }
 
+var ErrAccountNotFound = errors.New("account not found")
 var ErrLoginFailed = customErrors.New(fiber.StatusBadRequest, "login failed")
 var ErrUniqueUsernameViolation = errors.New("username: already exists")
 var ErrUniqueEmailViolation = errors.New("email: already exists")
