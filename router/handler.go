@@ -167,7 +167,7 @@ func (q *Service) Consume(ctx context.Context) error {
 				helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrConsumeMessage")
 			}
 			duration := time.Since(now)
-			helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("consumed message on topic %s[%d]@%d: %s in %s", record.Topic, record.Partition, record.Offset, record.Value, duration.String()), ctxt, "")
+			helper.Log(ctx, zap.InfoLevel, helper.Sprintf("consumed message on topic %s[%d]@%d: %s in %s", record.Topic, record.Partition, record.Offset, record.Value, duration.String()), ctxt, "")
 		}
 	}
 }

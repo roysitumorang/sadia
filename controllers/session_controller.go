@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -489,7 +488,7 @@ func (q *sessionController) userCreateSpending(c fiber.Ctx) error {
 			"path":           c.Route().Path,
 		})
 	}
-	return flash.Success("spending created successfully").Redirect(c, sess.Session, fmt.Sprintf("/session/%d", currentSession.ID))
+	return flash.Success("spending created successfully").Redirect(c, sess.Session, helper.Sprintf("/session/%d", currentSession.ID))
 }
 
 func (q *sessionController) userClose(c fiber.Ctx) error {

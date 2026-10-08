@@ -3,7 +3,6 @@ package helper
 import (
 	"context"
 	"errors"
-	"fmt"
 	"runtime"
 	"sync"
 
@@ -47,7 +46,7 @@ func logContext(context, scope string) *zap.Logger {
 		_ = logger.Sync()
 	}()
 	fields := []zap.Field{
-		zap.String("topic", fmt.Sprintf("%s-service-log", config.AppName)),
+		zap.String("topic", Sprintf("%s-service-log", config.AppName)),
 		zap.String("context", context),
 		zap.String("service", config.AppName),
 	}
@@ -75,7 +74,7 @@ func Log(ctx context.Context, level zapcore.Level, message, context, scope strin
 		entry.Error(
 			message,
 			zap.String("func", name),
-			zap.String("file", fmt.Sprintf("%s:%d", file, line)),
+			zap.String("file", Sprintf("%s:%d", file, line)),
 			zap.Int("line", line),
 		)
 	case zap.FatalLevel:
@@ -107,7 +106,7 @@ func Capture(ctx context.Context, level zapcore.Level, err error, context, scope
 		entry.Error(
 			err.Error(),
 			zap.String("func", name),
-			zap.String("file", fmt.Sprintf("%s:%d", file, line)),
+			zap.String("file", Sprintf("%s:%d", file, line)),
 			zap.Int("line", line),
 		)
 	case zap.FatalLevel:

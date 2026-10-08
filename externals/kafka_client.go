@@ -76,7 +76,7 @@ func (s *KafkaClient) Publish(ctx context.Context, request ...KafkaTopic) (err e
 					helper.Capture(ctx, zap.ErrorLevel, fmt.Errorf("publish message failed: %v", err), ctxt, "ErrProduce")
 					return
 				}
-				helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("published message to topic %s[%d]@%d: %s in %s", result.Topic, result.Partition, result.Offset, result.Value, time.Since(now).String()), ctxt, "")
+				helper.Log(ctx, zap.InfoLevel, helper.Sprintf("published message to topic %s[%d]@%d: %s in %s", result.Topic, result.Partition, result.Offset, result.Value, time.Since(now).String()), ctxt, "")
 			})
 		}
 	}

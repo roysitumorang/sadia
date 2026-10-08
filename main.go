@@ -111,14 +111,14 @@ func main() {
 						return
 					}
 					if rowsAffected > 0 {
-						helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("%d expired JWTs deleted", rowsAffected), ctxt, "")
+						helper.Log(ctx, zap.InfoLevel, helper.Sprintf("%d expired JWTs deleted", rowsAffected), ctxt, "")
 					}
 				})
 				if err != nil {
 					helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrAddFunc")
 					return err
 				}
-				helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("cron: entry added with ID %d", entryID), ctxt, "")
+				helper.Log(ctx, zap.InfoLevel, helper.Sprintf("cron: entry added with ID %d", entryID), ctxt, "")
 				c.Start()
 				helper.Log(ctx, zap.InfoLevel, "cron: scheduled tasks running!...", ctxt, "")
 				return nil
@@ -172,7 +172,7 @@ func main() {
 				activity = "running"
 			}
 			duration := time.Since(now)
-			helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("%s migration successfully in %s", activity, duration.String()), ctxt, "")
+			helper.Log(ctx, zap.InfoLevel, helper.Sprintf("%s migration successfully in %s", activity, duration.String()), ctxt, "")
 		},
 	}
 	cmdImport := &cobra.Command{
@@ -217,7 +217,7 @@ func main() {
 				return
 			}
 			duration := time.Since(now)
-			helper.Log(ctx, zap.InfoLevel, fmt.Sprintf("importing products from excel successfully in %s", duration.String()), ctxt, "")
+			helper.Log(ctx, zap.InfoLevel, helper.Sprintf("importing products from excel successfully in %s", duration.String()), ctxt, "")
 		},
 	}
 	rootCmd := &cobra.Command{Use: config.AppName}

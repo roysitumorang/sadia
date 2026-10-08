@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -146,13 +145,13 @@ func (q *transactionController) UserCreateTransaction(c fiber.Ctx) error {
 	now := time.Now()
 	timeZone := helper.LoadTimeZone()
 	period := now.In(timeZone).Format("20060102")
-	sequence, err := q.sequenceService.SaveSequence(ctx, fmt.Sprintf("%s-%s", models.TransactionTableName, period), currentUser.ID)
+	sequence, err := q.sequenceService.SaveSequence(ctx, helper.Sprintf("%s-%s", models.TransactionTableName, period), currentUser.ID)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrSaveSequence")
 		return helper.NewResponse(fiber.StatusBadRequest).SetMessage(err.Error()).WriteResponse(c)
 	}
 	request.SessionID = session.ID
-	request.ReferenceNo = fmt.Sprintf(models.ReferenceNoFormat, period, sequence.Number)
+	request.ReferenceNo = helper.Sprintf(models.ReferenceNoFormat, period, sequence.Number)
 	request.CreatedBy = currentUser.ID
 	tx, err := repositories.BeginTx(ctx)
 	if err != nil {
@@ -375,7 +374,7 @@ func (q *transactionController) userCreate(c fiber.Ctx) error {
 	now := time.Now()
 	timeZone := helper.LoadTimeZone()
 	period := now.In(timeZone).Format("20060102")
-	sequence, err := q.sequenceService.SaveSequence(ctx, fmt.Sprintf("%s-%s", models.TransactionTableName, period), currentUser.ID)
+	sequence, err := q.sequenceService.SaveSequence(ctx, helper.Sprintf("%s-%s", models.TransactionTableName, period), currentUser.ID)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrSaveSequence")
 		c.Response().SetStatusCode(fiber.StatusUnprocessableEntity)
@@ -389,7 +388,7 @@ func (q *transactionController) userCreate(c fiber.Ctx) error {
 		})
 	}
 	request.SessionID = currentSession.ID
-	request.ReferenceNo = fmt.Sprintf(models.ReferenceNoFormat, period, sequence.Number)
+	request.ReferenceNo = helper.Sprintf(models.ReferenceNoFormat, period, sequence.Number)
 	request.CreatedBy = currentUser.ID
 	tx, err := repositories.BeginTx(ctx)
 	if err != nil {

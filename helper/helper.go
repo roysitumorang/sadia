@@ -21,6 +21,7 @@ import (
 	"github.com/godruoyi/go-snowflake"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/roysitumorang/sadia/keys"
+	"github.com/roysitumorang/sadia/pools"
 	"github.com/sqids/sqids-go"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -253,4 +254,14 @@ func GetLoginLockoutDuration() time.Duration {
 
 func GetAccessTokenAge() time.Duration {
 	return accessTokenAge
+}
+
+func Sprintf(format string, a ...any) string {
+	sb := pools.BuilderPool.Get()
+	defer func() {
+		sb.Reset()
+		pools.BuilderPool.Put(sb)
+	}()
+	_, _ = fmt.Fprintf(sb, format, a...)
+	return sb.String()
 }

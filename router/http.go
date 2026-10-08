@@ -3,7 +3,6 @@ package router
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math"
 	"os"
 	"runtime"
@@ -165,7 +164,7 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 			port = uint16(portInt)
 		}
 	}
-	listenerPort := fmt.Sprintf(":%d", port)
+	listenerPort := helper.Sprintf(":%d", port)
 	err := app.Listen(listenerPort)
 	if err != nil {
 		helper.Log(ctx, zap.ErrorLevel, err.Error(), ctxt, "ErrListen")
