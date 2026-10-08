@@ -50,12 +50,12 @@ func MakeHandler(ctx context.Context) (*Service, error) {
 		return nil, errors.New("db: env DB_MAX_CONNECTIONS requires a positive integer")
 	}
 	maxConns := int32(conns)
-	dbRead, err := config.CreateDbConnection(ctx, os.Getenv("DB_READ_DSN"), maxConns)
+	dbRead, err := config.CreateDbConnection(ctx, os.Getenv("DB_READ_URL"), maxConns)
 	if err != nil {
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrCreateDbConnection")
 		return nil, err
 	}
-	dbWrite, err := config.CreateDbConnection(ctx, os.Getenv("DB_WRITE_DSN"), maxConns)
+	dbWrite, err := config.CreateDbConnection(ctx, os.Getenv("DB_WRITE_URL"), maxConns)
 	if err != nil {
 		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrCreateDbConnection")
 		return nil, err
