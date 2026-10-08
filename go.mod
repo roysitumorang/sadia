@@ -14,7 +14,7 @@ require (
 	github.com/gofiber/contrib/v3/zap v1.0.13
 	github.com/gofiber/fiber/v3 v3.5.0
 	github.com/gofiber/storage/valkey v0.4.1
-	github.com/gofiber/template/jet/v3 v3.0.9
+	github.com/gofiber/template/jet/v3 v3.0.10
 	github.com/gofiber/utils/v2 v2.6.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/govalues/decimal v0.1.36
