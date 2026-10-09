@@ -3,7 +3,7 @@ module github.com/roysitumorang/sadia
 go 1.27.1
 
 require (
-	github.com/coregx/coregex v0.12.26
+	github.com/coregx/coregex v0.12.27
 	github.com/dustin/go-humanize v1.1.0
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/goccy/go-json v0.11.2
@@ -30,8 +30,8 @@ require (
 	github.com/twmb/franz-go v1.22.1
 	github.com/xuri/excelize/v2 v2.11.0
 	go.uber.org/zap v1.28.0
-	golang.org/x/crypto v0.57.0
-	golang.org/x/sync v0.23.0
+	golang.org/x/crypto v0.58.0
+	golang.org/x/sync v0.24.0
 )
 
 require (
@@ -85,10 +85,10 @@ require (
 	go.shabbyrobe.org/num v0.0.0-20240907080048-e432fd58d3b6 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/net v0.60.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/mod v0.42.0 // indirect
+	golang.org/x/net v0.61.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/tools v0.51.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	lukechampine.com/uint128 v1.3.0 // indirect
