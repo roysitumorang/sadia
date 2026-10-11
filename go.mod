@@ -3,7 +3,7 @@ module github.com/roysitumorang/sadia
 go 1.27.1
 
 require (
-	github.com/coregx/coregex v0.12.27
+	github.com/coregx/coregex v0.12.29
 	github.com/dustin/go-humanize v1.1.0
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/goccy/go-json v0.11.2
@@ -89,7 +89,7 @@ require (
 	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
-	golang.org/x/tools v0.51.0 // indirect
+	golang.org/x/tools v0.52.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	lukechampine.com/uint128 v1.3.0 // indirect
 )
