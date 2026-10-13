@@ -88,14 +88,14 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 		}),
 		compress.New(),
 		rewrite.New(rewrite.Config{
-			Rules: map[string]string{
-				"/v1/admin/account":   "/v1/account/admin",
-				"/v1/admin/account/*": "/v1/account/admin/$1",
-				"/v1/admin/jwt":       "/v1/jwt/admin",
-				"/v1/admin/jwt/*":     "/v1/jwt/admin/$1",
-				"/v1/admin/company":   "/v1/company/admin",
-				"/v1/admin/company/*": "/v1/company/admin/$1",
-				"/":                   "/account/me",
+			RuleList: []rewrite.Rule{
+				{From: "/v1/admin/account", To: "/v1/account/admin"},
+				{From: "/v1/admin/account/*", To: "/v1/account/admin/$1"},
+				{From: "/v1/admin/jwt", To: "/v1/jwt/admin"},
+				{From: "/v1/admin/jwt/*", To: "/v1/jwt/admin/$1"},
+				{From: "/v1/admin/company", To: "/v1/company/admin"},
+				{From: "/v1/admin/company/*", To: "/v1/company/admin/$1"},
+				{From: "/", To: "/account/me"},
 			},
 		}),
 		cors.New(),
