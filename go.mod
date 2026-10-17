@@ -8,10 +8,10 @@ require (
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/goccy/go-json v0.11.2
 	github.com/godruoyi/go-snowflake v0.0.2
-	github.com/gofiber/contrib/v3/monitor v1.2.2
-	github.com/gofiber/contrib/v3/sentry v1.1.12
-	github.com/gofiber/contrib/v3/swaggo v1.0.12
-	github.com/gofiber/contrib/v3/zap v1.0.13
+	github.com/gofiber/contrib/v3/monitor v1.2.3
+	github.com/gofiber/contrib/v3/sentry v1.1.13
+	github.com/gofiber/contrib/v3/swaggo v1.0.13
+	github.com/gofiber/contrib/v3/zap v1.0.14
 	github.com/gofiber/fiber/v3 v3.6.1
 	github.com/gofiber/storage/valkey v0.4.2
 	github.com/gofiber/template/jet/v3 v3.0.11
@@ -63,7 +63,7 @@ require (
 	github.com/mattn/go-colorable v0.1.16 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/molecule-man/go-brrr v1.3.0 // indirect
-	github.com/philhofer/fwd v1.2.0 // indirect
+	github.com/philhofer/fwd v1.2.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.33 // indirect
 	github.com/power-devops/perfstat v0.0.0-20260916203055-22a1a467d9f0 // indirect
 	github.com/richardlehane/mscfb v1.0.9 // indirect
