@@ -1,6 +1,6 @@
 module github.com/roysitumorang/sadia
 
-go 1.27.1
+go 1.27.3
 
 require (
 	github.com/coregx/coregex v0.12.30
@@ -28,7 +28,7 @@ require (
 	github.com/sqids/sqids-go v0.4.1
 	github.com/swaggo/swag v1.16.6
 	github.com/twmb/franz-go v1.22.2
-	github.com/xuri/excelize/v2 v2.11.0
+	github.com/xuri/excelize/v2 v2.11.1-0.20261020033641-611b222fd8f7
 	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/sync v0.24.0
