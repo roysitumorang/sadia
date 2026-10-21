@@ -36,6 +36,13 @@ func (m *Migration) Migrate(ctx context.Context) error {
 	ctxt := "Migration-Migrate"
 	if _, err := m.dbWrite.Exec(
 		ctx,
+		"CREATE EXTENSION IF NOT EXISTS uint128",
+	); err != nil {
+		helper.Capture(ctx, zap.ErrorLevel, err, ctxt, "ErrExec")
+		return err
+	}
+	if _, err := m.dbWrite.Exec(
+		ctx,
 		`CREATE TABLE IF NOT EXISTS migrations (
 			"version" uint8 NOT NULL PRIMARY KEY
 		)`,
