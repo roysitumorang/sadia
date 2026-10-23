@@ -9,9 +9,9 @@ require (
 	github.com/goccy/go-json v0.11.2
 	github.com/godruoyi/go-snowflake v0.0.2
 	github.com/gofiber/contrib/v3/monitor v1.2.3
-	github.com/gofiber/contrib/v3/sentry v1.1.13
-	github.com/gofiber/contrib/v3/swaggo v1.0.13
-	github.com/gofiber/contrib/v3/zap v1.0.14
+	github.com/gofiber/contrib/v3/sentry v1.1.14
+	github.com/gofiber/contrib/v3/swaggo v1.0.14
+	github.com/gofiber/contrib/v3/zap v1.0.15
 	github.com/gofiber/fiber/v3 v3.6.1
 	github.com/gofiber/storage/valkey v0.4.2
 	github.com/gofiber/template/jet/v3 v3.0.11
