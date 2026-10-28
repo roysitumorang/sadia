@@ -14,7 +14,7 @@ require (
 	github.com/gofiber/contrib/v3/zap v1.0.15
 	github.com/gofiber/fiber/v3 v3.6.1
 	github.com/gofiber/storage/valkey v0.4.2
-	github.com/gofiber/template/jet/v3 v3.0.11
+	github.com/gofiber/template/jet/v3 v3.0.12
 	github.com/gofiber/utils/v2 v2.6.3
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/govalues/decimal v0.1.36
@@ -52,7 +52,7 @@ require (
 	github.com/go-openapi/swag/typeutils v0.29.2 // indirect
 	github.com/go-openapi/swag/yamlutils v0.29.2 // indirect
 	github.com/gofiber/schema v1.9.1 // indirect
-	github.com/gofiber/template/v2 v2.1.4 // indirect
+	github.com/gofiber/template/v2 v2.1.5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -82,7 +82,7 @@ require (
 	github.com/xuri/efp v0.0.2 // indirect
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	go.shabbyrobe.org/num v0.0.0-20261016232232-efa8c5488d98 // indirect
+	go.shabbyrobe.org/num v0.0.0-20261028130751-970578f34ea0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/mod v0.42.0 // indirect

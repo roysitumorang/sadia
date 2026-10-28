@@ -103,10 +103,10 @@ github.com/gofiber/storage/testhelpers/redis v0.1.0 h1:lDUwtanDf3f5YwlDwhbqnqCtj
 github.com/gofiber/storage/testhelpers/redis v0.1.0/go.mod h1:Y1UccxbGVL04+TF5RuyCsksX+76hu6nJIWjPukBBgJ4=
 github.com/gofiber/storage/valkey v0.4.2 h1:s6m1GopI22MCTgL3PoOHyE9XZas9gFsNDivgfP5uq4M=
 github.com/gofiber/storage/valkey v0.4.2/go.mod h1:phhnKeTfpRJHcXFpEFmt0e8E0Xv1FJJ2w7J+UsuJqBs=
-github.com/gofiber/template/jet/v3 v3.0.11 h1:ckl2RPryKhUMeLfp/MQY/rXfF0CXlxqrJj/1PM8aKb0=
-github.com/gofiber/template/jet/v3 v3.0.11/go.mod h1:kX8xkhRQBEP8q6uR8a7JT/QCMKMV0mkWyln7LFr9Ecw=
-github.com/gofiber/template/v2 v2.1.4 h1:bq6WxzMiECkIAKSa/dPI2OhOrcjRewe/YFK6zIVuwhU=
-github.com/gofiber/template/v2 v2.1.4/go.mod h1:mG+XVVRsiCP9lVd7alzmE0DEA/gs0vOkrq0xfQEkQUc=
+github.com/gofiber/template/jet/v3 v3.0.12 h1:4QCp39w4gOjhmUC0+YJnB+2bEJh0pFRgFR6JgRX56JQ=
+github.com/gofiber/template/jet/v3 v3.0.12/go.mod h1:aZyqB+i2cwTdCKNMKQFmwkx/QJuk+9EuqR76H5qa8ck=
+github.com/gofiber/template/v2 v2.1.5 h1:XsEPPmEbfRb6HHR9FrRwk67ooVdOLgA0sEGlPjvTa84=
+github.com/gofiber/template/v2 v2.1.5/go.mod h1:Uwz07sjLOg/6b1/02BaGs7e48LU2efv+JKsiT0uhBos=
 github.com/gofiber/utils/v2 v2.6.3 h1:VlnOB89rFnonlXoYOkESOkXtIkAw4CBBwpBHu+/a/YQ=
 github.com/gofiber/utils/v2 v2.6.3/go.mod h1:Mq3OXwyBPxORb3jPafy6Swki4/TJJW9TDPHeerXkXpg=
 github.com/golang-jwt/jwt/v5 v5.3.1 h1:kYf81DTWFe7t+1VvL7eS+jKFVWaUnK9cB1qbwn63YCY=
@@ -257,8 +257,8 @@ go.opentelemetry.io/otel/metric v1.47.0 h1:4PptaldXx3Eat1XjMZ68pPJEs5wrhlemctZE9
 go.opentelemetry.io/otel/metric v1.47.0/go.mod h1:ADGSXxRrXM6bjbvLo535EstVFlPpPYZm4LBKixjDHwU=
 go.opentelemetry.io/otel/trace v1.47.0 h1:JOjX/Oci8K94QHddo+bbfya/Ai/nf6/dt9ZfrFNWSrM=
 go.opentelemetry.io/otel/trace v1.47.0/go.mod h1:jNaSLa2PZEYFG6fRjJABAu+bw4FS08uDmPg28lTghu0=
-go.shabbyrobe.org/num v0.0.0-20261016232232-efa8c5488d98 h1:fGhd41TSQ8y3M7f+iV7Zxote1gmc390AjQsvEkvCXpE=
-go.shabbyrobe.org/num v0.0.0-20261016232232-efa8c5488d98/go.mod h1:OS6j44IfGeBnE7UZLMHFHXC+9hxl58xYR0JRPdRY7wg=
+go.shabbyrobe.org/num v0.0.0-20261028130751-970578f34ea0 h1:XafnMr6pyf+sJZIMgrPrwvm/iB3Kn2SibR7TV57ws6Q=
+go.shabbyrobe.org/num v0.0.0-20261028130751-970578f34ea0/go.mod h1:OS6j44IfGeBnE7UZLMHFHXC+9hxl58xYR0JRPdRY7wg=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
 go.uber.org/goleak v1.3.0/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE=
 go.uber.org/multierr v1.11.0 h1:blXXJkSxSSfBVBlC76pxqeO+LN3aDfLQo+309xJstO0=
