@@ -17,7 +17,7 @@ import (
 	"unsafe"
 	"uuid"
 
-	"github.com/goccy/go-json"
+	"github.com/goccy/go-json/v2"
 	"github.com/godruoyi/go-snowflake"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/roysitumorang/sadia/keys"
@@ -144,10 +144,10 @@ func GetEnv() string {
 
 func Transcode(input, output any) error {
 	buffer := new(bytes.Buffer)
-	if err := json.NewEncoder(buffer).Encode(input); err != nil {
+	if err := json.MarshalWrite(buffer, input); err != nil {
 		return err
 	}
-	return json.NewDecoder(buffer).Decode(output)
+	return json.UnmarshalRead(buffer, output)
 }
 
 func GetJwtIssuer() string {

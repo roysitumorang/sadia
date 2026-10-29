@@ -13,7 +13,7 @@ import (
 	"github.com/coregx/coregex"
 	"github.com/dustin/go-humanize"
 	"github.com/getsentry/sentry-go"
-	"github.com/goccy/go-json"
+	"github.com/goccy/go-json/v2"
 	"github.com/gofiber/contrib/v3/monitor"
 	fibersentry "github.com/gofiber/contrib/v3/sentry"
 	"github.com/gofiber/contrib/v3/swaggo"
@@ -63,9 +63,13 @@ func (q *Service) HTTPServerMain(ctx context.Context) error {
 	sessionStore.RegisterType(&helper.FlashMessage{})
 	app := fiber.New(fiber.Config{
 		RegexHandler: coregex.MustCompile,
-		JSONEncoder:  json.Marshal,
-		JSONDecoder:  json.Unmarshal,
-		Views:        engine,
+		JSONEncoder: func(v any) ([]byte, error) {
+			return json.Marshal(v)
+		},
+		JSONDecoder: func(data []byte, v any) error {
+			return json.Unmarshal(data, v)
+		},
+		Views: engine,
 		ErrorHandler: func(ctx fiber.Ctx, err error) error {
 			statusCode := fiber.StatusInternalServerError
 			if e, ok := errors.AsType[*fiber.Error](err); ok {

@@ -6,7 +6,7 @@ require (
 	github.com/coregx/coregex v0.12.30
 	github.com/dustin/go-humanize v1.1.0
 	github.com/getsentry/sentry-go v0.50.0
-	github.com/goccy/go-json v0.11.2
+	github.com/goccy/go-json v0.12.0
 	github.com/godruoyi/go-snowflake v0.0.2
 	github.com/gofiber/contrib/v3/monitor v1.2.3
 	github.com/gofiber/contrib/v3/sentry v1.1.14
