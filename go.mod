@@ -28,7 +28,7 @@ require (
 	github.com/sqids/sqids-go v0.4.1
 	github.com/swaggo/swag v1.16.6
 	github.com/twmb/franz-go v1.22.2
-	github.com/xuri/excelize/v2 v2.11.1-0.20261020033641-611b222fd8f7
+	github.com/xuri/excelize/v2 v2.11.1
 	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/sync v0.24.0
@@ -79,7 +79,7 @@ require (
 	github.com/valkey-io/valkey-go v1.0.79 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.77.0 // indirect
-	github.com/xuri/efp v0.0.2 // indirect
+	github.com/xuri/efp v0.0.3-0.20260924042702-217b81952dec // indirect
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.shabbyrobe.org/num v0.0.0-20261028130751-970578f34ea0 // indirect
