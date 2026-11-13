@@ -8,18 +8,18 @@ require (
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/goccy/go-json v0.12.0
 	github.com/godruoyi/go-snowflake v0.0.2
-	github.com/gofiber/contrib/v3/monitor v1.2.5
-	github.com/gofiber/contrib/v3/sentry v1.1.16
-	github.com/gofiber/contrib/v3/swaggo v1.0.16
-	github.com/gofiber/contrib/v3/zap v1.0.17
+	github.com/gofiber/contrib/v3/monitor v1.2.6
+	github.com/gofiber/contrib/v3/sentry v1.1.17
+	github.com/gofiber/contrib/v3/swaggo v1.0.17
+	github.com/gofiber/contrib/v3/zap v1.0.18
 	github.com/gofiber/fiber/v3 v3.7.0
 	github.com/gofiber/storage/valkey v0.4.3
-	github.com/gofiber/template/jet/v3 v3.0.13
-	github.com/gofiber/utils/v2 v2.6.4
+	github.com/gofiber/template/jet/v3 v3.0.14
+	github.com/gofiber/utils/v2 v2.6.5
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/govalues/decimal v0.1.36
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
-	github.com/jackc/pgx/v5 v5.12.0
+	github.com/jackc/pgx/v5 v5.13.0
 	github.com/joho/godotenv v1.5.1
 	github.com/nyaruka/phonenumbers v1.8.1
 	github.com/pg-uint/pgx-pg-uint128/v2 v2.0.0
@@ -30,7 +30,7 @@ require (
 	github.com/twmb/franz-go v1.22.3
 	github.com/xuri/excelize/v2 v2.11.1
 	go.uber.org/zap v1.28.0
-	golang.org/x/crypto v0.58.0
+	golang.org/x/crypto v0.59.0
 	golang.org/x/sync v0.25.0
 )
 
