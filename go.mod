@@ -51,8 +51,8 @@ require (
 	github.com/go-openapi/swag/stringutils v0.29.2 // indirect
 	github.com/go-openapi/swag/typeutils v0.29.2 // indirect
 	github.com/go-openapi/swag/yamlutils v0.29.2 // indirect
-	github.com/gofiber/schema v1.9.5 // indirect
-	github.com/gofiber/template/v2 v2.1.6 // indirect
+	github.com/gofiber/schema v1.10.0 // indirect
+	github.com/gofiber/template/v2 v2.1.7 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
