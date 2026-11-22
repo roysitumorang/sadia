@@ -64,7 +64,7 @@ require (
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/molecule-man/go-brrr v1.3.1 // indirect
 	github.com/philhofer/fwd v1.2.1 // indirect
-	github.com/pierrec/lz4/v4 v4.1.33 // indirect
+	github.com/pierrec/lz4/v4 v4.1.34 // indirect
 	github.com/power-devops/perfstat v0.0.0-20260916203055-22a1a467d9f0 // indirect
 	github.com/richardlehane/mscfb v1.0.10 // indirect
 	github.com/richardlehane/msoleps v1.0.6 // indirect
